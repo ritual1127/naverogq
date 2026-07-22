@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+ezdxf>=1.4
+PyMuPDF>=1.28
+google-genai>=1.0
+requests>=2.32

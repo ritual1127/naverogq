@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventor 도면 설계 오류 자동 검출기</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Inventor 도면 설계 오류 자동 검출기</h1>
+    <p class="subtitle">DXF / PDF / DWG / IPT / IAM / IDW 파일을 업로드하면 치수 누락·공차 미표기·KS 표준 위반 후보를 검출합니다.</p>
+
+    <section class="upload-box">
+      <input type="file" id="fileInput" accept=".dxf,.pdf,.dwg,.ipt,.iam,.idw">
+      <button id="analyzeBtn">분석하기</button>
+    </section>
+
+    <p id="status"></p>
+
+    <section id="ruleResults" class="results hidden">
+      <h2>규칙 기반 검출 결과</h2>
+      <table id="ruleTable"></table>
+    </section>
+
+    <section id="aiResults" class="results hidden">
+      <h2>Gemini AI 검토 결과</h2>
+      <table id="aiTable"></table>
+    </section>
+
+    <button id="downloadBtn" class="hidden">결과 JSON 다운로드</button>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
