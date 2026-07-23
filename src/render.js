@@ -6,12 +6,26 @@ const SEVERITY_COLOR = { high: "#ff5470", medium: "#ffb454", low: "#3ddc97" };
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 const CATEGORY_LABEL = {
   missing_dimension: "치수 누락",
+  extra_dimension: "치수 중복/과잉",
   missing_tolerance: "공차 누락",
+  dimension_placement: "치수 위치 오류",
+  centerline_error: "중심선 오류",
+  hidden_line_error: "숨은선 오류",
+  projection_error: "투상도/정렬 오류",
+  line_type_error: "선종류/선굵기 오류",
+  symmetry_error: "대칭 오류",
+  geometry_mismatch: "형상 불일치",
+  titleblock_error: "표제란 오류",
   standard_violation: "표준 위반",
 };
 
 function escapeXml(s) {
   return String(s).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]));
+}
+
+// ①②③... 유니코드 원문자 (1~20), 그 이상은 "(21)" 식으로 폴백.
+function circledNumber(n) {
+  return n >= 1 && n <= 20 ? String.fromCodePoint(0x2460 + n - 1) : `(${n})`;
 }
 
 function computeBounds(data) {
@@ -121,7 +135,7 @@ export function renderDxfSvg(data, findings) {
     const dy = -markerR * 7;
     const lx = cx + dx;
     const ly = cy + dy;
-    const title = CATEGORY_LABEL[category] || "문제 발견";
+    const title = `${circledNumber(labelToggle)} ${CATEGORY_LABEL[category] || "문제 발견"}`;
     const descLines = description ? wrapText(description, maxCharsPerLine) : [];
 
     const titleWidth = title.length * fontSize * 0.62;
