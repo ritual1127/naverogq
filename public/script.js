@@ -81,18 +81,29 @@ function worstFindingByLocation(findings) {
   return byLocation;
 }
 
-function placeApsMarkers(viewer, svgLayer, findings) {
+// 라이브 3D 뷰어를 계속 띄워놓고 카메라를 움직일 때마다 마커를 다시 그리면
+// 어긋나기 쉽고 무겁다 — 모델 로드가 끝난 시점의 뷰를 스냅샷(이미지)으로
+// 한 번 캡처해서, 그 위에 화살표를 고정으로 그린 정적 결과물을 보여준다.
+function resolveApsMarkers(viewer, findings) {
   const byLocation = worstFindingByLocation(findings);
-  if (!byLocation.size) return;
+  if (!byLocation.size) return Promise.resolve([]);
 
-  const hits = []; // { dbId, severity, category, description }
-  let pending = byLocation.size;
-  let toggle = 0;
+  const searches = [...byLocation].map(
+    ([location, finding]) =>
+      new Promise((resolve) => {
+        viewer.search(
+          location,
+          (dbIds) => resolve(dbIds.map((dbId) => ({ dbId, ...finding }))),
+          () => resolve([]),
+          ["Layer", "name"]
+        );
+      })
+  );
 
-  const layout = () => {
-    while (svgLayer.firstChild) svgLayer.removeChild(svgLayer.firstChild);
+  return Promise.all(searches).then((groups) => {
     const box = new Float32Array(6);
-    for (const { dbId, severity, category, description } of hits) {
+    const markers = [];
+    for (const { dbId, severity, category, description } of groups.flat()) {
       try {
         viewer.model.getInstanceTree().getNodeBox(dbId, box);
       } catch {
@@ -101,52 +112,14 @@ function placeApsMarkers(viewer, svgLayer, findings) {
       if (!Number.isFinite(box[0])) continue;
       const center = { x: (box[0] + box[3]) / 2, y: (box[1] + box[4]) / 2, z: (box[2] + box[5]) / 2 };
       const p = viewer.worldToClient(center);
-      toggle += 1;
-      const dir = toggle % 2 === 0 ? 1 : -1;
-      const lx = p.x + 46 * dir;
-      const ly = p.y - 40;
-      const color = SEVERITY_COLOR[severity] || SEVERITY_COLOR.low;
-      const label = CATEGORY_LABEL[category] || "문제 발견";
-
-      svgLayer.insertAdjacentHTML(
-        "beforeend",
-        `<circle cx="${p.x}" cy="${p.y}" r="10" fill="${color}" opacity="0.22" />` +
-          `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${color}" stroke="#06070d" stroke-width="1.5">` +
-          `<title>${description ? description.replace(/[<>&]/g, "") : label}</title></circle>` +
-          `<line x1="${lx}" y1="${ly}" x2="${p.x}" y2="${p.y}" stroke="${color}" stroke-width="2" marker-end="url(#aps-arrowhead-${severity})" />` +
-          `<rect x="${dir > 0 ? lx : lx - label.length * 13 - 12}" y="${ly - 16}" width="${label.length * 13 + 12}" height="22" rx="4" fill="#06070d" stroke="${color}" stroke-width="1.2" />` +
-          `<text x="${dir > 0 ? lx + 6 : lx - label.length * 13 - 6}" y="${ly - 1}" font-size="13" font-family="Consolas, monospace" font-weight="700" fill="${color}">${label}</text>`
-      );
+      markers.push({ x: p.x, y: p.y, severity, category, description });
     }
-  };
-
-  const onDone = () => {
-    pending -= 1;
-    if (pending > 0) return;
-    if (!hits.length) return;
-    layout();
-    viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, layout);
-  };
-
-  for (const [location, finding] of byLocation) {
-    viewer.search(
-      location,
-      (dbIds) => {
-        for (const dbId of dbIds) hits.push({ dbId, ...finding });
-        onDone();
-      },
-      onDone,
-      ["Layer", "name"]
-    );
-  }
+    return markers;
+  });
 }
 
-let apsViewerReady = false;
-async function renderApsViewer(urn, findings) {
-  await loadApsViewerLibs();
-  const wrap = document.createElement("div");
-  wrap.className = "aps-viewer";
-  const arrowheadDefs = Object.entries(SEVERITY_COLOR)
+function apsArrowheadDefs() {
+  return Object.entries(SEVERITY_COLOR)
     .map(
       ([sev, color]) =>
         `<marker id="aps-arrowhead-${sev}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
@@ -154,11 +127,37 @@ async function renderApsViewer(urn, findings) {
          </marker>`
     )
     .join("");
-  wrap.insertAdjacentHTML(
-    "beforeend",
-    `<svg class="aps-marker-layer" xmlns="http://www.w3.org/2000/svg"><defs>${arrowheadDefs}</defs><g class="markers"></g></svg>`
-  );
-  const svgLayer = wrap.querySelector(".aps-marker-layer .markers");
+}
+
+function renderApsMarkerSvg(markers, width, height) {
+  let toggle = 0;
+  const shapes = markers
+    .map(({ x, y, severity, category, description }) => {
+      toggle += 1;
+      const dir = toggle % 2 === 0 ? 1 : -1;
+      const lx = x + 46 * dir;
+      const ly = y - 40;
+      const s = SEVERITY_COLOR[severity] ? severity : "low";
+      const color = SEVERITY_COLOR[s];
+      const label = CATEGORY_LABEL[category] || "문제 발견";
+      const safeDesc = (description || label).replace(/[<>&]/g, "");
+      return (
+        `<circle cx="${x}" cy="${y}" r="10" fill="${color}" opacity="0.22" />` +
+        `<circle cx="${x}" cy="${y}" r="5" fill="${color}" stroke="#06070d" stroke-width="1.5"><title>${safeDesc}</title></circle>` +
+        `<line x1="${lx}" y1="${ly}" x2="${x}" y2="${y}" stroke="${color}" stroke-width="2" marker-end="url(#aps-arrowhead-${s})" />` +
+        `<rect x="${dir > 0 ? lx : lx - label.length * 13 - 12}" y="${ly - 16}" width="${label.length * 13 + 12}" height="22" rx="4" fill="#06070d" stroke="${color}" stroke-width="1.2" />` +
+        `<text x="${dir > 0 ? lx + 6 : lx - label.length * 13 - 6}" y="${ly - 1}" font-size="13" font-family="Consolas, monospace" font-weight="700" fill="${color}">${label}</text>`
+      );
+    })
+    .join("");
+  return `<svg class="aps-marker-layer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><defs>${apsArrowheadDefs()}</defs>${shapes}</svg>`;
+}
+
+let apsViewerReady = false;
+async function renderApsViewer(urn, findings) {
+  await loadApsViewerLibs();
+  const wrap = document.createElement("div");
+  wrap.className = "aps-viewer";
   diagramContainer.appendChild(wrap);
 
   const initOptions = {
@@ -172,31 +171,46 @@ async function renderApsViewer(urn, findings) {
     },
   };
 
-  const start = () => {
-    const viewer = new Autodesk.Viewing.GuiViewer3D(wrap);
-    viewer.start();
-    viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, function onLoaded() {
-      viewer.removeEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, onLoaded);
-      placeApsMarkers(viewer, svgLayer, findings);
+  const loadAndCapture = () =>
+    new Promise((resolve, reject) => {
+      const viewer = new Autodesk.Viewing.GuiViewer3D(wrap);
+      viewer.start();
+      viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, async function onLoaded() {
+        viewer.removeEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, onLoaded);
+        try {
+          viewer.fitToView();
+          const markers = await resolveApsMarkers(viewer, findings);
+          const rect = wrap.getBoundingClientRect();
+          viewer.getScreenShot(undefined, undefined, (blobUrl) => {
+            viewer.finish();
+            wrap.innerHTML =
+              `<img class="aps-snapshot" src="${blobUrl}" alt="도면 스냅샷" />` +
+              renderApsMarkerSvg(markers, rect.width, rect.height);
+            resolve();
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
+      Autodesk.Viewing.Document.load(
+        `urn:${urn}`,
+        (doc) => {
+          const viewables = doc.getRoot().getDefaultGeometry();
+          viewer.loadDocumentNode(doc, viewables);
+        },
+        (code, msg) => reject(new Error(msg || String(code)))
+      );
     });
-    Autodesk.Viewing.Document.load(
-      `urn:${urn}`,
-      (doc) => {
-        const viewables = doc.getRoot().getDefaultGeometry();
-        viewer.loadDocumentNode(doc, viewables);
-      },
-      (code, msg) => setStatus(`도면 뷰어 로드 실패: ${msg || code}`, true)
-    );
-  };
 
-  if (apsViewerReady) {
-    start();
-  } else {
-    Autodesk.Viewing.Initializer(initOptions, () => {
-      apsViewerReady = true;
-      start();
+  if (!apsViewerReady) {
+    await new Promise((resolve) => {
+      Autodesk.Viewing.Initializer(initOptions, () => {
+        apsViewerReady = true;
+        resolve();
+      });
     });
   }
+  await loadAndCapture();
 }
 
 function renderDiagram(diagram) {
