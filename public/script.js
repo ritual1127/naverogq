@@ -44,12 +44,81 @@ function loadApsViewerLibs() {
   return apsViewerLoading;
 }
 
+const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
+
+function dotClass(sev) {
+  return ["high", "medium", "low"].includes(sev) ? `dot-${sev}` : "dot-low";
+}
+
+// 레이어/객체명(location_hint)별로 가장 심각한 findings만 남겨서, 뷰어 안의
+// 실제 요소(dbId)를 찾아 그 위에 점을 찍는다 — DXF SVG 마커와 같은 방식.
+function worstSeverityByLocation(findings) {
+  const byLocation = new Map();
+  for (const f of findings || []) {
+    if (!f.location_hint) continue;
+    const cur = byLocation.get(f.location_hint);
+    if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur]) byLocation.set(f.location_hint, f.severity);
+  }
+  return byLocation;
+}
+
+function placeApsMarkers(viewer, markerLayer, findings) {
+  const byLocation = worstSeverityByLocation(findings);
+  if (!byLocation.size) return;
+
+  const hits = []; // { dbId, severity }
+  let pending = byLocation.size;
+
+  const layout = () => {
+    markerLayer.innerHTML = "";
+    const box = new Float32Array(6);
+    for (const { dbId, severity } of hits) {
+      try {
+        viewer.model.getInstanceTree().getNodeBox(dbId, box);
+      } catch {
+        continue;
+      }
+      if (!Number.isFinite(box[0])) continue;
+      const center = { x: (box[0] + box[3]) / 2, y: (box[1] + box[4]) / 2, z: (box[2] + box[5]) / 2 };
+      const p = viewer.worldToClient(center);
+      const dot = document.createElement("div");
+      dot.className = `aps-marker ${dotClass(severity)}`;
+      dot.style.left = `${p.x}px`;
+      dot.style.top = `${p.y}px`;
+      markerLayer.appendChild(dot);
+    }
+  };
+
+  const onDone = () => {
+    pending -= 1;
+    if (pending > 0) return;
+    if (!hits.length) return;
+    layout();
+    viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, layout);
+  };
+
+  for (const [location, severity] of byLocation) {
+    viewer.search(
+      location,
+      (dbIds) => {
+        for (const dbId of dbIds) hits.push({ dbId, severity });
+        onDone();
+      },
+      onDone,
+      undefined
+    );
+  }
+}
+
 let apsViewerReady = false;
-async function renderApsViewer(urn) {
+async function renderApsViewer(urn, findings) {
   await loadApsViewerLibs();
-  const div = document.createElement("div");
-  div.className = "aps-viewer";
-  diagramContainer.appendChild(div);
+  const wrap = document.createElement("div");
+  wrap.className = "aps-viewer";
+  const markerLayer = document.createElement("div");
+  markerLayer.className = "aps-marker-layer";
+  wrap.appendChild(markerLayer);
+  diagramContainer.appendChild(wrap);
 
   const initOptions = {
     env: "AutodeskProduction2",
@@ -63,8 +132,12 @@ async function renderApsViewer(urn) {
   };
 
   const start = () => {
-    const viewer = new Autodesk.Viewing.GuiViewer3D(div);
+    const viewer = new Autodesk.Viewing.GuiViewer3D(wrap);
     viewer.start();
+    viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, function onLoaded() {
+      viewer.removeEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, onLoaded);
+      placeApsMarkers(viewer, markerLayer, findings);
+    });
     Autodesk.Viewing.Document.load(
       `urn:${urn}`,
       (doc) => {
@@ -94,7 +167,7 @@ function renderDiagram(diagram) {
   if (diagram.type === "svg") {
     diagramContainer.innerHTML = diagram.svg;
   } else if (diagram.type === "viewer") {
-    renderApsViewer(diagram.urn).catch((e) => setStatus(`도면 뷰어 로드 실패: ${e.message}`, true));
+    renderApsViewer(diagram.urn, diagram.findings).catch((e) => setStatus(`도면 뷰어 로드 실패: ${e.message}`, true));
   } else if (diagram.type === "raster") {
     const img = document.createElement("img");
     img.src = `data:image/png;base64,${diagram.base64}`;

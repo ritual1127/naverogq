@@ -83,13 +83,18 @@ async function handleAnalyze(request, env) {
   }
 
   // 도면 위에 문제 위치를 표시한 이미지 — DXF는 직접 렌더링(SVG). APS 계열은
-  // 좌표 데이터가 없어 마커는 못 찍지만, 저해상도 썸네일 대신 Autodesk APS
-  // Viewer로 실제 모델을 확대/회전까지 되게 보여준다.
+  // findings를 프론트엔드로 넘겨서, 뷰어가 로드된 후 location_hint와 일치하는
+  // 레이어/객체를 찾아(viewer.search) 그 위에 점을 찍는다 (public/script.js).
   let diagram = null;
   if (dxfData) {
     diagram = { type: "svg", svg: renderDxfSvg(dxfData, [...ruleFindings, ...aiFindings]) };
   } else if (apsUrn) {
-    diagram = { type: "viewer", urn: apsUrn, note: "정확한 문제 위치 마커는 지원하지 않습니다 — 모델을 직접 확대/회전해서 확인하세요." };
+    diagram = {
+      type: "viewer",
+      urn: apsUrn,
+      findings: [...ruleFindings, ...aiFindings],
+      note: "레이어/객체명이 일치하는 위치에 마커를 표시합니다 — 일치하는 요소가 없으면 표시되지 않을 수 있습니다.",
+    };
   } else if (imageBytes) {
     diagram = { type: "raster", base64: bytesToBase64(imageBytes) };
   }
