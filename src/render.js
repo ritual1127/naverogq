@@ -4,6 +4,11 @@
 
 const SEVERITY_COLOR = { high: "#ff5470", medium: "#ffb454", low: "#3ddc97" };
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
+const CATEGORY_LABEL = {
+  missing_dimension: "치수 누락",
+  missing_tolerance: "공차 누락",
+  standard_violation: "표준 위반",
+};
 
 function escapeXml(s) {
   return String(s).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]));
@@ -25,8 +30,9 @@ function computeBounds(data) {
   for (const d of data.dimensions) consider(d.x, d.y);
 
   if (!Number.isFinite(minX)) return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
-  const padX = Math.max((maxX - minX) * 0.08, 2);
-  const padY = Math.max((maxY - minY) * 0.08, 2);
+  // 넉넉하게 여백을 둬서 화살표+라벨이 도면 밖으로 잘리지 않게 한다.
+  const padX = Math.max((maxX - minX) * 0.22, 4);
+  const padY = Math.max((maxY - minY) * 0.22, 4);
   return { minX: minX - padX, minY: minY - padY, maxX: maxX + padX, maxY: maxY + padY };
 }
 
@@ -43,14 +49,17 @@ function arcPath(cx, cy, r, startDeg, endDeg, flipY) {
   return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} ${flipY ? 0 : 1} ${x2} ${y2}`;
 }
 
-// Which findings apply to which layer, keeping the worst severity per layer.
+// Which findings apply to which layer, keeping the worst finding per layer
+// (severity + its category, so the arrow label matches what's actually wrong).
 function worstSeverityByLayer(findings) {
   const byLayer = new Map();
   const unplaced = [];
   for (const f of findings) {
     if (!f.location_hint) { unplaced.push(f); continue; }
     const cur = byLayer.get(f.location_hint);
-    if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur]) byLayer.set(f.location_hint, f.severity);
+    if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur.severity]) {
+      byLayer.set(f.location_hint, { severity: f.severity, category: f.category, description: f.description });
+    }
   }
   return { byLayer, unplaced };
 }
@@ -75,22 +84,46 @@ export function renderDxfSvg(data, findings) {
   }
 
   const markerR = Math.max(width, height) * 0.018;
-  const dotMarker = (cx, cy, color, title) =>
-    `<circle cx="${cx}" cy="${cy}" r="${markerR * 2.2}" fill="${color}" opacity="0.18" />` +
-    `<circle cx="${cx}" cy="${cy}" r="${markerR}" fill="${color}" stroke="#06070d" stroke-width="${markerR * 0.25}">` +
-    (title ? `<title>${escapeXml(title)}</title>` : "") +
-    `</circle>`;
+  const fontSize = Math.max(width, height) * 0.026;
+  let labelToggle = 0;
+
+  // 점만 찍으면 뭐가 문제인지 안 보이니, 문제 지점에서 화살표(리더선)로 당겨서
+  // 짧은 라벨(치수 누락/공차 누락/표준 위반)을 직접 적어준다.
+  const arrowMarker = (cx, cy, severity, category, title) => {
+    const color = SEVERITY_COLOR[severity] || SEVERITY_COLOR.low;
+    labelToggle += 1;
+    const dir = labelToggle % 2 === 0 ? 1 : -1;
+    const dx = markerR * 7 * dir;
+    const dy = -markerR * 7;
+    const lx = cx + dx;
+    const ly = cy + dy;
+    const label = CATEGORY_LABEL[category] || "문제 발견";
+    const textWidth = label.length * fontSize * 0.62 + fontSize;
+    const boxX = dir > 0 ? lx : lx - textWidth;
+
+    return (
+      `<circle cx="${cx}" cy="${cy}" r="${markerR * 2.2}" fill="${color}" opacity="0.18" />` +
+      `<circle cx="${cx}" cy="${cy}" r="${markerR}" fill="${color}" stroke="#06070d" stroke-width="${markerR * 0.25}">` +
+      (title ? `<title>${escapeXml(title)}</title>` : "") +
+      `</circle>` +
+      `<line x1="${lx}" y1="${ly}" x2="${cx}" y2="${cy}" stroke="${color}" stroke-width="${markerR * 0.35}" marker-end="url(#arrowhead-${severity})" />` +
+      `<rect x="${boxX}" y="${ly - fontSize * 0.9}" width="${textWidth}" height="${fontSize * 1.4}" rx="3" fill="#06070d" stroke="${color}" stroke-width="${markerR * 0.15}" />` +
+      `<text x="${dir > 0 ? lx + fontSize * 0.4 : lx - textWidth + fontSize * 0.4}" y="${ly + fontSize * 0.15}" font-size="${fontSize}" fill="${color}" font-weight="700">${escapeXml(label)}` +
+      (title ? `<title>${escapeXml(title)}</title>` : "") +
+      `</text>`
+    );
+  };
 
   const markers = [];
   for (const dim of data.dimensions) {
     if (dim.x == null || dim.y == null || !dim.layer) continue;
-    const sev = byLayer.get(dim.layer);
-    if (!sev) continue;
-    markers.push(dotMarker(dim.x, y(dim.y), SEVERITY_COLOR[sev] || SEVERITY_COLOR.low));
+    const found = byLayer.get(dim.layer);
+    if (!found) continue;
+    markers.push(arrowMarker(dim.x, y(dim.y), found.severity, found.category, found.description));
   }
 
   // KS 도면은 형상 요소마다 치수가 있어야 하므로, 치수가 하나도 없는 레이어의
-  // 형상 위에 직접 점을 찍어 "어디에" 치수가 빠졌는지 짚어준다 (배지 텍스트 대신).
+  // 형상 위에 직접 화살표를 그어 "어디에" 치수가 빠졌는지 짚어준다 (배지 텍스트 대신).
   const layersWithDims = new Set(data.dimensions.map((d) => d.layer).filter(Boolean));
   const shapeCenter = (s) => {
     if (s.type === "LINE") return { x: (s.x1 + s.x2) / 2, y: y((s.y1 + s.y2) / 2) };
@@ -105,11 +138,9 @@ export function renderDxfSvg(data, findings) {
       stillUnplaced.push(f);
       continue;
     }
-    const color = SEVERITY_COLOR[f.severity] || SEVERITY_COLOR.low;
-    for (const s of bareShapes) {
-      const { x: cx, y: cy } = shapeCenter(s);
-      markers.push(dotMarker(cx, cy, color, f.description));
-    }
+    // 도형마다 다 그리면 화살표/라벨이 서로 겹치니, 대표로 하나만 짚어준다.
+    const { x: cx, y: cy } = shapeCenter(bareShapes[0]);
+    markers.push(arrowMarker(cx, cy, f.severity, f.category, f.description));
   }
 
   const badge = stillUnplaced.length
@@ -119,7 +150,17 @@ export function renderDxfSvg(data, findings) {
        </g>`
     : "";
 
+  const arrowheadDefs = Object.entries(SEVERITY_COLOR)
+    .map(
+      ([sev, color]) =>
+        `<marker id="arrowhead-${sev}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+           <path d="M0,0 L6,3 L0,6 Z" fill="${color}" />
+         </marker>`
+    )
+    .join("\n");
+
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${width} ${height}" font-family="monospace">
+    <defs>${arrowheadDefs}</defs>
     <style>
       .geom { stroke: #4a5468; stroke-width: ${Math.max(width, height) * 0.0025}; vector-effect: non-scaling-stroke; }
     </style>
