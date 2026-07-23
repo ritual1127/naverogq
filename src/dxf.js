@@ -154,6 +154,28 @@ function checkMissingTolerance(data) {
   return findings;
 }
 
+// AI/OCR 최적화 표준: "4-Ø10" 같은 하이픈 표기 대신 "4XØ10"(ISO/ASME 국제 표준
+// 구분자)을 권장한다. %%c는 옛 AutoCAD DXF에서 지름 기호(Ø)를 나타내는 표기.
+const HOLE_CALLOUT_HYPHEN = /(\d+)\s*-\s*(%%[Cc]|[ØøΦφ⌀])/;
+
+function checkHoleCalloutNotation(data) {
+  const findings = [];
+  const allTexts = [...data.texts, ...data.dimensions.map((d) => d.text).filter(Boolean)];
+  for (const text of allTexts) {
+    const match = text.match(HOLE_CALLOUT_HYPHEN);
+    if (match) {
+      findings.push({
+        category: "standard_violation",
+        description: `"${match[0]}" — 하이픈 표기(N-Ø) 대신 국제 표준 구분자 "${match[1]}XØ" 표기를 권장합니다 (AI/OCR 파싱 정확도 향상).`,
+        severity: "low",
+        location_hint: null,
+        source: "rule",
+      });
+    }
+  }
+  return findings;
+}
+
 // 형상 요소 수 대비 치수 개수만으로 판단하는 부분이라 DXF/APS 양쪽에서 재사용.
 export function checkMissingDimensionFromCounts(geometryTotal, dimCount) {
   const findings = [];
@@ -229,6 +251,7 @@ export function runAllChecks(data) {
     ...checkMissingTolerance(data),
     ...checkMissingDimension(data),
     ...checkDuplicateDimensions(data),
+    ...checkHoleCalloutNotation(data),
     ...checkDimstyleDefined(data),
   ];
 }

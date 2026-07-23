@@ -76,23 +76,9 @@ main {
 }
 
 .banner {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.03em;
-  text-align: center;
-  color: var(--cyan);
-  padding: 0.55rem 1rem;
-  background: linear-gradient(90deg, rgba(0, 240, 255, 0.08), rgba(168, 85, 247, 0.08));
-  border-bottom: 1px solid var(--border);
-}
-.banner-bottom {
-  color: var(--muted);
-  border-top: 1px solid var(--border);
-  border-bottom: none;
-}
-
-@media (max-width: 520px) {
-  .banner { font-size: 0.68rem; padding: 0.5rem 0.75rem; }
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* HUD corner-bracket frame, reused on major panels */
