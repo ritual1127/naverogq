@@ -45,10 +45,12 @@ function loadApsViewerLibs() {
 }
 
 const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
-
-function dotClass(sev) {
-  return ["high", "medium", "low"].includes(sev) ? `dot-${sev}` : "dot-low";
-}
+const SEVERITY_COLOR = { high: "#ff5470", medium: "#ffb454", low: "#3ddc97" };
+const CATEGORY_LABEL = {
+  missing_dimension: "치수 누락",
+  missing_tolerance: "공차 누락",
+  standard_violation: "표준 위반",
+};
 
 // AI가 location_hint에 "레이어 0, 2, MOT"처럼 접두어/나열을 붙여도 검색은 되게,
 // 토큰 단위로 쪼개서 각각 뷰어에서 찾는다. 의미 없는 placeholder 단어는 버린다.
@@ -61,31 +63,34 @@ function extractLocationTokens(hint) {
     .filter((t) => t && !LOCATION_STOPWORDS.has(t.toLowerCase()));
 }
 
-// 레이어/객체명(location_hint)별로 가장 심각한 findings만 남겨서, 뷰어 안의
-// 실제 요소(dbId)를 찾아 그 위에 점을 찍는다 — DXF SVG 마커와 같은 방식.
-function worstSeverityByLocation(findings) {
+// 레이어/객체명(location_hint)별로 가장 심각한 finding만 남겨서(카테고리/설명 포함),
+// 뷰어 안의 실제 요소(dbId)를 찾아 그 위에 화살표+라벨을 그린다 — DXF SVG와 같은 방식.
+function worstFindingByLocation(findings) {
   const byLocation = new Map();
   for (const f of findings || []) {
     if (!f.location_hint) continue;
     for (const token of extractLocationTokens(f.location_hint)) {
       const cur = byLocation.get(token);
-      if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur]) byLocation.set(token, f.severity);
+      if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur.severity]) {
+        byLocation.set(token, { severity: f.severity, category: f.category, description: f.description });
+      }
     }
   }
   return byLocation;
 }
 
-function placeApsMarkers(viewer, markerLayer, findings) {
-  const byLocation = worstSeverityByLocation(findings);
+function placeApsMarkers(viewer, svgLayer, findings) {
+  const byLocation = worstFindingByLocation(findings);
   if (!byLocation.size) return;
 
-  const hits = []; // { dbId, severity }
+  const hits = []; // { dbId, severity, category, description }
   let pending = byLocation.size;
+  let toggle = 0;
 
   const layout = () => {
-    markerLayer.innerHTML = "";
+    while (svgLayer.firstChild) svgLayer.removeChild(svgLayer.firstChild);
     const box = new Float32Array(6);
-    for (const { dbId, severity } of hits) {
+    for (const { dbId, severity, category, description } of hits) {
       try {
         viewer.model.getInstanceTree().getNodeBox(dbId, box);
       } catch {
@@ -94,11 +99,22 @@ function placeApsMarkers(viewer, markerLayer, findings) {
       if (!Number.isFinite(box[0])) continue;
       const center = { x: (box[0] + box[3]) / 2, y: (box[1] + box[4]) / 2, z: (box[2] + box[5]) / 2 };
       const p = viewer.worldToClient(center);
-      const dot = document.createElement("div");
-      dot.className = `aps-marker ${dotClass(severity)}`;
-      dot.style.left = `${p.x}px`;
-      dot.style.top = `${p.y}px`;
-      markerLayer.appendChild(dot);
+      toggle += 1;
+      const dir = toggle % 2 === 0 ? 1 : -1;
+      const lx = p.x + 46 * dir;
+      const ly = p.y - 40;
+      const color = SEVERITY_COLOR[severity] || SEVERITY_COLOR.low;
+      const label = CATEGORY_LABEL[category] || "문제 발견";
+
+      svgLayer.insertAdjacentHTML(
+        "beforeend",
+        `<circle cx="${p.x}" cy="${p.y}" r="10" fill="${color}" opacity="0.22" />` +
+          `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${color}" stroke="#06070d" stroke-width="1.5">` +
+          `<title>${description ? description.replace(/[<>&]/g, "") : label}</title></circle>` +
+          `<line x1="${lx}" y1="${ly}" x2="${p.x}" y2="${p.y}" stroke="${color}" stroke-width="2" marker-end="url(#aps-arrowhead-${severity})" />` +
+          `<rect x="${dir > 0 ? lx : lx - label.length * 13 - 12}" y="${ly - 16}" width="${label.length * 13 + 12}" height="22" rx="4" fill="#06070d" stroke="${color}" stroke-width="1.2" />` +
+          `<text x="${dir > 0 ? lx + 6 : lx - label.length * 13 - 6}" y="${ly - 1}" font-size="13" font-family="Consolas, monospace" font-weight="700" fill="${color}">${label}</text>`
+      );
     }
   };
 
@@ -110,11 +126,11 @@ function placeApsMarkers(viewer, markerLayer, findings) {
     viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, layout);
   };
 
-  for (const [location, severity] of byLocation) {
+  for (const [location, finding] of byLocation) {
     viewer.search(
       location,
       (dbIds) => {
-        for (const dbId of dbIds) hits.push({ dbId, severity });
+        for (const dbId of dbIds) hits.push({ dbId, ...finding });
         onDone();
       },
       onDone,
@@ -128,9 +144,19 @@ async function renderApsViewer(urn, findings) {
   await loadApsViewerLibs();
   const wrap = document.createElement("div");
   wrap.className = "aps-viewer";
-  const markerLayer = document.createElement("div");
-  markerLayer.className = "aps-marker-layer";
-  wrap.appendChild(markerLayer);
+  const arrowheadDefs = Object.entries(SEVERITY_COLOR)
+    .map(
+      ([sev, color]) =>
+        `<marker id="aps-arrowhead-${sev}" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+           <path d="M0,0 L6,3 L0,6 Z" fill="${color}" />
+         </marker>`
+    )
+    .join("");
+  wrap.insertAdjacentHTML(
+    "beforeend",
+    `<svg class="aps-marker-layer" xmlns="http://www.w3.org/2000/svg"><defs>${arrowheadDefs}</defs><g class="markers"></g></svg>`
+  );
+  const svgLayer = wrap.querySelector(".aps-marker-layer .markers");
   diagramContainer.appendChild(wrap);
 
   const initOptions = {
@@ -149,7 +175,7 @@ async function renderApsViewer(urn, findings) {
     viewer.start();
     viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, function onLoaded() {
       viewer.removeEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, onLoaded);
-      placeApsMarkers(viewer, markerLayer, findings);
+      placeApsMarkers(viewer, svgLayer, findings);
     });
     Autodesk.Viewing.Document.load(
       `urn:${urn}`,
