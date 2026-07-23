@@ -52,14 +52,16 @@ const CATEGORY_LABEL = {
   standard_violation: "표준 위반",
 };
 
-// AI가 location_hint에 "레이어 0, 2, MOT"처럼 접두어/나열을 붙여도 검색은 되게,
-// 토큰 단위로 쪼개서 각각 뷰어에서 찾는다. 의미 없는 placeholder 단어는 버린다.
+// AI가 location_hint에 "레이어 0, 2, MOT"처럼 접두어/나열을 붙여도 검색은 되게
+// 쉼표 기준으로만 쪼갠다 — "중심 표식(ISO)"처럼 실제 레이어명 안에 공백이 있을 수
+// 있어서 공백으로는 쪼개면 안 된다. 접두어(레이어/layer)만 골라서 제거한다.
 const LOCATION_STOPWORDS = new Set(["layer", "layers", "레이어", "location", "unknown", "n/a", ""]);
+const LOCATION_PREFIX = /^(레이어|layer)\s*[:：]?\s*/i;
 
 function extractLocationTokens(hint) {
   return hint
-    .split(/[,\s]+/)
-    .map((t) => t.trim())
+    .split(",")
+    .map((t) => t.trim().replace(LOCATION_PREFIX, "").trim())
     .filter((t) => t && !LOCATION_STOPWORDS.has(t.toLowerCase()));
 }
 
