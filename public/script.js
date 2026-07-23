@@ -100,19 +100,40 @@ function resolveApsMarkers(viewer, findings) {
       })
   );
 
+  // dbId 하나가 레이어 전체(선 여러 개)를 가리키는 경우가 많아서, dbId의 전체
+  // bbox 중심을 쓰면 화살표가 도면 한가운데 빈 공간에 꽂힌다. instanceTree의
+  // fragment(개별 선/원/호 단위) bbox를 각각 구해서, 실제 선 위에 정확히 찍는다
+  // — 매칭되는 fragment 수만큼 화살표가 나온다.
   return Promise.all(searches).then((groups) => {
-    const box = new Float32Array(6);
+    const tree = viewer.model.getInstanceTree();
+    const fragList = viewer.model.getFragmentList();
+    const box = new THREE.Box3();
     const markers = [];
     for (const { dbId, severity, category, description } of groups.flat()) {
+      const fragIds = [];
       try {
-        viewer.model.getInstanceTree().getNodeBox(dbId, box);
+        tree.enumNodeFragments(dbId, (fragId) => fragIds.push(fragId), false);
       } catch {
         continue;
       }
-      if (!Number.isFinite(box[0])) continue;
-      const center = { x: (box[0] + box[3]) / 2, y: (box[1] + box[4]) / 2, z: (box[2] + box[5]) / 2 };
-      const p = viewer.worldToClient(center);
-      markers.push({ x: p.x, y: p.y, severity, category, description });
+      // ponytail: 위치당 40개로 캡 — 레이어 하나에 수백 개 선이 몰리면 화살표가
+      // 도면을 뒤덮으니, 실제로 필요하면 캡을 올리거나 fragment를 클러스터링.
+      for (const fragId of fragIds.slice(0, 40)) {
+        box.makeEmpty();
+        try {
+          fragList.getWorldBounds(fragId, box);
+        } catch {
+          continue;
+        }
+        if (box.isEmpty()) continue;
+        const center = {
+          x: (box.min.x + box.max.x) / 2,
+          y: (box.min.y + box.max.y) / 2,
+          z: (box.min.z + box.max.z) / 2,
+        };
+        const p = viewer.worldToClient(center);
+        markers.push({ x: p.x, y: p.y, severity, category, description });
+      }
     }
     return markers;
   });
