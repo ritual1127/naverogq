@@ -48,7 +48,16 @@ const SEVERITY_RANK = { high: 3, medium: 2, low: 1 };
 const SEVERITY_COLOR = { high: "#ff5470", medium: "#ffb454", low: "#3ddc97" };
 const CATEGORY_LABEL = {
   missing_dimension: "치수 누락",
+  extra_dimension: "치수 중복/과잉",
   missing_tolerance: "공차 누락",
+  dimension_placement: "치수 위치 오류",
+  centerline_error: "중심선 오류",
+  hidden_line_error: "숨은선 오류",
+  projection_error: "투상도/정렬 오류",
+  line_type_error: "선종류/선굵기 오류",
+  symmetry_error: "대칭 오류",
+  geometry_mismatch: "형상 불일치",
+  titleblock_error: "표제란 오류",
   standard_violation: "표준 위반",
 };
 
@@ -145,6 +154,11 @@ function resolveApsMarkers(viewer, findings) {
   });
 }
 
+// ①②③... 유니코드 원문자 (1~20), 그 이상은 "(21)" 식으로 폴백.
+function circledNumber(n) {
+  return n >= 1 && n <= 20 ? String.fromCodePoint(0x2460 + n - 1) : `(${n})`;
+}
+
 function apsArrowheadDefs() {
   return Object.entries(SEVERITY_COLOR)
     .map(
@@ -169,7 +183,7 @@ function renderApsMarkerSvg(markers, width, height, unmatched) {
       const ly = y - 70;
       const s = SEVERITY_COLOR[severity] ? severity : "low";
       const color = SEVERITY_COLOR[s];
-      const label = CATEGORY_LABEL[category] || "문제 발견";
+      const label = `${circledNumber(toggle)} ${CATEGORY_LABEL[category] || "문제 발견"}`;
       const safeDesc = (description || label).replace(/[<>&]/g, "");
       const boxW = label.length * 15 + 20;
       const boxX = dir > 0 ? lx : lx - boxW;
@@ -190,7 +204,7 @@ function renderApsMarkerSvg(markers, width, height, unmatched) {
          ${unmatched
            .map(
              (f, i) =>
-               `<text x="12" y="${48 + i * 24}" font-size="13" fill="${SEVERITY_COLOR[f.severity] || SEVERITY_COLOR.low}" font-family="Consolas, monospace">• ${CATEGORY_LABEL[f.category] || "문제"}: ${(f.description || "").replace(/[<>&]/g, "").slice(0, 40)}</text>`
+               `<text x="12" y="${48 + i * 24}" font-size="13" fill="${SEVERITY_COLOR[f.severity] || SEVERITY_COLOR.low}" font-family="Consolas, monospace">${circledNumber(toggle + i + 1)} ${CATEGORY_LABEL[f.category] || "문제"}: ${(f.description || "").replace(/[<>&]/g, "").slice(0, 40)}</text>`
            )
            .join("")}
        </g>`
