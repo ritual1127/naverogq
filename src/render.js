@@ -30,9 +30,9 @@ function computeBounds(data) {
   for (const d of data.dimensions) consider(d.x, d.y);
 
   if (!Number.isFinite(minX)) return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
-  // 넉넉하게 여백을 둬서 화살표+라벨이 도면 밖으로 잘리지 않게 한다.
-  const padX = Math.max((maxX - minX) * 0.22, 4);
-  const padY = Math.max((maxY - minY) * 0.22, 4);
+  // 넉넉하게 여백을 둬서 화살표+설명 박스(여러 줄)가 도면 밖으로 잘리지 않게 한다.
+  const padX = Math.max((maxX - minX) * 0.3, 6);
+  const padY = Math.max((maxY - minY) * 0.35, 6);
   return { minX: minX - padX, minY: minY - padY, maxX: maxX + padX, maxY: maxY + padY };
 }
 
@@ -85,11 +85,35 @@ export function renderDxfSvg(data, findings) {
 
   const markerR = Math.max(width, height) * 0.018;
   const fontSize = Math.max(width, height) * 0.026;
+  const descFontSize = fontSize * 0.82;
+  const maxCharsPerLine = 18;
   let labelToggle = 0;
 
+  // 문장을 maxChars 기준으로 단어 단위로 감아서 여러 줄로 만든다 (SVG text는 자동 줄바꿈이 안 됨).
+  const wrapText = (text, maxChars) => {
+    const lines = [];
+    let cur = "";
+    for (let word of text.split(/\s+/).filter(Boolean)) {
+      while (word.length > maxChars) {
+        if (cur) { lines.push(cur); cur = ""; }
+        lines.push(word.slice(0, maxChars));
+        word = word.slice(maxChars);
+      }
+      const next = cur ? `${cur} ${word}` : word;
+      if (next.length > maxChars) {
+        lines.push(cur);
+        cur = word;
+      } else {
+        cur = next;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+
   // 점만 찍으면 뭐가 문제인지 안 보이니, 문제 지점에서 화살표(리더선)로 당겨서
-  // 짧은 라벨(치수 누락/공차 누락/표준 위반)을 직접 적어준다.
-  const arrowMarker = (cx, cy, severity, category, title) => {
+  // 카테고리 제목 + 설명 전문을 여러 줄 말풍선으로 적어준다 (제목만으론 부족해서 상세 설명까지 노출).
+  const arrowMarker = (cx, cy, severity, category, description) => {
     const color = SEVERITY_COLOR[severity] || SEVERITY_COLOR.low;
     labelToggle += 1;
     const dir = labelToggle % 2 === 0 ? 1 : -1;
@@ -97,20 +121,30 @@ export function renderDxfSvg(data, findings) {
     const dy = -markerR * 7;
     const lx = cx + dx;
     const ly = cy + dy;
-    const label = CATEGORY_LABEL[category] || "문제 발견";
-    const textWidth = label.length * fontSize * 0.62 + fontSize;
+    const title = CATEGORY_LABEL[category] || "문제 발견";
+    const descLines = description ? wrapText(description, maxCharsPerLine) : [];
+
+    const titleWidth = title.length * fontSize * 0.62;
+    const descWidth = descLines.reduce((max, l) => Math.max(max, l.length * descFontSize * 0.62), 0);
+    const textWidth = Math.max(titleWidth, descWidth) + fontSize;
     const boxX = dir > 0 ? lx : lx - textWidth;
+    const lineGap = descFontSize * 1.35;
+    const boxTop = ly - fontSize * 0.9;
+    const boxHeight = fontSize * 1.4 + descLines.length * lineGap + (descLines.length ? fontSize * 0.3 : 0);
+    const textX = dir > 0 ? lx + fontSize * 0.4 : lx - textWidth + fontSize * 0.4;
+
+    const descTspans = descLines
+      .map((l, i) => `<tspan x="${textX}" dy="${i === 0 ? fontSize * 1.1 : lineGap}" font-size="${descFontSize}" font-weight="400" fill="#e8e8ec">${escapeXml(l)}</tspan>`)
+      .join("");
 
     return (
       `<circle cx="${cx}" cy="${cy}" r="${markerR * 2.2}" fill="${color}" opacity="0.18" />` +
       `<circle cx="${cx}" cy="${cy}" r="${markerR}" fill="${color}" stroke="#06070d" stroke-width="${markerR * 0.25}">` +
-      (title ? `<title>${escapeXml(title)}</title>` : "") +
+      (description ? `<title>${escapeXml(description)}</title>` : "") +
       `</circle>` +
       `<line x1="${lx}" y1="${ly}" x2="${cx}" y2="${cy}" stroke="${color}" stroke-width="${markerR * 0.35}" marker-end="url(#arrowhead-${severity})" />` +
-      `<rect x="${boxX}" y="${ly - fontSize * 0.9}" width="${textWidth}" height="${fontSize * 1.4}" rx="3" fill="#06070d" stroke="${color}" stroke-width="${markerR * 0.15}" />` +
-      `<text x="${dir > 0 ? lx + fontSize * 0.4 : lx - textWidth + fontSize * 0.4}" y="${ly + fontSize * 0.15}" font-size="${fontSize}" fill="${color}" font-weight="700">${escapeXml(label)}` +
-      (title ? `<title>${escapeXml(title)}</title>` : "") +
-      `</text>`
+      `<rect x="${boxX}" y="${boxTop}" width="${textWidth}" height="${boxHeight}" rx="3" fill="#06070d" stroke="${color}" stroke-width="${markerR * 0.15}" />` +
+      `<text x="${textX}" y="${ly + fontSize * 0.15}" font-size="${fontSize}" fill="${color}" font-weight="700">${escapeXml(title)}${descTspans}</text>`
     );
   };
 
