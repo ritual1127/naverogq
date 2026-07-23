@@ -133,5 +133,22 @@ export async function extractViaAps(env, filename, bytes) {
   const base64Urn = await translate(token, urn);
   const manifest = await waitForTranslation(token, base64Urn);
   const thumbnail = await getThumbnail(token, base64Urn);
-  return { manifestStatus: manifest.status, imageBytes: thumbnail };
+  return { manifestStatus: manifest.status, imageBytes: thumbnail, urn: base64Urn };
+}
+
+// Short-lived, read-only token for the APS Viewer running in the browser —
+// separate from the upload/translate token above, which stays server-side.
+export async function getViewerToken(env) {
+  const resp = await fetch(`${APS_BASE}/authentication/v2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: env.APS_CLIENT_ID,
+      client_secret: env.APS_CLIENT_SECRET,
+      scope: "viewables:read",
+    }),
+  });
+  if (!resp.ok) throw new APSError(`뷰어 토큰 발급 실패: ${resp.status} ${await bodySnippet(resp)}`);
+  return resp.json(); // { access_token, expires_in, token_type }
 }

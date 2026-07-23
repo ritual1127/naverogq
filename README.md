@@ -32,7 +32,9 @@ DXF / PDF / DWG / IPT / IAM / IDW 도면 파일을 업로드하면 치수 누락
 - DXF는 그룹코드를 직접 태그 파싱해 치수/텍스트/레이어/도형 좌표를 추출하고, 같은 데이터로
   KS 기준 규칙 검사와 문제 위치가 표시된 SVG 도면을 함께 만듭니다.
 - DWG/IPT/IAM/IDW는 Inventor 네이티브 포맷이라 순수 코드로 못 열어서, Autodesk Platform
-  Services에 업로드 → 변환 → 썸네일 추출까지만 하고 정밀 판단은 AI에 맡깁니다.
+  Services에 업로드 → 변환한 뒤, 프론트엔드에 내장한 **Autodesk APS Viewer**로 실제 모델을
+  확대/회전까지 되게 보여줍니다 (`/aps-token`이 뷰어 전용 단기 토큰을 발급). 정밀 치수 판단은
+  AI(썸네일 기반)에 맡깁니다.
 - AI 검토는 원래 Google Gemini REST API를 직접 호출했으나, **Cloudflare Workers의 이그레스
   IP가 Google 쪽에서 지역 차단(`FAILED_PRECONDITION`)되는 문제**가 있어 Cloudflare Workers AI
   (Llama 3.3 70B, JSON 스키마 구조화 출력)로 교체했습니다. 외부 AI 공급자 호출 자체가 없어져서
@@ -102,9 +104,11 @@ docs/brand-guidelines.md  # 디자인 시스템 (컬러/타이포/로고 규칙)
 ## 이번 버전에서 제외한 것
 
 - DWG/IPT/IAM/IDW의 정밀 치수 추출: Inventor Design Automation AppBundle이 있어야 가능한
-  범위라 이번 버전에서는 썸네일 이미지 기반 AI 판단까지만 지원합니다.
+  범위라, 이번 버전은 Autodesk APS Viewer로 모델을 직접 확대/회전해서 보여주고 AI 판단은
+  썸네일 이미지 기반까지만 지원합니다. 문제 위치 마커 오버레이(SVG)는 좌표 데이터가 있는
+  DXF만 지원합니다.
 - PDF 페이지의 이미지 기반 시각 검토: Cloudflare Workers에 canvas가 없어 텍스트 추출만
-  지원하고, 도면 시각화(SVG 마커)는 DXF만 지원합니다.
+  지원합니다.
 
 ## 라이선스
 

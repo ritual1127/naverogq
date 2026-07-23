@@ -24,6 +24,67 @@ fileInput.addEventListener("change", () => {
   analyzeBtn.disabled = !file;
 });
 
+// APS Viewer는 처음 필요할 때만 CDN에서 로드 (DXF만 쓰는 사람은 안 받아도 됨).
+let apsViewerLoading = null;
+function loadApsViewerLibs() {
+  if (window.Autodesk?.Viewing) return Promise.resolve();
+  if (apsViewerLoading) return apsViewerLoading;
+  apsViewerLoading = new Promise((resolve, reject) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css";
+    document.head.appendChild(css);
+
+    const script = document.createElement("script");
+    script.src = "https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.min.js";
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("APS Viewer 라이브러리 로드 실패"));
+    document.head.appendChild(script);
+  });
+  return apsViewerLoading;
+}
+
+let apsViewerReady = false;
+async function renderApsViewer(urn) {
+  await loadApsViewerLibs();
+  const div = document.createElement("div");
+  div.className = "aps-viewer";
+  diagramContainer.appendChild(div);
+
+  const initOptions = {
+    env: "AutodeskProduction2",
+    api: "streamingV2",
+    getAccessToken: async (onTokenReady) => {
+      const res = await fetch(`${BACKEND_URL}/aps-token`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "APS 토큰 발급 실패");
+      onTokenReady(data.access_token, data.expires_in);
+    },
+  };
+
+  const start = () => {
+    const viewer = new Autodesk.Viewing.GuiViewer3D(div);
+    viewer.start();
+    Autodesk.Viewing.Document.load(
+      `urn:${urn}`,
+      (doc) => {
+        const viewables = doc.getRoot().getDefaultGeometry();
+        viewer.loadDocumentNode(doc, viewables);
+      },
+      (code, msg) => setStatus(`도면 뷰어 로드 실패: ${msg || code}`, true)
+    );
+  };
+
+  if (apsViewerReady) {
+    start();
+  } else {
+    Autodesk.Viewing.Initializer(initOptions, () => {
+      apsViewerReady = true;
+      start();
+    });
+  }
+}
+
 function renderDiagram(diagram) {
   if (!diagram) {
     diagramSection.classList.add("hidden");
@@ -32,6 +93,8 @@ function renderDiagram(diagram) {
   diagramContainer.innerHTML = "";
   if (diagram.type === "svg") {
     diagramContainer.innerHTML = diagram.svg;
+  } else if (diagram.type === "viewer") {
+    renderApsViewer(diagram.urn).catch((e) => setStatus(`도면 뷰어 로드 실패: ${e.message}`, true));
   } else if (diagram.type === "raster") {
     const img = document.createElement("img");
     img.src = `data:image/png;base64,${diagram.base64}`;

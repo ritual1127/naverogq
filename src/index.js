@@ -1,5 +1,5 @@
 import { parseDxf, runAllChecks } from "./dxf.js";
-import { extractViaAps, APSError } from "./aps.js";
+import { extractViaAps, getViewerToken, APSError } from "./aps.js";
 import { reviewDrawing, AIConfigError } from "./ai-review.js";
 import { renderDxfSvg } from "./render.js";
 import ksReference from "../Knowledge/ks_reference.md";
@@ -46,6 +46,7 @@ async function handleAnalyze(request, env) {
 
   let ruleFindings = [];
   let imageBytes = null;
+  let apsUrn = null;
   let dxfData = null;
   let summaryText = `파일명: ${file.name}\n`;
 
@@ -60,6 +61,7 @@ async function handleAnalyze(request, env) {
     } else if (APS_EXTENSIONS.has(suffix)) {
       const data = await extractViaAps(env, file.name, bytes);
       imageBytes = data.imageBytes;
+      apsUrn = data.urn;
       summaryText += JSON.stringify({ status: data.manifestStatus });
     } else {
       return json({ detail: "지원하지 않는 파일 형식입니다." }, 400);
@@ -77,14 +79,16 @@ async function handleAnalyze(request, env) {
     aiError = e instanceof AIConfigError ? e.message : `AI 검토 중 오류가 발생했습니다: ${e.message}`;
   }
 
-  // 도면 위에 문제 위치를 표시한 이미지 — DXF는 직접 렌더링(SVG), APS 계열은
-  // 좌표 데이터가 없어 원본 썸네일만 참고용으로 보여준다 (ponytail: 정확한
-  // 마커 위치는 DXF만 지원).
+  // 도면 위에 문제 위치를 표시한 이미지 — DXF는 직접 렌더링(SVG). APS 계열은
+  // 좌표 데이터가 없어 마커는 못 찍지만, 저해상도 썸네일 대신 Autodesk APS
+  // Viewer로 실제 모델을 확대/회전까지 되게 보여준다.
   let diagram = null;
   if (dxfData) {
     diagram = { type: "svg", svg: renderDxfSvg(dxfData, [...ruleFindings, ...aiFindings]) };
+  } else if (apsUrn) {
+    diagram = { type: "viewer", urn: apsUrn, note: "정확한 문제 위치 마커는 지원하지 않습니다 — 모델을 직접 확대/회전해서 확인하세요." };
   } else if (imageBytes) {
-    diagram = { type: "raster", base64: bytesToBase64(imageBytes), note: "APS 썸네일 — 정확한 문제 위치 표시는 지원하지 않습니다." };
+    diagram = { type: "raster", base64: bytesToBase64(imageBytes) };
   }
 
   return json({ rule_findings: ruleFindings, ai_findings: aiFindings, ai_error: aiError, diagram });
@@ -103,8 +107,12 @@ export default {
     if (url.pathname === "/analyze" && request.method === "POST") {
       return handleAnalyze(request, env);
     }
-    if (url.pathname === "/analyze") {
-      return new Response("Method Not Allowed", { status: 405 });
+    if (url.pathname === "/aps-token" && request.method === "GET") {
+      try {
+        return json(await getViewerToken(env));
+      } catch (e) {
+        return json({ detail: e.message }, 400);
+      }
     }
     return new Response("Not found", { status: 404 });
   },
