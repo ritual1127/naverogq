@@ -154,11 +154,9 @@ function checkMissingTolerance(data) {
   return findings;
 }
 
-function checkMissingDimension(data) {
+// 형상 요소 수 대비 치수 개수만으로 판단하는 부분이라 DXF/APS 양쪽에서 재사용.
+export function checkMissingDimensionFromCounts(geometryTotal, dimCount) {
   const findings = [];
-  const geometryTotal = data.geometry_counts.lines + data.geometry_counts.circles_arcs;
-  const dimCount = data.dimensions.length;
-
   if (geometryTotal > 0 && dimCount === 0) {
     findings.push({
       category: "missing_dimension",
@@ -177,6 +175,11 @@ function checkMissingDimension(data) {
     });
   }
   return findings;
+}
+
+function checkMissingDimension(data) {
+  const geometryTotal = data.geometry_counts.lines + data.geometry_counts.circles_arcs;
+  return checkMissingDimensionFromCounts(geometryTotal, data.dimensions.length);
 }
 
 function checkDimstyleDefined(data) {

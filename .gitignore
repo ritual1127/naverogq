@@ -10,3 +10,8 @@ env/
 .DS_Store
 node_modules/
 .wrangler/
+
+# Kaggle DWG dataset (Data/download_dwg_samples.py regenerates it) — keep
+# just one committed sample, the rest would add ~96MB of test data.
+Data/*.dwg
+!Data/075em07z.dwg

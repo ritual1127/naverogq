@@ -30,13 +30,16 @@ const FINDING_SCHEMA = {
 
 function buildPrompt(summaryText, ksReference) {
   return (
-    "다음은 CAD 도면에서 추출한 데이터입니다:\n" +
+    "다음은 CAD 도면에서 추출한 데이터입니다 (이미지는 없고, 아래 텍스트/구조화 데이터가 전부입니다):\n" +
     `${summaryText}\n\n` +
     "참고할 KS 표준 규칙 요약:\n" +
     `${ksReference}\n\n` +
     "이 도면에서 누락된 치수(missing_dimension), 누락된 공차 표기(missing_tolerance), " +
     "KS 표준 위반(standard_violation)을 찾아 findings 배열로 답하세요. " +
-    "확실하지 않으면 severity를 low로 표시하세요."
+    "확실하지 않으면 severity를 low로 표시하세요. " +
+    "location_hint는 위에 주어진 데이터에 실제로 등장하는 레이어명/객체명만 사용하고, " +
+    "'오른쪽 상단' 같은 화면상 위치는 이미지 없이는 알 수 없으니 지어내지 마세요. " +
+    "해당 데이터가 없으면 location_hint를 비워두세요."
   );
 }
 

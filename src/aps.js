@@ -4,6 +4,8 @@
 // Precise dimension extraction needs an Inventor Design Automation
 // AppBundle, which is out of scope here (same limitation as the Python version).
 
+import { checkMissingDimensionFromCounts } from "./dxf.js";
+
 const APS_BASE = "https://developer.api.autodesk.com";
 
 export class APSError extends Error {}
@@ -123,6 +125,57 @@ async function getThumbnail(token, base64Urn) {
   return resp.status === 200 ? new Uint8Array(await resp.arrayBuffer()) : null;
 }
 
+// Pulls the actual extracted object/layer data out of the translated model
+// so the AI has something real to look at instead of just a status string,
+// and so we can run the same kind of rule checks DXF gets (see
+// checkApsMissingDimension below).
+async function getMetadataSummary(token, base64Urn) {
+  const headers = { Authorization: `Bearer ${token}` };
+  const metaResp = await fetch(`${APS_BASE}/modelderivative/v2/designdata/${base64Urn}/metadata`, { headers });
+  if (!metaResp.ok) return null;
+  const meta = await metaResp.json();
+  const guid = meta?.data?.metadata?.[0]?.guid;
+  if (!guid) return null;
+
+  const propsResp = await fetch(
+    `${APS_BASE}/modelderivative/v2/designdata/${base64Urn}/metadata/${guid}/properties`,
+    { headers }
+  );
+  if (!propsResp.ok) return null;
+  const props = await propsResp.json();
+  const objects = props?.data?.collection ?? [];
+
+  const layers = new Set();
+  const entityTypeCounts = {};
+  for (const obj of objects) {
+    const name = obj.name || "";
+    const bracketIdx = name.indexOf(" [");
+    if (bracketIdx === -1) continue; // skip rollup/group nodes, keep only leaf entities
+    const type = name.slice(0, bracketIdx);
+    entityTypeCounts[type] = (entityTypeCounts[type] || 0) + 1;
+    const layerVal = obj.properties?.General?.Layer;
+    if (layerVal) layers.add(layerVal);
+  }
+
+  return {
+    view_name: meta.data.metadata[0].name,
+    object_count: objects.length,
+    entity_type_counts: entityTypeCounts,
+    layers: [...layers].slice(0, 30),
+  };
+}
+
+// DXF gets this same check from real coordinate/entity data (see
+// checkMissingDimensionFromCounts in dxf.js) — APS only gives us type
+// counts, but "geometry exists, zero Dimension entities" is still a real,
+// defensible signal rather than an AI guess.
+export function checkApsMissingDimension(metadataSummary) {
+  if (!metadataSummary) return [];
+  const counts = metadataSummary.entity_type_counts;
+  const geometryTotal = (counts.Line || 0) + (counts.Circle || 0) + (counts.Arc || 0) + (counts.Polyline || 0);
+  return checkMissingDimensionFromCounts(geometryTotal, counts.Dimension || 0);
+}
+
 export async function extractViaAps(env, filename, bytes) {
   if (!env.APS_CLIENT_ID) throw new APSError("APS_CLIENT_ID / APS_CLIENT_SECRET 환경변수가 없습니다.");
   const bucketKey = await bucketKeyFor(env.APS_CLIENT_ID);
@@ -133,7 +186,8 @@ export async function extractViaAps(env, filename, bytes) {
   const base64Urn = await translate(token, urn);
   const manifest = await waitForTranslation(token, base64Urn);
   const thumbnail = await getThumbnail(token, base64Urn);
-  return { manifestStatus: manifest.status, imageBytes: thumbnail, urn: base64Urn };
+  const metadataSummary = await getMetadataSummary(token, base64Urn);
+  return { manifestStatus: manifest.status, imageBytes: thumbnail, urn: base64Urn, metadataSummary };
 }
 
 // Short-lived, read-only token for the APS Viewer running in the browser —

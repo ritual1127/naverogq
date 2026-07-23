@@ -1,5 +1,5 @@
 import { parseDxf, runAllChecks } from "./dxf.js";
-import { extractViaAps, getViewerToken, APSError } from "./aps.js";
+import { extractViaAps, getViewerToken, checkApsMissingDimension, APSError } from "./aps.js";
 import { reviewDrawing, AIConfigError } from "./ai-review.js";
 import { renderDxfSvg } from "./render.js";
 import ksReference from "../Knowledge/ks_reference.md";
@@ -62,7 +62,10 @@ async function handleAnalyze(request, env) {
       const data = await extractViaAps(env, file.name, bytes);
       imageBytes = data.imageBytes;
       apsUrn = data.urn;
-      summaryText += JSON.stringify({ status: data.manifestStatus });
+      ruleFindings = checkApsMissingDimension(data.metadataSummary);
+      summaryText += data.metadataSummary
+        ? JSON.stringify({ status: data.manifestStatus, ...data.metadataSummary }).slice(0, 4000)
+        : JSON.stringify({ status: data.manifestStatus, note: "객체/레이어 메타데이터를 가져오지 못했습니다." });
     } else {
       return json({ detail: "지원하지 않는 파일 형식입니다." }, 400);
     }
