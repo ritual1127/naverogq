@@ -182,6 +182,32 @@ function checkMissingDimension(data) {
   return checkMissingDimensionFromCounts(geometryTotal, data.dimensions.length);
 }
 
+// KS 치수 기입 원칙 "중복 기입 금지" — 같은 값이 여러 DIMENSION에 반복 기입되면
+// 실제로 중복 표기일 가능성이 높다. measurement가 없으면(그룹코드 42 미기록)
+// 판단할 근거가 없으니 건너뛴다.
+function checkDuplicateDimensions(data) {
+  const findings = [];
+  const groups = new Map();
+  for (const dim of data.dimensions) {
+    if (dim.measurement == null) continue;
+    const key = dim.measurement.toFixed(2);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(dim);
+  }
+  for (const [value, dims] of groups) {
+    if (dims.length < 2) continue;
+    const layers = [...new Set(dims.map((d) => d.layer).filter(Boolean))];
+    findings.push({
+      category: "standard_violation",
+      description: `동일한 치수 값(${value})이 ${dims.length}곳에 중복 기입되어 있습니다 (KS 치수 기입 원칙 — 중복 기입 금지).`,
+      severity: "low",
+      location_hint: layers.join(", ") || null,
+      source: "rule",
+    });
+  }
+  return findings;
+}
+
 function checkDimstyleDefined(data) {
   const findings = [];
   for (const dim of data.dimensions) {
@@ -199,5 +225,10 @@ function checkDimstyleDefined(data) {
 }
 
 export function runAllChecks(data) {
-  return [...checkMissingTolerance(data), ...checkMissingDimension(data), ...checkDimstyleDefined(data)];
+  return [
+    ...checkMissingTolerance(data),
+    ...checkMissingDimension(data),
+    ...checkDuplicateDimensions(data),
+    ...checkDimstyleDefined(data),
+  ];
 }

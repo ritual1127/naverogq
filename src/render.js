@@ -75,24 +75,47 @@ export function renderDxfSvg(data, findings) {
   }
 
   const markerR = Math.max(width, height) * 0.018;
+  const dotMarker = (cx, cy, color, title) =>
+    `<circle cx="${cx}" cy="${cy}" r="${markerR * 2.2}" fill="${color}" opacity="0.18" />` +
+    `<circle cx="${cx}" cy="${cy}" r="${markerR}" fill="${color}" stroke="#06070d" stroke-width="${markerR * 0.25}">` +
+    (title ? `<title>${escapeXml(title)}</title>` : "") +
+    `</circle>`;
+
   const markers = [];
   for (const dim of data.dimensions) {
     if (dim.x == null || dim.y == null || !dim.layer) continue;
     const sev = byLayer.get(dim.layer);
     if (!sev) continue;
-    const cx = dim.x;
-    const cy = y(dim.y);
-    const color = SEVERITY_COLOR[sev] || SEVERITY_COLOR.low;
-    markers.push(
-      `<circle cx="${cx}" cy="${cy}" r="${markerR * 2.2}" fill="${color}" opacity="0.18" />` +
-      `<circle cx="${cx}" cy="${cy}" r="${markerR}" fill="${color}" stroke="#06070d" stroke-width="${markerR * 0.25}" />`
-    );
+    markers.push(dotMarker(dim.x, y(dim.y), SEVERITY_COLOR[sev] || SEVERITY_COLOR.low));
   }
 
-  const badge = unplaced.length
+  // KS 도면은 형상 요소마다 치수가 있어야 하므로, 치수가 하나도 없는 레이어의
+  // 형상 위에 직접 점을 찍어 "어디에" 치수가 빠졌는지 짚어준다 (배지 텍스트 대신).
+  const layersWithDims = new Set(data.dimensions.map((d) => d.layer).filter(Boolean));
+  const shapeCenter = (s) => {
+    if (s.type === "LINE") return { x: (s.x1 + s.x2) / 2, y: y((s.y1 + s.y2) / 2) };
+    return { x: s.x, y: y(s.y) };
+  };
+
+  const stillUnplaced = [];
+  for (const f of unplaced) {
+    const bareShapes =
+      f.category === "missing_dimension" ? data.shapes.filter((s) => s.layer && !layersWithDims.has(s.layer)) : [];
+    if (!bareShapes.length) {
+      stillUnplaced.push(f);
+      continue;
+    }
+    const color = SEVERITY_COLOR[f.severity] || SEVERITY_COLOR.low;
+    for (const s of bareShapes) {
+      const { x: cx, y: cy } = shapeCenter(s);
+      markers.push(dotMarker(cx, cy, color, f.description));
+    }
+  }
+
+  const badge = stillUnplaced.length
     ? `<g transform="translate(${minX + width * 0.02}, ${minY + height * 0.06})">
-         <rect x="0" y="-14" width="${16 + unplaced.length.toString().length * 9 + 40}" height="22" rx="11" fill="#ff5470" opacity="0.85" />
-         <text x="10" y="2" font-size="${Math.max(width, height) * 0.028}" fill="#06070d" font-weight="700">⚠ 도면 전체 ${unplaced.length}건</text>
+         <rect x="0" y="-14" width="${16 + stillUnplaced.length.toString().length * 9 + 40}" height="22" rx="11" fill="#ff5470" opacity="0.85" />
+         <text x="10" y="2" font-size="${Math.max(width, height) * 0.028}" fill="#06070d" font-weight="700">⚠ 도면 전체 ${stillUnplaced.length}건</text>
        </g>`
     : "";
 
