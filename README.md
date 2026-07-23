@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛠️ CADSCAN
+# CADSCAN
 
 ### Inventor 도면 설계 오류 자동 검출기 · CAD Drawing Error Detector
 
@@ -13,7 +13,7 @@
 **DXF · PDF · DWG · IPT · IAM · IDW 도면을 업로드하면, 치수 누락 · 공차 미표기 · KS 표준 위반을**
 **규칙 기반 검사 + AI가 자동으로 찾아 도면 위에 위치까지 표시해줍니다.**
 
-[🔗 라이브 데모](https://inventer-checker.smilepea.workers.dev) · [문제정의](#-문제정의) · [아키텍처](#️-아키텍처) · [실행방법](#-실행방법)
+[라이브 데모](https://inventer-checker.smilepea.workers.dev) · [문제정의](#문제정의) · [아키텍처](#아키텍처) · [실행방법](#실행방법)
 
 </div>
 
@@ -27,7 +27,7 @@
 
 ---
 
-## 🎯 문제정의
+## 문제정의
 
 기계설계 실습·현장에서 도면(Inventor/AutoCAD 산출물)에 치수 누락, 공차 미표기, KS 표준
 위반이 섞여 나가면 후공정(가공·조립)에서야 발견되어 재작업 비용이 커집니다. 사람이 도면을
@@ -35,7 +35,7 @@
 업로드하는 것만으로 규칙 기반 1차 검사 + AI 2차 검토를 자동으로 수행하고, **문제가 도면의
 어느 위치에서 발생했는지 시각적으로 표시**하여 검토 시간을 줄입니다.
 
-## 🏗️ 아키텍처
+## 아키텍처
 
 프론트엔드와 백엔드를 하나의 Cloudflare Worker로 묶어서 배포합니다 (별도 서버 없음).
 
@@ -63,7 +63,7 @@
   (Llama 3.3 70B, JSON 스키마 구조화 출력)로 교체했습니다. 외부 AI 공급자 호출 자체가 없어져서
   네트워크 경계 문제가 근본적으로 사라집니다.
 
-## 🧰 사용 스택
+## 사용 스택
 
 | 영역 | 기술 |
 |---|---|
@@ -75,7 +75,7 @@
 | PDF 파싱 | [`unpdf`](https://github.com/unjs/unpdf) (edge 런타임용 pdf.js 래퍼) |
 | 배포 도구 | Wrangler |
 
-## 🚀 실행방법
+## 실행방법
 
 ```bash
 npm install
@@ -93,14 +93,14 @@ npx wrangler secret put APS_CLIENT_SECRET
 > `GOOGLE_API_KEY`는 더 이상 사용하지 않습니다 (Workers AI로 대체). AI 검토는 Workers AI 바인딩
 > (`wrangler.toml`의 `[ai]`)만 있으면 별도 키 없이 동작합니다.
 
-## 🔐 환경변수 / 바인딩
+## 환경변수 / 바인딩
 
 | 이름 | 필수 여부 | 설명 |
 |---|---|---|
 | `AI` (바인딩) | 필수 | Cloudflare Workers AI — AI 검토 담당 |
 | `APS_CLIENT_ID` / `APS_CLIENT_SECRET` | DWG/IPT/IAM/IDW 분석 시에만 | Autodesk Platform Services 앱 자격증명 |
 
-## 📁 파일 구조
+## 파일 구조
 
 ```text
 public/                   # 프론트엔드 정적 파일 (index.html, style.css, script.js, favicon.svg)
@@ -116,7 +116,7 @@ wrangler.toml             # Worker 설정 (assets, AI 바인딩)
 docs/brand-guidelines.md  # 디자인 시스템 (컬러/타이포/로고 규칙)
 ```
 
-## 🤖 AI 사용 내역 (공개 원칙)
+## AI 사용 내역 (공개 원칙)
 
 - **개발 보조**: Claude (Anthropic, Claude Code / Sonnet 5) — 코드 작성, 리팩터링, 디버깅 전반
 - **런타임 AI 모델**: Cloudflare Workers AI `@cf/meta/llama-3.3-70b-instruct-fp8-fast` — 규칙
@@ -126,7 +126,7 @@ docs/brand-guidelines.md  # 디자인 시스템 (컬러/타이포/로고 규칙)
 - **외부 API**: Autodesk Platform Services (Model Derivative API) — DWG/IPT/IAM/IDW 변환
 - 외부 자문 없음
 
-## 🚧 이번 버전에서 제외한 것
+## 이번 버전에서 제외한 것
 
 - DWG/IPT/IAM/IDW의 정밀 치수 추출: Inventor Design Automation AppBundle이 있어야 가능한
   범위라, 이번 버전은 Autodesk APS Viewer로 모델을 직접 확대/회전해서 보여주고 AI 판단은
@@ -135,12 +135,12 @@ docs/brand-guidelines.md  # 디자인 시스템 (컬러/타이포/로고 규칙)
 - PDF 페이지의 이미지 기반 시각 검토: Cloudflare Workers에 canvas가 없어 텍스트 추출만
   지원합니다.
 
-## 📄 라이선스
+## 라이선스
 
 MIT License — [`LICENSE`](./LICENSE) 참고.
 
 <div align="center">
 
-<sub>Built with 🤖 <a href="https://claude.com/claude-code">Claude Code</a> · Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></sub>
+<sub>Built with <a href="https://claude.com/claude-code">Claude Code</a> · Powered by <a href="https://workers.cloudflare.com/">Cloudflare Workers</a></sub>
 
 </div>
