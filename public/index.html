@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CADSCAN // Inventor 도면 설계 오류 자동 검출기</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="scanline-overlay"></div>
+
+  <main>
+    <header class="hero hud-frame">
+      <div class="logo">
+        <svg viewBox="0 0 64 64" aria-hidden="true" class="logo-mark">
+          <defs>
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#00f0ff"/>
+              <stop offset="1" stop-color="#a855f7"/>
+            </linearGradient>
+          </defs>
+          <polygon points="32,2 60,17 60,47 32,62 4,47 4,17" fill="none" stroke="url(#logoGrad)" stroke-width="2.5"/>
+          <polygon points="32,9 53,20.5 53,43.5 32,55 11,43.5 11,20.5" fill="none" stroke="url(#logoGrad)" stroke-width="1" opacity="0.5"/>
+          <path d="M15 32 L49 32" stroke="url(#logoGrad)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M15 23 L15 41 M49 23 L49 41 M24 27 L24 37 M40 27 L40 37 M32 25 L32 39" stroke="url(#logoGrad)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="3" fill="#00f0ff" class="logo-pulse"/>
+          <path d="M2 2 L2 10 M2 2 L10 2" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+          <path d="M62 2 L62 10 M62 2 L54 2" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+          <path d="M2 62 L2 54 M2 62 L10 62" stroke="#a855f7" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+          <path d="M62 62 L62 54 M62 62 L54 62" stroke="#a855f7" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+        </svg>
+        <span class="logo-text">CAD<em>SCAN</em><i class="cursor">_</i></span>
+      </div>
+      <span class="tag">&gt; AI · RULE-BASED CAD REVIEW SYSTEM</span>
+      <h1 class="glitch">INVENTOR <span class="accent">도면 설계 오류</span> 자동 검출기</h1>
+      <p class="subtitle">DXF / PDF / DWG / IPT / IAM / IDW 파일을 업로드하면 치수 누락 · 공차 미표기 · KS 표준 위반 후보를 검출합니다.</p>
+    </header>
+
+    <section class="upload-box hud-frame">
+      <label class="file-label" for="fileInput">
+        <span id="fileNameDisplay">&gt; 파일을 선택하세요_</span>
+      </label>
+      <input type="file" id="fileInput" accept=".dxf,.pdf,.dwg,.ipt,.iam,.idw">
+      <button id="analyzeBtn" disabled>
+        <span class="btn-label">분석 실행</span>
+      </button>
+    </section>
+
+    <section id="progressPanel" class="progress-panel hud-frame hidden">
+      <div class="scan-bar"><div class="scan-fill"></div></div>
+      <ul class="steps">
+        <li data-step="upload"><span class="dot"></span>파일 업로드</li>
+        <li data-step="rule"><span class="dot"></span>규칙 기반 검사 (DXF/치수/공차)</li>
+        <li data-step="ai"><span class="dot"></span>AI 모델 분석 (Workers AI)</li>
+        <li data-step="done"><span class="dot"></span>결과 정리</li>
+      </ul>
+    </section>
+
+    <p id="status"></p>
+
+    <section id="diagramResult" class="results diagram-section hud-frame hidden">
+      <h2><span class="section-icon"></span>도면 시각화 <span class="legend-note">— 마커 위치에서 문제 발견</span></h2>
+      <div class="legend">
+        <span class="legend-item"><i class="dot-high"></i>HIGH</span>
+        <span class="legend-item"><i class="dot-medium"></i>MEDIUM</span>
+        <span class="legend-item"><i class="dot-low"></i>LOW</span>
+      </div>
+      <div id="diagramContainer" class="diagram-container"></div>
+      <p id="diagramNote" class="diagram-note"></p>
+    </section>
+
+    <section id="ruleResults" class="results hidden">
+      <h2><span class="section-icon"></span>규칙 기반 검출 결과</h2>
+      <div id="ruleCards" class="cards"></div>
+    </section>
+
+    <section id="aiResults" class="results hidden">
+      <h2><span class="section-icon ai"></span>AI 검토 결과</h2>
+      <div id="aiCards" class="cards"></div>
+    </section>
+
+    <button id="downloadBtn" class="hidden secondary">결과 JSON 다운로드</button>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
