@@ -37,9 +37,11 @@ function buildPrompt(summaryText, ksReference) {
     "이 도면에서 누락된 치수(missing_dimension), 누락된 공차 표기(missing_tolerance), " +
     "KS 표준 위반(standard_violation)을 찾아 findings 배열로 답하세요. " +
     "확실하지 않으면 severity를 low로 표시하세요. " +
-    "location_hint는 위에 주어진 데이터에 실제로 등장하는 레이어명/객체명만 사용하고, " +
+    "location_hint는 위 데이터의 layers 배열에 있는 값 중 정확히 하나만 그대로 복사해서 쓰세요 " +
+    "('레이어 0'처럼 접두어를 붙이거나 '0, 2, MOT'처럼 여러 개를 나열하지 마세요 — " +
+    "여러 레이어에 해당하면 finding을 레이어別로 각각 따로 만드세요). " +
     "'오른쪽 상단' 같은 화면상 위치는 이미지 없이는 알 수 없으니 지어내지 마세요. " +
-    "해당 데이터가 없으면 location_hint를 비워두세요."
+    "해당하는 레이어를 특정할 수 없으면 location_hint를 빈 문자열로 두세요."
   );
 }
 

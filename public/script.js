@@ -50,14 +50,27 @@ function dotClass(sev) {
   return ["high", "medium", "low"].includes(sev) ? `dot-${sev}` : "dot-low";
 }
 
+// AI가 location_hint에 "레이어 0, 2, MOT"처럼 접두어/나열을 붙여도 검색은 되게,
+// 토큰 단위로 쪼개서 각각 뷰어에서 찾는다. 의미 없는 placeholder 단어는 버린다.
+const LOCATION_STOPWORDS = new Set(["layer", "layers", "레이어", "location", "unknown", "n/a", ""]);
+
+function extractLocationTokens(hint) {
+  return hint
+    .split(/[,\s]+/)
+    .map((t) => t.trim())
+    .filter((t) => t && !LOCATION_STOPWORDS.has(t.toLowerCase()));
+}
+
 // 레이어/객체명(location_hint)별로 가장 심각한 findings만 남겨서, 뷰어 안의
 // 실제 요소(dbId)를 찾아 그 위에 점을 찍는다 — DXF SVG 마커와 같은 방식.
 function worstSeverityByLocation(findings) {
   const byLocation = new Map();
   for (const f of findings || []) {
     if (!f.location_hint) continue;
-    const cur = byLocation.get(f.location_hint);
-    if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur]) byLocation.set(f.location_hint, f.severity);
+    for (const token of extractLocationTokens(f.location_hint)) {
+      const cur = byLocation.get(token);
+      if (!cur || SEVERITY_RANK[f.severity] > SEVERITY_RANK[cur]) byLocation.set(token, f.severity);
+    }
   }
   return byLocation;
 }
@@ -105,7 +118,7 @@ function placeApsMarkers(viewer, markerLayer, findings) {
         onDone();
       },
       onDone,
-      undefined
+      ["Layer", "name"]
     );
   }
 }
