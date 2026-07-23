@@ -129,12 +129,12 @@ function resolveApsMarkers(viewer, findings) {
             continue;
           }
           if (box.isEmpty()) continue;
-          const center = {
-            x: (box.min.x + box.max.x) / 2,
-            y: (box.min.y + box.max.y) / 2,
-            z: (box.min.z + box.max.z) / 2,
-          };
+          // worldToClient needs a real THREE.Vector3 (not a plain {x,y,z}) —
+          // passing a plain object silently produced garbage screen
+          // coordinates that all collapsed near the canvas center.
+          const center = box.getCenter(new THREE.Vector3());
           const p = viewer.worldToClient(center);
+          if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
           markers.push({ x: p.x, y: p.y, ...finding });
           placed += 1;
         }
