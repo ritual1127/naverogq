@@ -1,9 +1,15 @@
-# CADSCAN — Inventor 도면 설계 오류 자동 검출기
+# CADSCAN — Inventor 도면 설계 오류 자동 검출기 (CAD Drawing Error Detector)
 
 > 제4회 NAVER OGQ마켓 AI Competition 출품작 · 트랙: **AI × 산업 혁신**
 
-DXF / PDF / DWG / IPT / IAM / IDW 도면 파일을 업로드하면 치수 누락 · 공차 미표기 · KS 표준
-위반 후보를 자동으로 검출하는 웹 서비스입니다.
+**CADSCAN**은 DXF / PDF / DWG / IPT / IAM / IDW **CAD 도면 파일**을 업로드하면 **치수 누락
+(missing dimension) · 공차 미표기(missing tolerance) · KS 표준 위반(KS standard violation)**
+후보를 규칙 기반 검사 + AI(LLM) 검토로 자동 검출하고, 문제 위치를 도면 위에 시각적으로
+표시해주는 웹 서비스입니다.
+
+**키워드**: CAD 도면 검사, 설계 오류 자동 검출, Inventor 도면 검토, AutoCAD DXF 파서,
+치수 검토 자동화, 공차 검토, KS 표준 검사, 기계설계 QA, 도면 시각화(SVG), Autodesk Platform
+Services(APS) 연동, Cloudflare Workers AI, LLM 기반 CAD 리뷰, 제조업 품질관리 AI
 
 **라이브 서비스**: https://inventer-checker.smilepea.workers.dev
 
