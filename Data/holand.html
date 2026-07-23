@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>홀랜드 직업 흥미유형 검사</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-hover: #2980b9;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e2e8f0;
+        }
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; max-width: 850px; margin: 0 auto; padding: 30px 20px; background-color: var(--bg); color: var(--text); }
+        h1 { text-align: center; color: var(--text); margin-bottom: 10px; font-size: 2rem; }
+        .subtitle { text-align: center; color: var(--text-light); margin-bottom: 40px; font-size: 1rem; }
+        
+        .type-section { background: var(--card-bg); padding: 25px; margin-bottom: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.03); border: 1px solid var(--border); }
+        .type-title { font-size: 1.3rem; font-weight: bold; padding-bottom: 8px; margin-bottom: 20px; color: var(--primary); border-bottom: 2px solid var(--border); }
+        
+        .q-item { display: flex; align-items: center; margin-bottom: 14px; cursor: pointer; padding: 10px 12px; border-radius: 6px; transition: background 0.2s; border: 1px solid transparent; }
+        .q-item:hover { background-color: #f0f7fc; border-color: #e0effa; }
+        .q-item input { margin-right: 15px; width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
+        .q-text { font-size: 1rem; user-select: none; }
+        
+        .btn-container { text-align: center; margin: 40px 0; }
+        button { background-color: var(--primary); color: white; border: none; padding: 15px 40px; font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.1s; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+        button:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+        
+        #result { display: none; background: var(--card-bg); padding: 35px; border-radius: 12px; border: 2px solid var(--primary); margin-top: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .result-title { font-size: 1.6rem; font-weight: bold; color: var(--text); margin-bottom: 25px; text-align: center; }
+        .top-code-box { text-align: center; background: #e8f4fd; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .top-code { font-size: 1.8rem; font-weight: bold; color: #e74c3c; }
+        
+        .score-container { margin-top: 20px; }
+        .score-row { margin-bottom: 18px; }
+        .score-info { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; }
+        .graph-bar-bg { background: var(--border); height: 16px; border-radius: 8px; overflow: hidden; }
+        .graph-bar-fill { background: var(--primary); height: 100%; width: 0%; border-radius: 8px; transition: width 1s ease-out; }
+        .save-notice { text-align: center; color: var(--text-light); font-size: 0.9rem; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>홀랜드(Holland) 직업 흥미유형 검사</h1>
+    <div class="subtitle">나에게 해당하거나 평소 관심 있는 항목에 모두 체크해 보세요. (총 60문항)</div>
+
+    <form id="quizForm">
+        <!-- R 유형 -->
+        <div class="type-section" data-type="R">
+            <div class="type-title">현장형 (Realistic)</div>
+            <label class="q-item"><input type="checkbox"><span class="q-text">기계나 장비를 분해하고 조립하는 것을 즐긴다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">말보다 직접 몸으로 움직여 해결하는 편이다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">손재주가 좋다는 말을 자주 듣는다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">실외나 현장에서 활동하는 일을 좋아한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">가구나 목제품을 직접 만드는 것에 흥미가 있다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">자동차나 자전거의 간단한 고장은 스스로 고친다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">복잡한 이론보다 눈에 보이는 현실적인 결과물이 중요하다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">운동, 등산, 캠핑 등 신체 활동을 즐긴다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">정밀한 도구나 측정 장비를 다루는 것이 재미있다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">식물을 키우거나 동물을 돌보는 일에 소질이 있다.</span></label>
+        </div>
+
+        <!-- I 유형 -->
+        <div class="type-section" data-type="I">
+            <div class="type-title">탐구형 (Investigative)</div>
+            <label class="q-item"><input type="checkbox"><span class="q-text">어떤 현상의 원인과 이유에 대해 깊이 생각한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">퍼즐, 퀴즈, 스도쿠 같은 지적 게임을 좋아한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">과학 기술이나 새로운 발견에 대한 뉴스를 찾아본다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">데이터를 수집하고 이를 분석하여 결론을 내는 것이 체질에 맞다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">복잡하고 어려운 문제를 논리적으로 파고들 때 희열을 느낀다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">혼자서 조용히 책을 읽거나 연구하는 시간을 좋아한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">수학적 계산이나 통계 자료를 다루는 데 거부감이 없다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">주변 사람들에게 "호기심이 많다"는 이야기를 자주 듣는다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">감정에 치우치기보다 객관적인 사실을 바탕으로 판단한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">학술적인 세미나나 전문 지식을 배우는 자리를 즐긴다.</span></label>
+        </div>
+
+        <!-- A 유형 -->
+        <div class="type-section" data-type="A">
+            <div class="type-title">예술형 (Artistic)</div>
+            <label class="q-item"><input type="checkbox"><span class="q-text">틀에 박힌 규칙이나 반복적인 일상을 싫어한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">그림, 음악, 영화 등 예술 작품을 감상하거나 만드는 것을 좋아한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">나만의 독창적인 아이디어로 무언가를 기획하는 일이 즐겁다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">유행을 따르기보다 자신만의 개성 있는 스타일을 추구한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">감수성이 풍부하고 주변 환경이나 분위기에 민감하게 반응한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">생각이나 감정을 글, 그림, 음악 등으로 표현하는 것이 편하다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">자유롭고 유연한 환경에서 일할 때 능률이 오른다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">상상력이 뛰어나며 남들이 하지 않는 기발한 생각을 자주 한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">인테리어, 사진 촬영, 패션 등에 관심이 많다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">문제 해결 시 매뉴얼보다 직관에 의존하는 편이다.</span></label>
+        </div>
+
+        <!-- S 유형 -->
+        <div class="type-section" data-type="S">
+            <div class="type-title">사회형 (Social)</div>
+            <label class="q-item"><input type="checkbox"><span class="q-text">어려움에 처한 사람을 보면 그냥 지나치지 못한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">남의 고민을 잘 들어주고 공감을 잘해준다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">누군가를 가르치거나 새로운 지식을 설명하는 일에 보람을 느낀다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">혼자 일하는 것보다 팀을 이루어 협력하는 것이 좋다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">친구들 사이에서 갈등이 생기면 중재자 역할을 자주 한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">자원봉사 활동이나 공익적인 일에 참여하는 것을 긍정적으로 본다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">처음 만난 사람과도 쉽게 대화를 시작하고 친해지는 편이다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">타인의 성장과 발전을 돕는 일에 매력을 느낀다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">사람 간의 소통과 관계 유지를 중요하게 생각한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">주변 사람들에게 친절하고 따뜻하다는 평가를 받는다.</span></label>
+        </div>
+
+        <!-- E 유형 -->
+        <div class="type-section" data-type="E">
+            <div class="type-title">진취형 (Enterprising)</div>
+            <label class="q-item"><input type="checkbox"><span class="q-text">모임이나 프로젝트에서 리더를 맡는 것을 좋아한다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">남을 설득하거나 내 의견 동조자로 만드는 데 능숙하다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">경쟁적인 환경에서 일할 때 더 큰 에너지를 얻는다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">목표를 세우고 이를 달성했을 때 큰 성취감을 느낀다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">사업을 하거나 창업을 하는 것에 관심이 있다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">대중 앞에서 발표하거나 연설하는 것에 긴장하기보다 즐기는 편이다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">이익을 창출하거나 협상을 진행하는 과정이 흥미롭다.</span></label>
+            <label class="q-item"><input type="checkbox"><span class="q-text">야망이 있고 사회적 성공이나 지위에 대한 욕심이 있다.</span></label>
+코드를 사용할 때는 주의가 필요합니다.안정적인 것보다 위험 부담이 있더라도 도전적인 일을 선호한다.마케팅, 영업, 정치적 활동 등에 흥미를 느낀다.관습형 (Conventional)약속 시간이나 마감 기한을 철저하게 지킨다.문서나 영수증, 자료 등을 체계적으로 정리하는 것을 잘한다.정해진 매뉴얼과 규칙에 따라 일할 때 마음이 편하다.숫자를 다루거나 예산을 짜는 일에 꼼꼼한 편이다.예측 불가능한 상황보다 계획된 일정이 유지되는 것을 선호한다.맞춤법 검사나 서류의 오탈자를 잡아내는 데 소질이 있다.주위 사람들에게 "신중하고 책임감이 강하다"는 말을 듣는다.반복적인 사무 업무나 데이터 입력 작업을 지루해하지 않는다.세부 사항을 놓치지 않고 꼼꼼하게 검토하는 편이다.조직의 위계질서와 규범을 존중하고 잘 따른다.결과 분석 및 JSON 저장🎯 당신의 흥미유형 진단 결과당신의 주 흥미 코드는 -- 입니다.※ 브라우저의 다운로드 창이 열리면 파일 경로를 [바탕화면]으로 지정해 주세요.function processResultAndSave() {
+const types = ['R', 'I', 'A', 'S', 'E', 'C'];const typeNames = {'R': '현장형 (Realistic)','I': '탐구형 (Investigative)','A': '예술형 (Artistic)','S': '사회형 (Social)','E': '진취형 (Enterprising)','C': '관습형 (Conventional)'};
+let rawScores = {};let scoreArray = [];
+// 1. 유형별 점수 계산
+types.forEach(type => {const checkedCount = document.querySelectorAll(.type-section[data-type="${type}"] input:checked).length;rawScores[type] = checkedCount;scoreArray.push({ type: type, name: typeNames[type], score: checkedCount });});
+
+// 2. 상위 코드를 추출하기 위한 정렬
+const sortedArray = [...scoreArray].sort((a, b) => b.score - a.score);const topCode = sortedArray[0].type + sortedArray[1].type;
+
+// 3. UI 화면 결과 업데이트document.getElementById('topCodeDisplay').innerText = [ ${topCode} ];const graphContainer = document.getElementById('graphContainer');
+graphContainer.innerHTML = '';scoreArray.forEach(item => {const percentage = (item.score / 10) * 100;const rowHTML = <div class="score-row"> <div class="score-info"> <span>${item.name}</span> <span>${item.score} / 10점</span> </div> <div class="graph-bar-bg"> <div class="graph-bar-fill" style="width: ${percentage}%;"></div> </div> </div>;graphContainer.insertAdjacentHTML('beforeend', rowHTML);});
+
+// 4. 결과 레이아웃 활성화
+const resultDiv = document.getElementById('result');resultDiv.style.display = 'block';window.scrollTo({ top: resultDiv.offsetTop - 20, behavior: 'smooth' });
+
+// 5. JSON 데이터 객체 구조화
+const resultData = {testDate: new Date().toLocaleDateString('ko-KR'),testName: "Holland Vocational Interest Test",primaryCode: topCode,detailedScores: rawScores};
+
+// 6. 브라우저를 통한 다운로드 실행 
+(로컬 바탕화면 저장 유도)const jsonString = JSON.stringify(resultData, null, 2);const blob = new Blob([jsonString], { type: "application/json" });const url = URL.createObjectURL(blob);
+const downloadLink = document.createElement("a");
+downloadLink.href = url;downloadLink.download = holland_result_${topCode}.json;
+document.body.appendChild(downloadLink);downloadLink.click();document.body.removeChild(downloadLink);
+URL.revokeObjectURL(url);}
