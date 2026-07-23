@@ -86,15 +86,15 @@ function worstFindingByLocation(findings) {
 // 한 번 캡처해서, 그 위에 화살표를 고정으로 그린 정적 결과물을 보여준다.
 function resolveApsMarkers(viewer, findings) {
   const byLocation = worstFindingByLocation(findings);
-  if (!byLocation.size) return Promise.resolve([]);
+  if (!byLocation.size) return Promise.resolve({ markers: [], unmatched: [] });
 
   const searches = [...byLocation].map(
     ([location, finding]) =>
       new Promise((resolve) => {
         viewer.search(
           location,
-          (dbIds) => resolve(dbIds.map((dbId) => ({ dbId, ...finding }))),
-          () => resolve([]),
+          (dbIds) => resolve({ finding, dbIds }),
+          () => resolve({ finding, dbIds: [] }),
           ["Layer", "name"]
         );
       })
@@ -104,38 +104,44 @@ function resolveApsMarkers(viewer, findings) {
   // bbox 중심을 쓰면 화살표가 도면 한가운데 빈 공간에 꽂힌다. instanceTree의
   // fragment(개별 선/원/호 단위) bbox를 각각 구해서, 실제 선 위에 정확히 찍는다
   // — 매칭되는 fragment 수만큼 화살표가 나온다.
-  return Promise.all(searches).then((groups) => {
+  return Promise.all(searches).then((results) => {
     const tree = viewer.model.getInstanceTree();
     const fragList = viewer.model.getFragmentList();
     const box = new THREE.Box3();
     const markers = [];
-    for (const { dbId, severity, category, description } of groups.flat()) {
-      const fragIds = [];
-      try {
-        tree.enumNodeFragments(dbId, (fragId) => fragIds.push(fragId), false);
-      } catch {
-        continue;
-      }
-      // ponytail: 위치당 40개로 캡 — 레이어 하나에 수백 개 선이 몰리면 화살표가
-      // 도면을 뒤덮으니, 실제로 필요하면 캡을 올리거나 fragment를 클러스터링.
-      for (const fragId of fragIds.slice(0, 40)) {
-        box.makeEmpty();
+    const unmatched = [];
+    for (const { finding, dbIds } of results) {
+      let placed = 0;
+      for (const dbId of dbIds) {
+        const fragIds = [];
         try {
-          fragList.getWorldBounds(fragId, box);
+          tree.enumNodeFragments(dbId, (fragId) => fragIds.push(fragId), false);
         } catch {
           continue;
         }
-        if (box.isEmpty()) continue;
-        const center = {
-          x: (box.min.x + box.max.x) / 2,
-          y: (box.min.y + box.max.y) / 2,
-          z: (box.min.z + box.max.z) / 2,
-        };
-        const p = viewer.worldToClient(center);
-        markers.push({ x: p.x, y: p.y, severity, category, description });
+        // ponytail: 위치당 40개로 캡 — 레이어 하나에 수백 개 선이 몰리면 화살표가
+        // 도면을 뒤덮으니, 실제로 필요하면 캡을 올리거나 fragment를 클러스터링.
+        for (const fragId of fragIds.slice(0, 40)) {
+          box.makeEmpty();
+          try {
+            fragList.getWorldBounds(fragId, box);
+          } catch {
+            continue;
+          }
+          if (box.isEmpty()) continue;
+          const center = {
+            x: (box.min.x + box.max.x) / 2,
+            y: (box.min.y + box.max.y) / 2,
+            z: (box.min.z + box.max.z) / 2,
+          };
+          const p = viewer.worldToClient(center);
+          markers.push({ x: p.x, y: p.y, ...finding });
+          placed += 1;
+        }
       }
+      if (!placed) unmatched.push(finding);
     }
-    return markers;
+    return { markers, unmatched };
   });
 }
 
@@ -150,28 +156,47 @@ function apsArrowheadDefs() {
     .join("");
 }
 
-function renderApsMarkerSvg(markers, width, height) {
+// 빨간펜으로 도면에 직접 표시해준 것처럼, 굵은 화살표 + 큰 글씨로 확실하게
+// 보이게 그린다. 실제 요소를 못 찾은 finding은 화면 구석에 목록으로라도 띄워서
+// "아무것도 안 뜨는" 상황이 없게 한다.
+function renderApsMarkerSvg(markers, width, height, unmatched) {
   let toggle = 0;
   const shapes = markers
     .map(({ x, y, severity, category, description }) => {
       toggle += 1;
       const dir = toggle % 2 === 0 ? 1 : -1;
-      const lx = x + 46 * dir;
-      const ly = y - 40;
+      const lx = x + 90 * dir;
+      const ly = y - 70;
       const s = SEVERITY_COLOR[severity] ? severity : "low";
       const color = SEVERITY_COLOR[s];
       const label = CATEGORY_LABEL[category] || "문제 발견";
       const safeDesc = (description || label).replace(/[<>&]/g, "");
+      const boxW = label.length * 15 + 20;
+      const boxX = dir > 0 ? lx : lx - boxW;
       return (
-        `<circle cx="${x}" cy="${y}" r="10" fill="${color}" opacity="0.22" />` +
-        `<circle cx="${x}" cy="${y}" r="5" fill="${color}" stroke="#06070d" stroke-width="1.5"><title>${safeDesc}</title></circle>` +
-        `<line x1="${lx}" y1="${ly}" x2="${x}" y2="${y}" stroke="${color}" stroke-width="2" marker-end="url(#aps-arrowhead-${s})" />` +
-        `<rect x="${dir > 0 ? lx : lx - label.length * 13 - 12}" y="${ly - 16}" width="${label.length * 13 + 12}" height="22" rx="4" fill="#06070d" stroke="${color}" stroke-width="1.2" />` +
-        `<text x="${dir > 0 ? lx + 6 : lx - label.length * 13 - 6}" y="${ly - 1}" font-size="13" font-family="Consolas, monospace" font-weight="700" fill="${color}">${label}</text>`
+        `<circle cx="${x}" cy="${y}" r="14" fill="${color}" opacity="0.25" />` +
+        `<circle cx="${x}" cy="${y}" r="7" fill="${color}" stroke="#06070d" stroke-width="2"><title>${safeDesc}</title></circle>` +
+        `<line x1="${lx}" y1="${ly}" x2="${x}" y2="${y}" stroke="${color}" stroke-width="4" stroke-linecap="round" marker-end="url(#aps-arrowhead-${s})" />` +
+        `<rect x="${boxX}" y="${ly - 22}" width="${boxW}" height="30" rx="5" fill="${color}" />` +
+        `<text x="${boxX + boxW / 2}" y="${ly - 2}" font-size="17" font-family="Consolas, monospace" font-weight="700" fill="#06070d" text-anchor="middle">${label}</text>`
       );
     })
     .join("");
-  return `<svg class="aps-marker-layer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><defs>${apsArrowheadDefs()}</defs>${shapes}</svg>`;
+
+  const fallback = unmatched?.length
+    ? `<g transform="translate(16,16)">
+         <rect x="0" y="0" width="${Math.min(360, 90 + unmatched.length * 40)}" height="${28 + unmatched.length * 24}" rx="6" fill="#06070d" stroke="#ff5470" stroke-width="2" opacity="0.92" />
+         <text x="12" y="24" font-size="15" font-weight="700" fill="#ff5470" font-family="Consolas, monospace">⚠ 위치 특정 불가 (${unmatched.length}건)</text>
+         ${unmatched
+           .map(
+             (f, i) =>
+               `<text x="12" y="${48 + i * 24}" font-size="13" fill="${SEVERITY_COLOR[f.severity] || SEVERITY_COLOR.low}" font-family="Consolas, monospace">• ${CATEGORY_LABEL[f.category] || "문제"}: ${(f.description || "").replace(/[<>&]/g, "").slice(0, 40)}</text>`
+           )
+           .join("")}
+       </g>`
+    : "";
+
+  return `<svg class="aps-marker-layer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}"><defs>${apsArrowheadDefs()}</defs>${shapes}${fallback}</svg>`;
 }
 
 let apsViewerReady = false;
@@ -200,13 +225,13 @@ async function renderApsViewer(urn, findings) {
         viewer.removeEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, onLoaded);
         try {
           viewer.fitToView();
-          const markers = await resolveApsMarkers(viewer, findings);
+          const { markers, unmatched } = await resolveApsMarkers(viewer, findings);
           const rect = wrap.getBoundingClientRect();
           viewer.getScreenShot(undefined, undefined, (blobUrl) => {
             viewer.finish();
             wrap.innerHTML =
               `<img class="aps-snapshot" src="${blobUrl}" alt="도면 스냅샷" />` +
-              renderApsMarkerSvg(markers, rect.width, rect.height);
+              renderApsMarkerSvg(markers, rect.width, rect.height, unmatched);
             resolve();
           });
         } catch (e) {
