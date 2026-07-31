@@ -1,14 +1,9 @@
-# 어느 OS에서나 도는 핵심 의존성. 이것만으로 DXF/DWG 분석과 채점이 동작한다.
-# Inventor 파일(.ipt/.idw/.iam)까지 분석하려면 requirements-inventor.txt 를 쓴다.
 ezdxf==1.4.4
 pillow==12.3.0
 fastapi==0.141.1
 uvicorn==0.52.0
 python-multipart==0.0.32
 requests==2.34.2
-
-# 투상도 30점 AI 판정용. 이 둘이 없거나 ANTHROPIC_API_KEY가 없으면 ai_review는
-# 조용히 물러나고, 투상도 항목은 '사람이 확인'으로 남는다 (나머지 채점은 그대로).
 pymupdf==1.28.0
 google-genai==2.16.0
 anthropic==0.120.2

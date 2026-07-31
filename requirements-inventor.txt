@@ -1,4 +1,2 @@
-# Windows + Autodesk Inventor 가 설치된 PC 전용.
-# pywin32 로 Inventor COM API 를 호출해 .ipt/.idw/.iam 의 치수·공차·스케치를 읽는다.
 -r requirements.txt
 pywin32==312

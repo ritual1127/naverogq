@@ -1,18 +1,10 @@
-# 가상환경
 .venv/
 __pycache__/
 *.pyc
-
-# GPL-3.0 바이너리. MIT 저장소에 재배포하지 않는다 (NOTICE.md 참고).
-# setup.ps1 이 내려받거나, 리눅스에서는 apt install libredwg-tools.
-vendor/
-
-# 런타임 산출물
+/vendor/
 *.err
 *.log
 uploads/
-
-# 편집기
 .vscode/
 .idea/
 *.swp

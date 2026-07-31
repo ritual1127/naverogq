@@ -22,7 +22,6 @@ SAMPLE_NOTES = {
     "sample_plate.dxf": "평판 부품도 — 투상도가 1개뿐이라 감점이 나옵니다",
     "sample_autocad.dxf": "AutoCAD 실도면 — 오작(실격) 판정이 나오는 예제",
     "sample_075em07z.dwg": "위 도면의 DWG 원본 — LibreDWG가 있어야 열립니다",
-    "연습도면.idw": "Inventor 도면 — Inventor가 설치된 서버에서만",
 }
 
 app = FastAPI(title="Inventor 도면 검사기")
