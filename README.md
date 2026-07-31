@@ -146,6 +146,21 @@ sudo apt install libredwg-tools     # DWG를 쓸 때만
 python main.py                      # http://127.0.0.1:8000
 ```
 
+### 공개 데모 배포 (Docker)
+
+```bash
+docker build -t cad-checker .
+docker run -p 8000:8000 -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY cad-checker
+```
+
+Railway·Render·Fly.io처럼 `$PORT`를 주입하는 호스트에 그대로 올라갑니다.
+이 이미지는 Inventor가 없으므로 **`.dxf`/`.dwg`만** 분석하지만, 채점 규칙 23개와
+투상도 AI 판정은 로컬 버전과 완전히 동일하게 적용됩니다.
+
+**CAD 파일이 없어도 눌러볼 수 있습니다** — `GET /api/samples`가 저장소에 포함된
+예제 도면 목록을 주고, `POST /api/analyze-sample`이 그중 하나를 채점합니다.
+응답 구조는 업로드와 같습니다.
+
 ### CLI로 한 파일만
 
 ```bash

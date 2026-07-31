@@ -64,6 +64,13 @@
 4. **오작(실격) 개념 안내** — 점수와 무관하게 떨어지는 조건 5가지가 있다는 걸
    눈에 띄게. 시험 준비생에게 제일 중요한 정보다.
 5. **지원 형식 안내** — `/api/health`의 `supported` 배열을 그대로.
+6. **"예제 도면으로 바로 보기" 버튼 — 이게 초기 화면에서 가장 중요하다.**
+   처음 온 사람은 올릴 CAD 파일이 없다. 파일이 없으면 이 도구가 뭘 하는지
+   영영 못 본다. `GET /api/samples`가 서버가 실제로 분석할 수 있는 예제
+   목록(`name` / `ext` / `size` / `note`)을 준다. 각 항목을 눌리는 버튼으로
+   그리고, 누르면 `POST /api/analyze-sample {"name": ...}`을 호출한다.
+   응답은 `/api/analyze`와 완전히 같은 구조라 결과 화면을 그대로 재사용한다.
+   업로드 영역만큼, 또는 그보다 눈에 띄게 배치할 것.
 
 **금지:** 가짜 점수, 가짜 도면 이미지, 지어낸 예시 결과를 진짜인 것처럼
 보여주지 마. 위 3·4번은 API가 주는 진짜 데이터라 정직하게 쓸 수 있다.
@@ -110,6 +117,15 @@ checks의 group 8종과 개수:
   NOTES_TITLE        → 주서·표제란·부품란       3개
   MATERIAL           → 재료 선택과 처리         1개
   PROJECTION_LAYOUT  → 투상도 선택과 배열       4개
+
+### GET /api/samples   (예제 도면 목록)
+{ "samples": [ { "name": "sample_plate.dxf", "ext": ".dxf",
+                 "size": 23687, "note": "평판 부품도 (DXF) — ..." } ] }
+- 서버가 실제로 분석 가능한 것만 담겨 온다. 비어 있으면 이 영역을 숨긴다.
+
+### POST /api/analyze-sample   (예제 도면 분석)
+application/json  { "name": "sample_plate.dxf", "checks": ["EX_..."] }
+- 응답 구조는 /api/analyze 와 동일. 결과 렌더링 코드를 그대로 재사용할 것.
 
 ### POST /api/analyze   (파일 업로드)
 multipart/form-data

@@ -23,7 +23,16 @@ DATA = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
 UPLOADS = os.path.join(DATA, "uploads")
 os.makedirs(UPLOADS, exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
+SAMPLES = os.path.join(HERE, "samples")
 MAX_BYTES = 200 * 1024 * 1024
+
+# 처음 온 사람은 올릴 CAD 파일이 없다. 빈 화면만 보고 나가면 백엔드가 무슨 일을
+# 하는지 영영 모른다. 저장소에 들어있는 도면으로 한 번에 돌려볼 수 있게 한다.
+SAMPLE_NOTES = {
+    "sample_plate.dxf": "평판 부품도 (DXF) — Inventor 없이도 분석됩니다",
+    "sample_075em07z.dwg": "AutoCAD 도면 (DWG) — LibreDWG로 변환 후 분석",
+    "연습도면.idw": "Inventor 도면 — Inventor가 설치된 서버에서만",
+}
 
 app = FastAPI(title="Inventor 도면 검사기")
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
@@ -69,6 +78,47 @@ def health(request: Request):
             "checks": exam.check_catalog(),
             "exam": {"sheet": exam.REQUIRED_SHEET[0],
                      "third_angle": exam.REQUIRED_THIRD_ANGLE}}
+
+
+@app.get("/api/samples")
+def samples():
+    """저장소에 들어있는 예제 도면 중, 이 서버가 실제로 분석할 수 있는 것만.
+
+    Inventor가 없는 서버에서 .idw를 목록에 띄우면 눌러 보고 실패만 겪는다.
+    """
+    import inventor
+    usable = check.SUPPORTED if inventor.is_available() else sorted(check.DXF_EXT)
+    if not os.path.isdir(SAMPLES):
+        return {"samples": []}
+    out = []
+    for name in sorted(os.listdir(SAMPLES)):
+        path = os.path.join(SAMPLES, name)
+        ext = os.path.splitext(name)[1].lower()
+        if not os.path.isfile(path) or ext not in usable:
+            continue
+        out.append({"name": name, "ext": ext,
+                    "size": os.path.getsize(path),
+                    "note": SAMPLE_NOTES.get(name, "")})
+    return {"samples": out}
+
+
+@app.post("/api/analyze-sample")
+def analyze_sample(body: dict):
+    """예제 도면 하나를 분석한다.
+
+    이름은 samples/ 안의 파일만 가리킬 수 있다. 업로드와 달리 서버가 가진 파일을
+    이름으로 여는 경로이므로, 디렉터리를 벗어나지 않는지 확인하고 연다.
+    """
+    name = os.path.basename((body or {}).get("name", ""))
+    path = os.path.abspath(os.path.join(SAMPLES, name))
+    if not name or not path.startswith(os.path.abspath(SAMPLES) + os.sep) \
+            or not os.path.isfile(path):
+        raise HTTPException(404, f"그런 예제가 없습니다: {name or '(이름 없음)'}")
+    if os.path.splitext(path)[1].lower() not in check.SUPPORTED:
+        raise HTTPException(400, "분석할 수 없는 형식입니다.")
+    job = uuid.uuid4().hex[:12]
+    os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
+    return _run(job, path, name, _enabled(body))
 
 
 @app.post("/api/analyze-path")
