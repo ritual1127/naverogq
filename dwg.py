@@ -9,6 +9,7 @@ import traceback
 
 import ezdxf
 from ezdxf import bbox
+from ezdxf.enums import TextEntityAlignment
 from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing import layout as dlayout
 from ezdxf.addons.drawing import svg as dsvg
@@ -486,36 +487,41 @@ def render_svg(dxf_path, markers=()):
     if is_model:
         bb0 = bbox.extents(space)
         span = max(bb0.size.x, bb0.size.y) if bb0.has_data else 100.0
+        count = len(markers)
+        rail_x = bb0.extmax.x + span * 0.16
+        rail_top = bb0.center.y + span * 0.46
+        rail_gap = span * 0.92 / max(count - 1, 1)
         for i, m in enumerate(markers, 1):
             x, y = m.get("dxf_x"), m.get("dxf_y")
             if x is None or y is None:
                 continue
-            r = m.get("dxf_r") or span * 0.01
-            _arrow(space, x, y, max(r * 1.6, span * 0.010), span, str(i))
+            source_r = m.get("dxf_r") or 0.0
+            ring = min(max(source_r * 1.12, span * 0.006), span * 0.018)
+            label_y = rail_top - (i - 1) * rail_gap
+            _arrow(space, x, y, ring, span, str(i), rail_x, label_y)
             placed += 1
     svg, tf = _finish(doc, space)
     return svg, tf, placed
 
 
-def _arrow(msp, x, y, ring, span, label):
-    a = {"layer": ERR_LAYER}
+def _arrow(msp, x, y, ring, span, label, label_x, label_y):
+    a = {"layer": ERR_LAYER, "lineweight": 100}
     msp.add_circle((x, y), ring, dxfattribs=a)
 
-    lead = max(ring * 3.2, span * 0.045)
-    d = 0.7071
-    tipx, tipy = x + ring * d, y + ring * d
-    tailx, taily = x + lead * d, y + lead * d
-    msp.add_line((tipx, tipy), (tailx, taily), dxfattribs=a)
-    msp.add_line((tailx, taily), (tailx + lead * 0.55, taily), dxfattribs=a)
+    dx, dy = label_x - x, label_y - y
+    length = math.hypot(dx, dy) or 1.0
+    start = (x + ring * dx / length, y + ring * dy / length)
+    elbow = (label_x - span * 0.025, label_y)
+    badge_r = span * 0.016
+    end = (label_x - badge_r, label_y)
+    msp.add_line(start, elbow, dxfattribs=a)
+    msp.add_line(elbow, end, dxfattribs=a)
+    msp.add_circle((label_x, label_y), badge_r, dxfattribs=a)
 
-    head = ring * 0.55
-    for ang in (0.4, -0.4):
-        ca, sa = math.cos(ang), math.sin(ang)
-        dx, dy = d * ca - d * sa, d * sa + d * ca
-        msp.add_line((tipx, tipy), (tipx + head * dx, tipy + head * dy), dxfattribs=a)
-
-    msp.add_text(label, height=max(ring * 1.1, span * 0.011), dxfattribs=a
-                 ).set_placement((tailx + lead * 0.62, taily + ring * 0.25))
+    text_h = span * (0.019 if len(label) > 1 else 0.022)
+    text_style = {**a, "color": 7}
+    msp.add_text(label, height=text_h, dxfattribs=text_style).set_placement(
+        (label_x, label_y), align=TextEntityAlignment.MIDDLE_CENTER)
 
 
 def _finish(doc, msp):

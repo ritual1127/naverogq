@@ -224,6 +224,34 @@ def test_render_margin_scales_for_meter_drawings():
     assert widths and max(widths) < 5000, widths
 
 
+def test_marker_labels_use_distinct_rail_positions():
+    import ezdxf
+    import dwg
+
+    doc = ezdxf.new("R2010")
+    space = doc.modelspace()
+    space.add_line((0, 0), (100, 100))
+    markers = [{"dxf_x": 50, "dxf_y": 50, "dxf_r": radius}
+               for radius in (2, 4, 8, 16)]
+    bb = dwg.bbox.extents(space)
+    span = max(bb.size.x, bb.size.y)
+    rail_x = bb.extmax.x + span * 0.16
+    rail_top = bb.center.y + span * 0.46
+    gap = span * 0.92 / (len(markers) - 1)
+    for i, marker in enumerate(markers, 1):
+        ring = min(max(marker["dxf_r"] * 1.12, span * 0.006), span * 0.018)
+        dwg._arrow(space, marker["dxf_x"], marker["dxf_y"], ring, span,
+                   str(i), rail_x, rail_top - (i - 1) * gap)
+    labels = list(space.query(f'TEXT[layer=="{dwg.ERR_LAYER}"]'))
+    assert len(labels) == 4
+    assert len({round(label.dxf.insert.y, 6) for label in labels}) == 4
+    assert max(label.dxf.height for label in labels) == span * 0.022
+    leaders = list(space.query(f'LINE[layer=="{dwg.ERR_LAYER}"]'))
+    assert leaders and all(line.dxf.lineweight == 100 for line in leaders)
+    badges = list(space.query(f'CIRCLE[layer=="{dwg.ERR_LAYER}"]'))
+    assert len(badges) == len(markers) * 2
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
