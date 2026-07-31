@@ -1,6 +1,7 @@
 # 어느 OS에서나 도는 핵심 의존성. 이것만으로 DXF/DWG 분석과 채점이 동작한다.
 # Inventor 파일(.ipt/.idw/.iam)까지 분석하려면 requirements-inventor.txt 를 쓴다.
 ezdxf==1.4.4
+pillow==12.3.0
 fastapi==0.141.1
 uvicorn==0.52.0
 python-multipart==0.0.32

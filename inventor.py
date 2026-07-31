@@ -1,8 +1,11 @@
 import os
 import threading
 
-import pythoncom
-import win32com.client as w32
+try:
+    import pythoncom
+    import win32com.client as w32
+except ImportError:
+    pythoncom = w32 = None
 
 CM_TO_MM = 10.0
 MAX_WALL_GAP_MM = 15.0
@@ -29,10 +32,14 @@ _DEAD_COM = {
 
 
 def _is_dead_com(exc):
+    if pythoncom is None:
+        return False
     return isinstance(exc, pythoncom.com_error) and exc.args and exc.args[0] in _DEAD_COM
 
 
 def is_available():
+    if pythoncom is None:
+        return False
     try:
         import winreg
     except ImportError:
