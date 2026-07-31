@@ -3,170 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CADLens | 도면 자동 검사</title>
+<title>CADLens</title>
 <style>
-:root{
-  --bg:#080b0f; --shell:#0d1218; --panel:#121922; --panel2:#17202b;
-  --card:#151d27; --line:#273341; --line2:#354354;
-  --text:#eef5f8; --muted:#94a3ad; --soft:#64727e;
-  --cyan:#38d7ee; --blue:#2f80ff; --mint:#48e1b9;
-  --red:#ff4d63; --amber:#ffb020; --green:#8ee56a; --violet:#9f7aea;
-  --shadow:0 24px 70px rgba(0,0,0,.36);
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0;letter-spacing:0}
-html,body{min-height:100%;background:var(--bg);color:var(--text)}
-body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;line-height:1.55}
-button,input{font:inherit;color:inherit}
-button{cursor:pointer;border:0;background:none}
-.hide{display:none!important}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.app{min-height:100vh;background:
-  radial-gradient(circle at 18% -10%,rgba(56,215,238,.18),transparent 36%),
-  linear-gradient(180deg,#0b1016 0%,#070a0e 62%,#080b0f 100%)}
-.top{height:72px;display:flex;align-items:center;justify-content:space-between;
-  padding:0 30px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(8,11,15,.72);
-  backdrop-filter:blur(18px);position:sticky;top:0;z-index:30}
-.brand{display:flex;align-items:center;gap:13px;min-width:0}
-.logo{width:42px;height:42px;border-radius:11px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.1)}
-.brand b{font-size:18px}.brand span{display:block;font-size:12px;color:var(--muted);margin-top:1px}
-.top-actions{display:flex;gap:10px;align-items:center}
-.pill{height:34px;padding:0 12px;border:1px solid var(--line);border-radius:999px;
-  display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.035);font-size:12px;color:var(--muted)}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 14px var(--mint)}
-.home{width:min(1240px,100%);margin:0 auto;padding:28px 28px 52px}
-.hero{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(380px,.98fr);gap:22px;align-items:stretch}
-.headline{padding:34px 0 18px}
-.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;text-transform:uppercase;margin-bottom:14px}
-h1{font-size:clamp(38px,5vw,68px);line-height:.98;font-weight:850;max-width:760px}
-.copy{max-width:650px;margin-top:20px;color:#b9c5cd;font-size:17px}
-.metrics{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
-.metric{min-width:118px;padding:13px 15px;border:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.035);border-radius:7px}
-.metric strong{display:block;font-size:22px}.metric span{font-size:12px;color:var(--muted)}
-.upload-card{border:1px solid rgba(255,255,255,.1);border-radius:8px;background:
-  linear-gradient(180deg,rgba(23,32,43,.9),rgba(14,20,27,.96));box-shadow:var(--shadow);overflow:hidden}
-.upload-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
-.upload-head b{font-size:14px}.upload-head span{font-size:12px;color:var(--muted)}
-.drop{min-height:305px;margin:18px;border:1px dashed rgba(56,215,238,.55);border-radius:8px;
-  display:grid;place-content:center;text-align:center;background:
-  linear-gradient(135deg,rgba(56,215,238,.08),rgba(47,128,255,.04));transition:.18s}
-.drop:hover,.drop.over{border-color:var(--cyan);background:rgba(56,215,238,.1)}
-.drop img{width:86px;height:86px;border-radius:22px;margin:0 auto 18px;object-fit:cover}
-.drop .t{font-size:21px;font-weight:820}.drop .s{margin-top:7px;color:var(--muted);font-size:13px}
-.format-row{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 18px}
-.chip{border:1px solid var(--line);background:#101821;color:#b7c4cc;border-radius:999px;padding:7px 10px;font-size:12px}
-.workspace{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;margin-top:24px}
-.side,.mainpanel,.card{border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(18,25,34,.88)}
-.side{padding:16px;align-self:start}.section-title{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:12px}
-.samples{display:flex;flex-direction:column;gap:9px}.sample{padding:12px;border:1px solid var(--line);border-radius:7px;text-align:left;background:#101821}
-.sample:hover{border-color:var(--cyan)}.sample b{display:block;font-size:13px;word-break:break-all}.sample span{font-size:11px;color:var(--soft)}
-.picker{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
-.picker summary{list-style:none;display:flex;justify-content:space-between;cursor:pointer;font-size:13px;font-weight:800}
-.picker summary::-webkit-details-marker{display:none}.group{margin-top:14px}.group h4{font-size:11px;color:var(--cyan);margin-bottom:7px}
-.group label{display:flex;gap:8px;padding:5px 0;font-size:12px;color:#c8d1d7}.pbtns{display:flex;gap:8px;margin-top:12px}
-.smallbtn{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:#101821;font-size:11px;color:#cbd6dc}
-.mainpanel{padding:18px}.rubgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.rub{padding:14px;border:1px solid var(--line);border-radius:7px;background:#101821}.rub span{font-size:11px;color:var(--muted)}.rub b{display:block;margin-top:5px;font-size:20px;color:var(--cyan)}
-.dq{margin-top:14px;padding:14px;border:1px solid rgba(255,77,99,.35);border-radius:7px;background:rgba(255,77,99,.08)}
-.dq b{color:#ff9aa7}.dq div{margin-top:8px;color:#ffc7ce;font-size:13px}
-.note{margin-top:14px;color:var(--soft);font-size:12px}.warn{padding:12px 14px;border:1px solid rgba(255,176,32,.38);background:rgba(255,176,32,.08);border-radius:7px;color:#ffd99a;font-size:13px}
-.loading{padding:70px 20px;text-align:center}.spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(56,215,238,.18);border-top-color:var(--cyan);margin:0 auto 18px;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}.err{padding:14px;border:1px solid rgba(255,77,99,.55);background:rgba(255,77,99,.09);border-radius:7px;color:#ffc4cb;white-space:pre-wrap}
-.results{min-height:100vh}.rbar{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.08);background:#0b1016;position:sticky;top:0;z-index:20}
-.filebox{display:flex;align-items:center;gap:12px;min-width:0}.filebox h2{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.filebox p{font-size:12px;color:var(--muted)}
-.back{height:36px;padding:0 14px;border:1px solid var(--line);border-radius:7px;background:#111923;color:#c9d4db}
-.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(370px,.9fr);gap:16px;padding:16px 24px 24px}
-.left{position:sticky;top:82px;display:flex;flex-direction:column;gap:12px;min-width:0}.right{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 88px);overflow:auto;padding-right:4px}
-.viewer{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#0c1218}.tools{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid var(--line);background:#111923}
-.toolset{display:flex;gap:6px}.tool{width:31px;height:29px;border:1px solid var(--line2);border-radius:6px;background:#151f2a;font-weight:800}.tool.wide{width:44px;font-size:11px}
-.zoom{font:700 12px var(--mono);color:var(--cyan)}.stage{height:calc(100vh - 150px);min-height:560px;overflow:hidden;position:relative;background:#0a0f14;cursor:grab;touch-action:none}.stage.drag{cursor:grabbing}.pan{position:absolute;left:0;top:0;transform-origin:0 0}.pan svg{display:block;max-width:none;height:auto}
-.score{padding:17px}.score.pass{border-color:rgba(72,225,185,.28)}.score.fail{border-color:rgba(255,77,99,.55);background:rgba(255,77,99,.08)}
-.score .big{font:850 42px var(--mono);color:var(--mint);line-height:1}.score.fail .big{font-family:inherit;font-size:29px;color:var(--red)}
-.score p{margin-top:6px;color:var(--muted);font-size:13px}.counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.count{padding:10px;border-radius:6px;background:#101821}.count span{font-size:11px;color:var(--muted)}.count b{display:block;font-size:20px}
-.item,.finding,.info{border:1px solid var(--line);border-radius:7px;background:#101821}.item{padding:11px}.itemtop{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:800}.bar{height:5px;background:#26313f;border-radius:99px;overflow:hidden;margin-top:9px}.bar i{display:block;height:100%;background:var(--cyan)}
-.finding{overflow:hidden}.finding button{width:100%;padding:12px;text-align:left;display:flex;justify-content:space-between;gap:10px}.ftitle{font-size:13px;font-weight:850}.fmeta{font-size:11px;color:var(--muted);margin-top:3px}.fbody{border-top:1px solid var(--line);padding:12px;color:#cbd7de;font-size:12.5px}.fix{margin-top:10px;padding:9px;border-left:3px solid var(--green);background:rgba(142,229,106,.08);color:#d8ffc9}.marker-summary{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.marker-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid rgba(255,77,99,.35);border-radius:999px;background:rgba(255,77,99,.1);font:11px var(--mono);color:#ffc5cc}.marker-chip b{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff}
-.filters{display:flex;gap:7px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding-bottom:4px;z-index:2}.filters button{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:#101821;font-size:12px;color:#cbd6dc}.filters button.on{border-color:var(--cyan);color:var(--cyan);background:rgba(56,215,238,.08)}
-.info{padding:12px}.infogrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info span{display:block;font-size:11px;color:var(--muted)}.info b{display:block;font:12px var(--mono);word-break:break-all;margin-top:2px}
-.disc{font-size:11px;color:var(--soft);padding:12px;border-radius:7px;background:rgba(255,255,255,.035)}
-.mstage{height:44vh;min-height:280px}
+:root{--bg:#080b0f;--panel:#121922;--panel2:#17202b;--line:#273341;--line2:#354354;--text:#eef5f8;--muted:#94a3ad;--soft:#64727e;--cyan:#38d7ee;--mint:#48e1b9;--red:#ff4d63;--amber:#ffb020;--green:#8ee56a;--violet:#9f7aea;--shadow:0 24px 70px rgba(0,0,0,.36);--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box;margin:0;padding:0;letter-spacing:0}html,body{min-height:100%;background:var(--bg);color:var(--text)}body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;line-height:1.55}button,input,select{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}.hide{display:none!important}.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.app{min-height:100vh;background:radial-gradient(circle at 18% -10%,rgba(56,215,238,.18),transparent 36%),linear-gradient(180deg,#0b1016 0%,#070a0e 62%,#080b0f 100%)}
+.top{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(8,11,15,.72);backdrop-filter:blur(18px);position:sticky;top:0;z-index:30}.brand{display:flex;align-items:center;gap:13px;min-width:0}.logo{width:42px;height:42px;border-radius:11px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.1)}.brand b{font-size:18px}.brand span{display:block;font-size:12px;color:var(--muted);margin-top:1px}.top-actions{display:flex;gap:10px;align-items:center}.pill{height:34px;padding:0 12px;border:1px solid var(--line);border-radius:999px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.035);font-size:12px;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 14px var(--mint)}.lang{height:34px;border:1px solid var(--line);border-radius:999px;background:#101821;padding:0 12px;font-size:12px}
+.home{width:min(1240px,100%);margin:0 auto;padding:28px 28px 52px}.hero{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(380px,.98fr);gap:22px;align-items:stretch}.headline{padding:34px 0 18px}.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;text-transform:uppercase;margin-bottom:14px}h1{font-size:clamp(38px,5vw,68px);line-height:.98;font-weight:850;max-width:760px}.copy{max-width:650px;margin-top:20px;color:#b9c5cd;font-size:17px}.metrics{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}.metric{min-width:118px;padding:13px 15px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);border-radius:7px}.metric strong{display:block;font-size:22px}.metric span{font-size:12px;color:var(--muted)}
+.upload-card{border:1px solid rgba(255,255,255,.1);border-radius:8px;background:linear-gradient(180deg,rgba(23,32,43,.9),rgba(14,20,27,.96));box-shadow:var(--shadow);overflow:hidden}.upload-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.07)}.upload-head b{font-size:14px}.upload-head span{font-size:12px;color:var(--muted)}.drop{min-height:305px;margin:18px;border:1px dashed rgba(56,215,238,.55);border-radius:8px;display:grid;place-content:center;text-align:center;background:linear-gradient(135deg,rgba(56,215,238,.08),rgba(47,128,255,.04));transition:.18s}.drop:hover,.drop.over{border-color:var(--cyan);background:rgba(56,215,238,.1)}.drop img{width:86px;height:86px;border-radius:22px;margin:0 auto 18px;object-fit:cover}.drop .t{font-size:21px;font-weight:820}.drop .s{margin-top:7px;color:var(--muted);font-size:13px}.format-row{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 18px}.chip{border:1px solid var(--line);background:#101821;color:#b7c4cc;border-radius:999px;padding:7px 10px;font-size:12px}
+.workspace{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;margin-top:24px}.side,.mainpanel,.card{border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(18,25,34,.88)}.side{padding:16px;align-self:start}.section-title{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:12px}.samples{display:flex;flex-direction:column;gap:9px}.sample{padding:12px;border:1px solid var(--line);border-radius:7px;text-align:left;background:#101821}.sample:hover{border-color:var(--cyan)}.sample b{display:block;font-size:13px;word-break:break-all}.sample span{font-size:11px;color:var(--soft)}.picker{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}.picker summary{list-style:none;display:flex;justify-content:space-between;cursor:pointer;font-size:13px;font-weight:800}.picker summary::-webkit-details-marker{display:none}.group{margin-top:14px}.group h4{font-size:11px;color:var(--cyan);margin-bottom:7px}.group label{display:flex;gap:8px;padding:5px 0;font-size:12px;color:#c8d1d7}.pbtns{display:flex;gap:8px;margin-top:12px}.smallbtn{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:#101821;font-size:11px;color:#cbd6dc}
+.mainpanel{padding:18px}.rubgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.rub{padding:14px;border:1px solid var(--line);border-radius:7px;background:#101821}.rub span{font-size:11px;color:var(--muted)}.rub b{display:block;margin-top:5px;font-size:20px;color:var(--cyan)}.dq{margin-top:14px;padding:14px;border:1px solid rgba(255,77,99,.35);border-radius:7px;background:rgba(255,77,99,.08)}.dq b{color:#ff9aa7}.dq div{margin-top:8px;color:#ffc7ce;font-size:13px}.note{margin-top:14px;color:var(--soft);font-size:12px}.warn{padding:12px 14px;border:1px solid rgba(255,176,32,.38);background:rgba(255,176,32,.08);border-radius:7px;color:#ffd99a;font-size:13px}.loading{padding:70px 20px;text-align:center}.spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(56,215,238,.18);border-top-color:var(--cyan);margin:0 auto 18px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.err{padding:14px;border:1px solid rgba(255,77,99,.55);background:rgba(255,77,99,.09);border-radius:7px;color:#ffc4cb;white-space:pre-wrap}
+.results{min-height:100vh}.rbar{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid rgba(255,255,255,.08);background:#0b1016;position:sticky;top:0;z-index:20}.filebox{display:flex;align-items:center;gap:12px;min-width:0}.filebox h2{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.filebox p{font-size:12px;color:var(--muted)}.back{height:36px;padding:0 14px;border:1px solid var(--line);border-radius:7px;background:#111923;color:#c9d4db}.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(370px,.9fr);gap:16px;padding:16px 24px 24px}.left{position:sticky;top:82px;display:flex;flex-direction:column;gap:12px;min-width:0}.right{display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 88px);overflow:auto;padding-right:4px}
+.viewer{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#0c1218}.tools{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line);background:#111923}.viewer-title{font-size:12px;font-weight:800;color:var(--muted)}.zoom{font:700 12px var(--mono);color:var(--cyan)}.stage{height:calc(100vh - 146px);min-height:560px;overflow:hidden;position:relative;background:#0a0f14}.pan{position:absolute;left:0;top:0;transform-origin:0 0}.pan svg{display:block;max-width:none;height:auto}
+.score{padding:17px}.score.pass{border-color:rgba(72,225,185,.28)}.score.fail{border-color:rgba(255,77,99,.55);background:rgba(255,77,99,.08)}.score .big{font:850 42px var(--mono);color:var(--mint);line-height:1}.score.fail .big{font-family:inherit;font-size:29px;color:var(--red)}.score p{margin-top:6px;color:var(--muted);font-size:13px}.counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.count{padding:10px;border-radius:6px;background:#101821}.count span{font-size:11px;color:var(--muted)}.count b{display:block;font-size:20px}.item,.finding,.info{border:1px solid var(--line);border-radius:7px;background:#101821}.item{padding:11px}.itemtop{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:800}.bar{height:5px;background:#26313f;border-radius:99px;overflow:hidden;margin-top:9px}.bar i{display:block;height:100%;background:var(--cyan)}
+.finding{overflow:hidden}.finding button{width:100%;padding:12px;text-align:left;display:flex;justify-content:space-between;gap:10px}.ftitle{font-size:13px;font-weight:850}.fmeta{font-size:11px;color:var(--muted);margin-top:3px}.fbody{border-top:1px solid var(--line);padding:12px;color:#cbd7de;font-size:12.5px}.fix{margin-top:10px;padding:9px;border-left:3px solid var(--green);background:rgba(142,229,106,.08);color:#d8ffc9}.marker-summary{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.marker-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid rgba(255,77,99,.35);border-radius:999px;background:rgba(255,77,99,.1);font:11px var(--mono);color:#ffc5cc}.marker-chip b{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff}.filters{display:flex;gap:7px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding-bottom:4px;z-index:2}.filters button{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:#101821;font-size:12px;color:#cbd6dc}.filters button.on{border-color:var(--cyan);color:var(--cyan);background:rgba(56,215,238,.08)}.info{padding:12px}.infogrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info span{display:block;font-size:11px;color:var(--muted)}.info b{display:block;font:12px var(--mono);word-break:break-all;margin-top:2px}.disc{font-size:11px;color:var(--soft);padding:12px;border-radius:7px;background:rgba(255,255,255,.035)}.mstage{height:44vh;min-height:280px}
 @media(max-width:980px){.top{padding:0 16px}.pill{display:none}.home{padding:20px 16px 36px}.hero,.workspace,.grid{grid-template-columns:1fr}.headline{padding-top:18px}.rubgrid{grid-template-columns:repeat(2,1fr)}.left{position:static}.right{max-height:none;overflow:visible}.stage{height:58vh;min-height:360px}.brand span{display:none}}
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><img class="logo" src="/static/logo.png" alt=""><div><b>CADLens</b><span>도면 자동 검사</span></div></div>
-    <div class="top-actions"><div class="pill"><i class="dot"></i><span id="support">준비 중</span></div></div>
+    <div class="brand"><img class="logo" src="/static/logo.png" alt=""><div><b>CADLens</b><span data-i18n="brandSub">도면 자동 검사</span></div></div>
+    <div class="top-actions"><select class="lang" id="lang" aria-label="Language"><option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option><option value="zh">中文</option></select><div class="pill"><i class="dot"></i><span id="support" data-i18n="ready">준비 중</span></div></div>
   </header>
-
   <main id="home" class="home">
     <section class="hero">
       <div class="headline">
         <div class="eyebrow">NAVER OGQ AI Competition</div>
-        <h1>도면을 올리면, 채점 근거까지 바로 보입니다.</h1>
-        <p class="copy">DWG와 DXF 도면을 읽고 치수, 투상도, 공차, 표면거칠기, 주서 항목을 자동 점검합니다. 문제 위치는 미리보기 위에 번호로 표시됩니다.</p>
-        <div class="metrics">
-          <div class="metric"><strong id="mchecks">-</strong><span>검사 항목</span></div>
-          <div class="metric"><strong>2D</strong><span>DWG · DXF</span></div>
-          <div class="metric"><strong>AI</strong><span>배치 검토</span></div>
-        </div>
+        <h1 data-i18n="heroTitle">도면을 올리면, 채점 근거까지 바로 보입니다.</h1>
+        <p class="copy" data-i18n="heroCopy">DWG와 DXF 도면을 읽고 치수, 투상도, 공차, 표면거칠기, 주서 항목을 자동 점검합니다. 문제 위치는 미리보기 위에 번호로 표시됩니다.</p>
+        <div class="metrics"><div class="metric"><strong id="mchecks">-</strong><span data-i18n="checks">검사 항목</span></div><div class="metric"><strong>2D</strong><span>DWG · DXF</span></div><div class="metric"><strong>AI</strong><span data-i18n="aiReview">배치 검토</span></div></div>
       </div>
       <div class="upload-card">
-        <div class="upload-head"><b>새 도면 검사</b><span>파일 선택 또는 드래그</span></div>
-        <label id="drop" class="drop">
-          <img src="/static/logo.png" alt="">
-          <div class="t">도면 파일을 놓으세요</div>
-          <div class="s"><span id="exts">.dwg · .dxf</span> 또는 zip 패키지</div>
-          <input id="file" type="file" style="display:none">
-        </label>
+        <div class="upload-head"><b data-i18n="newCheck">새 도면 검사</b><span data-i18n="chooseOrDrop">파일 선택 또는 드래그</span></div>
+        <label id="drop" class="drop"><img src="/static/logo.png" alt=""><div class="t" data-i18n="dropTitle">도면 파일을 놓으세요</div><div class="s"><span id="exts">.dwg · .dxf</span> <span data-i18n="orZip">또는 zip 패키지</span></div><input id="file" type="file" style="display:none"></label>
         <div class="format-row" id="formatrow"></div>
       </div>
     </section>
     <div id="status" style="margin-top:16px"></div>
     <section class="workspace" id="work">
       <aside class="side">
-        <div id="samples" class="hide">
-          <div class="section-title">예제 도면</div>
-          <div class="samples" id="sgrid"></div>
-        </div>
-        <details class="picker" id="picker" open>
-          <summary><span>검사 항목</span><span class="mono" id="pcount"></span></summary>
-          <div id="pbody"></div>
-        </details>
+        <div id="samples" class="hide"><div class="section-title" data-i18n="samples">예제 도면</div><div class="samples" id="sgrid"></div></div>
+        <details class="picker" id="picker" open><summary><span data-i18n="checks">검사 항목</span><span class="mono" id="pcount"></span></summary><div id="pbody"></div></details>
       </aside>
-      <section class="mainpanel">
-        <div class="section-title">채점 기준</div>
-        <div class="rubgrid" id="rubric"></div>
-        <div class="dq" id="dqsec"><b>실격 조건</b><div id="dqlist"></div></div>
-        <p class="note" id="foot"></p>
-      </section>
+      <section class="mainpanel"><div class="section-title" data-i18n="rubric">채점 기준</div><div class="rubgrid" id="rubric"></div><div class="dq" id="dqsec"><b data-i18n="dq">실격 조건</b><div id="dqlist"></div></div><p class="note" id="foot"></p></section>
     </section>
   </main>
-
   <main id="res" class="results hide">
-    <div class="rbar">
-      <div class="filebox"><img class="logo" src="/static/logo.png" alt=""><div style="min-width:0"><h2 id="rfile"></h2><p id="rmeta"></p></div></div>
-      <button class="back" id="back">다른 도면 검사</button>
-    </div>
+    <div class="rbar"><div class="filebox"><img class="logo" src="/static/logo.png" alt=""><div style="min-width:0"><h2 id="rfile"></h2><p id="rmeta"></p></div></div><button class="back" id="back" data-i18n="back">다른 도면 검사</button></div>
     <div class="grid">
       <section class="left">
-        <div class="viewer hide" id="viewer">
-          <div class="tools"><div class="toolset">
-            <button class="tool" data-z="in" title="확대">+</button><button class="tool" data-z="out" title="축소">-</button>
-            <button class="tool" data-z="fit" title="맞춤">⌖</button><button class="tool wide" data-z="one" title="원본 배율">1:1</button><button class="tool" data-z="full" title="전체 화면">⛶</button>
-          </div><div class="zoom" id="zoomv">100%</div></div>
-          <div class="stage" id="stage"><div class="pan" id="pan"></div></div>
-        </div>
+        <div class="viewer hide" id="viewer"><div class="tools"><div class="viewer-title" data-i18n="preview">도면 미리보기</div><div class="zoom" id="zoomv" data-i18n="fitFixed">자동 맞춤</div></div><div class="stage" id="stage"><div class="pan" id="pan"></div></div></div>
         <div class="warn hide" id="novw"></div>
-        <div class="viewer hide" id="m3d"><div class="tools"><div class="toolset"><button class="smallbtn" id="mreset">초기화</button><button class="smallbtn" id="mwire">와이어</button></div><div class="zoom">3D</div></div><div class="stage mstage" id="mstage"></div></div>
-        <div class="info hide" id="info"><div class="section-title">파일 정보</div><div class="infogrid" id="igrid"></div></div>
+        <div class="viewer hide" id="m3d"><div class="tools"><div><button class="smallbtn" id="mreset" data-i18n="reset">초기화</button> <button class="smallbtn" id="mwire" data-i18n="wire">와이어</button></div><div class="zoom">3D</div></div><div class="stage mstage" id="mstage"></div></div>
+        <div class="info hide" id="info"><div class="section-title" data-i18n="fileInfo">파일 정보</div><div class="infogrid" id="igrid"></div></div>
       </section>
-      <section class="right">
-        <div id="rwarn"></div><div id="score"></div>
-        <div><div class="section-title">채점 항목</div><div id="items" style="display:flex;flex-direction:column;gap:8px"></div><div id="verdict"></div></div>
-        <div><div class="section-title">지적사항</div><div class="filters" id="fbar"></div><div id="finds" style="display:flex;flex-direction:column;gap:8px"></div></div>
-        <div class="disc" id="disc"></div>
-      </section>
+      <section class="right"><div id="rwarn"></div><div id="score"></div><div><div class="section-title" data-i18n="scoreItems">채점 항목</div><div id="items" style="display:flex;flex-direction:column;gap:8px"></div><div id="verdict"></div></div><div><div class="section-title" data-i18n="findings">지적사항</div><div class="filters" id="fbar"></div><div id="finds" style="display:flex;flex-direction:column;gap:8px"></div></div><div class="disc" id="disc"></div></section>
     </div>
   </main>
 </div>
@@ -175,95 +67,44 @@ h1{font-size:clamp(38px,5vw,68px);line-height:.98;font-weight:850;max-width:760p
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const kb=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+const I18N={
+ko:{brandSub:'도면 자동 검사',ready:'준비 중',heroTitle:'도면을 올리면, 채점 근거까지 바로 보입니다.',heroCopy:'DWG와 DXF 도면을 읽고 치수, 투상도, 공차, 표면거칠기, 주서 항목을 자동 점검합니다. 문제 위치는 미리보기 위에 번호로 표시됩니다.',checks:'검사 항목',aiReview:'배치 검토',newCheck:'새 도면 검사',chooseOrDrop:'파일 선택 또는 드래그',dropTitle:'도면 파일을 놓으세요',orZip:'또는 zip 패키지',samples:'예제 도면',rubric:'채점 기준',dq:'실격 조건',back:'다른 도면 검사',preview:'도면 미리보기',fitFixed:'자동 맞춤',reset:'초기화',wire:'와이어',fileInfo:'파일 정보',scoreItems:'채점 항목',findings:'지적사항',all:'전체',fail:'실격',error:'오류',warn:'경고',info:'참고',allOn:'전체',allOff:'해제',basic:'기본',loadingTitle:'도면 검사 중',loadingCopy:'내용을 읽고 문제 위치를 찾고 있습니다.',failed:'검사 실패',appError:'앱을 준비하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',autoScore:'자동 채점',disqualified:'실격',dqCopy:'점수와 무관하게 불합격 처리되는 조건입니다.',review:'확인',aiTotal:'AI 총평',emptyFindings:'해당 지적사항이 없습니다.',where:'위치',deduct:'점 차감',places:'곳',disc:'자동 검사는 제출 전 확인을 돕는 보조 도구입니다. 최종 제출 전에는 도면 기준과 지시사항을 함께 확인하세요.',reviewPoints:'점은 사람이 직접 확인해야 하는 항목입니다.',refsWarn:'참조 모델을 찾지 못했습니다. 모델 파일과 함께 zip으로 묶어 다시 올리면 3D 관련 검토까지 더 정확해집니다.',modelErr:'3D 미리보기를 만들지 못했습니다.',supportReady:'지원 형식 확인됨',examBase:'기준',aiOn:'AI 검토 켜짐',aiOff:'AI 검토 꺼짐',dwgReady:'DWG 변환 준비됨',kind:{part:'부품',drawing:'도면',assembly:'조립품',dwg:'2D 도면'},rub:['투상도 선택과 배열','치수 기입','끼워맞춤 공차','표면거칠기','형상 공차','주서·표제란','재료 선택과 처리'],stat:{sheets:'시트',dims:'치수',undimensioned:'미치수 원',views:'투상도',title_block:'표제란',sketches:'스케치',holes:'구멍',walls:'얇은 벽',mass_kg:'질량(kg)',volume_cm3:'부피(cm³)',feature_count:'피처 수',occurrence_count:'부품 수'},prop:{part_number:'품번',material:'재료',designer:'설계자',description:'설명',revision:'개정',project:'프로젝트',stock_number:'재고번호'},bool:{yes:'있음',no:'없음'}},
+en:{brandSub:'Automatic drawing inspection',ready:'Ready',heroTitle:'Upload a drawing. See the score and the evidence instantly.',heroCopy:'CADLens reads DWG and DXF drawings and checks dimensions, views, tolerances, surface finish, and notes. Issues are numbered directly on the preview.',checks:'Checks',aiReview:'Layout review',newCheck:'New drawing check',chooseOrDrop:'Choose a file or drag it here',dropTitle:'Drop your drawing file',orZip:'or a zip package',samples:'Sample drawings',rubric:'Scoring rubric',dq:'Disqualification rules',back:'Check another drawing',preview:'Drawing preview',fitFixed:'Fit to panel',reset:'Reset',wire:'Wireframe',fileInfo:'File info',scoreItems:'Score items',findings:'Findings',all:'All',fail:'DQ',error:'Error',warn:'Warning',info:'Info',allOn:'All',allOff:'None',basic:'Default',loadingTitle:'Checking drawing',loadingCopy:'Reading the file and locating issues.',failed:'Check failed',appError:'Could not prepare the app. Please try again shortly.',autoScore:'Auto score',disqualified:'Disqualified',dqCopy:'This condition fails regardless of score.',review:'Review',aiTotal:'AI summary',emptyFindings:'No matching findings.',where:'Where',deduct:'point deduction',places:'places',disc:'This automatic check is a submission aid. Confirm the official drawing requirements before final submission.',reviewPoints:'points require human review.',refsWarn:'Referenced model files were not found. Upload them together as a zip package for more accurate 3D checks.',modelErr:'Could not create the 3D preview.',supportReady:'Supported formats ready',examBase:'base',aiOn:'AI review on',aiOff:'AI review off',dwgReady:'DWG conversion ready',kind:{part:'Part',drawing:'Drawing',assembly:'Assembly',dwg:'2D drawing'},rub:['View selection and layout','Dimensions','Fit tolerances','Surface finish','Geometric tolerances','Notes and title block','Material and treatment'],stat:{sheets:'Sheets',dims:'Dimensions',undimensioned:'Undimensioned circles',views:'Views',title_block:'Title block',sketches:'Sketches',holes:'Holes',walls:'Thin walls',mass_kg:'Mass (kg)',volume_cm3:'Volume (cm³)',feature_count:'Features',occurrence_count:'Occurrences'},prop:{part_number:'Part no.',material:'Material',designer:'Designer',description:'Description',revision:'Revision',project:'Project',stock_number:'Stock no.'},bool:{yes:'Yes',no:'No'}},
+ja:{brandSub:'図面自動検査',ready:'準備中',heroTitle:'図面をアップロードすると、採点根拠まで即表示。',heroCopy:'DWG/DXF 図面を読み取り、寸法、投影図、公差、表面粗さ、注記を自動確認します。問題箇所はプレビュー上に番号で表示されます。',checks:'検査項目',aiReview:'配置レビュー',newCheck:'新しい図面検査',chooseOrDrop:'ファイル選択またはドラッグ',dropTitle:'図面ファイルをドロップ',orZip:'または zip パッケージ',samples:'サンプル図面',rubric:'採点基準',dq:'失格条件',back:'別の図面を検査',preview:'図面プレビュー',fitFixed:'自動フィット',reset:'初期化',wire:'ワイヤー',fileInfo:'ファイル情報',scoreItems:'採点項目',findings:'指摘事項',all:'すべて',fail:'失格',error:'エラー',warn:'警告',info:'情報',allOn:'すべて',allOff:'解除',basic:'標準',loadingTitle:'図面を検査中',loadingCopy:'内容を読み取り、問題箇所を探しています。',failed:'検査失敗',appError:'アプリを準備できませんでした。しばらくして再試行してください。',autoScore:'自動採点',disqualified:'失格',dqCopy:'点数に関係なく不合格となる条件です。',review:'確認',aiTotal:'AI 総評',emptyFindings:'該当する指摘事項はありません。',where:'位置',deduct:'点減点',places:'箇所',disc:'自動検査は提出前確認の補助ツールです。最終提出前に公式の図面条件も確認してください。',reviewPoints:'点は人による確認が必要です。',refsWarn:'参照モデルが見つかりません。モデルファイルも zip にまとめてアップロードすると 3D 関連検査がより正確になります。',modelErr:'3D プレビューを作成できませんでした。',supportReady:'対応形式を確認済み',examBase:'基準',aiOn:'AI 検査オン',aiOff:'AI 検査オフ',dwgReady:'DWG 変換準備済み',kind:{part:'部品',drawing:'図面',assembly:'アセンブリ',dwg:'2D 図面'},rub:['投影図の選択と配置','寸法記入','はめあい公差','表面粗さ','幾何公差','注記・表題欄','材料と処理'],stat:{sheets:'シート',dims:'寸法',undimensioned:'未寸法円',views:'投影図',title_block:'表題欄',sketches:'スケッチ',holes:'穴',walls:'薄肉',mass_kg:'質量(kg)',volume_cm3:'体積(cm³)',feature_count:'フィーチャ数',occurrence_count:'部品数'},prop:{part_number:'品番',material:'材料',designer:'設計者',description:'説明',revision:'改訂',project:'プロジェクト',stock_number:'在庫番号'},bool:{yes:'あり',no:'なし'}},
+zh:{brandSub:'图纸自动检查',ready:'准备中',heroTitle:'上传图纸，即刻查看评分依据。',heroCopy:'CADLens 可读取 DWG 和 DXF 图纸，自动检查尺寸、视图、公差、表面粗糙度和注释。问题位置会在预览中编号显示。',checks:'检查项',aiReview:'布局检查',newCheck:'新建图纸检查',chooseOrDrop:'选择文件或拖放',dropTitle:'拖放图纸文件',orZip:'或 zip 包',samples:'示例图纸',rubric:'评分标准',dq:'失格条件',back:'检查其他图纸',preview:'图纸预览',fitFixed:'自动适配',reset:'重置',wire:'线框',fileInfo:'文件信息',scoreItems:'评分项',findings:'问题项',all:'全部',fail:'失格',error:'错误',warn:'警告',info:'信息',allOn:'全部',allOff:'清除',basic:'默认',loadingTitle:'正在检查图纸',loadingCopy:'正在读取内容并定位问题。',failed:'检查失败',appError:'应用暂时无法准备完成，请稍后重试。',autoScore:'自动评分',disqualified:'失格',dqCopy:'此条件会直接判定不合格，与分数无关。',review:'确认',aiTotal:'AI 总评',emptyFindings:'没有对应的问题项。',where:'位置',deduct:'分扣除',places:'处',disc:'自动检查用于辅助提交前确认。最终提交前请同时核对官方图纸要求。',reviewPoints:'分需要人工确认。',refsWarn:'未找到引用模型。将模型文件一起打包为 zip 上传，可获得更准确的 3D 检查。',modelErr:'无法创建 3D 预览。',supportReady:'支持格式已就绪',examBase:'基准',aiOn:'AI 检查开启',aiOff:'AI 检查关闭',dwgReady:'DWG 转换已就绪',kind:{part:'零件',drawing:'图纸',assembly:'装配体',dwg:'2D 图纸'},rub:['视图选择与布局','尺寸标注','配合公差','表面粗糙度','几何公差','注释和标题栏','材料与处理'],stat:{sheets:'图纸页',dims:'尺寸',undimensioned:'未标注圆',views:'视图',title_block:'标题栏',sketches:'草图',holes:'孔',walls:'薄壁',mass_kg:'质量(kg)',volume_cm3:'体积(cm³)',feature_count:'特征数',occurrence_count:'零件数'},prop:{part_number:'零件号',material:'材料',designer:'设计者',description:'说明',revision:'版本',project:'项目',stock_number:'库存号'},bool:{yes:'有',no:'无'}}
+};
+let lang=localStorage.getItem('cadcheck.lang')||'ko'; const t=k=>I18N[lang][k]??I18N.ko[k]??k;
+function applyLang(){document.documentElement.lang=lang;document.title='CADLens | '+t('brandSub');$('#lang').value=lang;document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));drawRubric();drawPicker();if(RES)render(RES)}
+$('#lang').onchange=e=>{lang=e.target.value;localStorage.setItem('cadcheck.lang',lang);applyLang()};
 const SEV={fail:'var(--red)',error:'var(--red)',warn:'var(--amber)',info:'var(--soft)'};
-const SEVKO={fail:'실격',error:'오류',warn:'경고',info:'참고'};
-const KIND={part:'부품',drawing:'도면',assembly:'조립품',dwg:'2D 도면'};
-const STAT={sheets:'시트',dims:'치수',undimensioned:'미치수 원',views:'투상도',title_block:'표제란',sketches:'스케치',holes:'구멍',walls:'얇은 벽',mass_kg:'질량(kg)',volume_cm3:'부피(cm³)',feature_count:'피처 수',occurrence_count:'부품 수'};
-const PROP={part_number:'품번',material:'재료',designer:'설계자',description:'설명',revision:'개정',project:'프로젝트',stock_number:'재고번호'};
-const RUBRIC=[['PROJECTION_LAYOUT','투상도 선택과 배열',30],['DIMENSIONS','치수 기입',15],['TOLERANCE','끼워맞춤 공차',10],['SURFACE','표면거칠기',10],['GEOMETRIC','형상 공차',10],['NOTES_TITLE','주서·표제란',8],['MATERIAL','재료 선택과 처리',7]];
-let CHECKS=[],enabled=new Set(),HEALTH={},RES=null,sevFilter=null; const LS='cadcheck.enabled';
-const picked=()=>[...enabled];
-
-fetch('/api/health').then(r=>r.json()).then(h=>{
-  HEALTH=h; CHECKS=h.checks||[];
-  const sup=h.supported||[]; $('#support').textContent=(sup.join(' · ')||'지원 형식 확인됨');
-  $('#exts').textContent=(sup.join(' · ')||'.dwg · .dxf'); $('#mchecks').textContent=CHECKS.length;
-  $('#formatrow').innerHTML=sup.map(x=>`<span class="chip">${esc(x)}</span>`).join('')+'<span class="chip">zip</span>';
-  let saved=null; try{saved=JSON.parse(localStorage.getItem(LS))}catch(e){}
-  enabled=new Set(Array.isArray(saved)&&saved.length?saved.filter(id=>CHECKS.some(c=>c.id===id)):CHECKS.filter(c=>c.default).map(c=>c.id));
-  drawPicker(); drawRubric();
-  const bits=[]; if(h.exam)bits.push(`${h.exam.sheet} 기준`); bits.push(`${CHECKS.length}개 검사`); bits.push(h.ai?'AI 검토 켜짐':'AI 검토 꺼짐'); if(h.dwg_via)bits.push(`DWG 변환 준비됨`);
-  $('#foot').textContent=bits.join(' · ');
-}).catch(()=>{$('#status').innerHTML='<div class="err">앱을 준비하지 못했습니다. 잠시 뒤 다시 시도해 주세요.</div>'});
-
-function drawRubric(){
-  $('#rubric').innerHTML=RUBRIC.map(([c,l,m])=>`<div class="rub"><span>${esc(l)}</span><b class="mono">${m}</b></div>`).join('');
-  const dq=CHECKS.filter(c=>c.group==='실격');
-  $('#dqsec').classList.toggle('hide',!dq.length);
-  $('#dqlist').innerHTML=dq.map(c=>`<div>• ${esc(c.label)}</div>`).join('');
-}
-function drawPicker(){
-  const groups=[]; CHECKS.forEach(c=>{let g=groups.find(x=>x.key===c.group); if(!g)groups.push(g={key:c.group,label:c.group_label||c.group,items:[]}); g.items.push(c)});
-  $('#pbody').innerHTML=groups.map(g=>`<div class="group"><h4>${esc(g.label)}</h4>${g.items.map(c=>`<label><input type="checkbox" data-id="${esc(c.id)}" ${enabled.has(c.id)?'checked':''}><span>${esc(c.label)}</span></label>`).join('')}</div>`).join('')+
-    `<div class="pbtns"><button class="smallbtn" data-p="all">전체</button><button class="smallbtn" data-p="none">해제</button><button class="smallbtn" data-p="def">기본</button></div>`;
-  $('#pbody').querySelectorAll('input[data-id]').forEach(el=>el.onchange=()=>{el.checked?enabled.add(el.dataset.id):enabled.delete(el.dataset.id);persist()});
-  $('#pbody').querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{if(b.dataset.p==='all')enabled=new Set(CHECKS.map(c=>c.id));else if(b.dataset.p==='none')enabled=new Set();else enabled=new Set(CHECKS.filter(c=>c.default).map(c=>c.id));drawPicker();persist()});
-  persist();
-}
-function persist(){try{localStorage.setItem(LS,JSON.stringify([...enabled]))}catch(e){} $('#pcount').textContent=`${enabled.size}/${CHECKS.length}`}
-
-fetch('/api/samples').then(r=>r.json()).then(d=>{const list=(d&&d.samples)||[]; if(!list.length)return; $('#samples').classList.remove('hide'); $('#sgrid').innerHTML=list.map(s=>`<button class="sample" data-n="${esc(s.name)}"><b>${esc(s.name)}</b><span>${esc(s.ext)} · ${kb(s.size)}</span></button>`).join(''); $('#sgrid').querySelectorAll('.sample').forEach(b=>b.onclick=()=>sendSample(b.dataset.n))}).catch(()=>{});
-
-function busy(label){$('#work').classList.add('hide');$('#status').innerHTML=`<div class="loading"><div class="spinner"></div><h3>도면 검사 중</h3><p style="color:var(--muted);margin-top:6px">${esc(label)} 내용을 읽고 문제 위치를 찾고 있습니다.</p></div>`}
-const done=r=>r.json().catch(()=>({detail:'응답을 읽지 못했습니다'})).then(j=>{if(!r.ok)throw new Error(j.detail||r.status);return j});
-function fail(e){$('#status').innerHTML=`<div class="err">검사 실패: ${esc(e.message)}</div>`;$('#work').classList.remove('hide')}
+const RUBRIC_CODES=['PROJECTION_LAYOUT','DIMENSIONS','TOLERANCE','SURFACE','GEOMETRIC','NOTES_TITLE','MATERIAL']; const RUBRIC_MAX=[30,15,10,10,10,8,7];
+let CHECKS=[],enabled=new Set(),HEALTH={},RES=null,sevFilter=null; const LS='cadcheck.enabled'; const picked=()=>[...enabled];
+fetch('/api/health').then(r=>r.json()).then(h=>{HEALTH=h;CHECKS=h.checks||[];const sup=h.supported||[];$('#support').textContent=sup.join(' · ')||t('supportReady');$('#exts').textContent=sup.join(' · ')||'.dwg · .dxf';$('#mchecks').textContent=CHECKS.length;$('#formatrow').innerHTML=sup.map(x=>`<span class="chip">${esc(x)}</span>`).join('')+'<span class="chip">zip</span>';let saved=null;try{saved=JSON.parse(localStorage.getItem(LS))}catch(e){}enabled=new Set(Array.isArray(saved)&&saved.length?saved.filter(id=>CHECKS.some(c=>c.id===id)):CHECKS.filter(c=>c.default).map(c=>c.id));applyLang();const bits=[];if(h.exam)bits.push(`${h.exam.sheet} ${t('examBase')}`);bits.push(`${CHECKS.length} ${t('checks')}`);bits.push(h.ai?t('aiOn'):t('aiOff'));if(h.dwg_via)bits.push(t('dwgReady'));$('#foot').textContent=bits.join(' · ')}).catch(()=>{$('#status').innerHTML=`<div class="err">${t('appError')}</div>`});
+function drawRubric(){if(!$('#rubric'))return;$('#rubric').innerHTML=RUBRIC_CODES.map((c,i)=>`<div class="rub"><span>${esc(t('rub')[i])}</span><b class="mono">${RUBRIC_MAX[i]}</b></div>`).join('');const dq=CHECKS.filter(c=>c.group==='실격');$('#dqsec').classList.toggle('hide',!dq.length);$('#dqlist').innerHTML=dq.map(c=>`<div>• ${esc(c.label)}</div>`).join('')}
+function drawPicker(){if(!CHECKS.length)return;const groups=[];CHECKS.forEach(c=>{let g=groups.find(x=>x.key===c.group);if(!g)groups.push(g={key:c.group,label:c.group_label||c.group,items:[]});g.items.push(c)});$('#pbody').innerHTML=groups.map(g=>`<div class="group"><h4>${esc(g.label)}</h4>${g.items.map(c=>`<label><input type="checkbox" data-id="${esc(c.id)}" ${enabled.has(c.id)?'checked':''}><span>${esc(c.label)}</span></label>`).join('')}</div>`).join('')+`<div class="pbtns"><button class="smallbtn" data-p="all">${t('allOn')}</button><button class="smallbtn" data-p="none">${t('allOff')}</button><button class="smallbtn" data-p="def">${t('basic')}</button></div>`;$('#pbody').querySelectorAll('input[data-id]').forEach(el=>el.onchange=()=>{el.checked?enabled.add(el.dataset.id):enabled.delete(el.dataset.id);persist()});$('#pbody').querySelectorAll('button[data-p]').forEach(b=>b.onclick=()=>{if(b.dataset.p==='all')enabled=new Set(CHECKS.map(c=>c.id));else if(b.dataset.p==='none')enabled=new Set();else enabled=new Set(CHECKS.filter(c=>c.default).map(c=>c.id));drawPicker();persist()});persist()}
+function persist(){try{localStorage.setItem(LS,JSON.stringify([...enabled]))}catch(e){}$('#pcount').textContent=`${enabled.size}/${CHECKS.length}`}
+fetch('/api/samples').then(r=>r.json()).then(d=>{const list=(d&&d.samples)||[];if(!list.length)return;$('#samples').classList.remove('hide');$('#sgrid').innerHTML=list.map(s=>`<button class="sample" data-n="${esc(s.name)}"><b>${esc(s.name)}</b><span>${esc(s.ext)} · ${kb(s.size)}</span></button>`).join('');$('#sgrid').querySelectorAll('.sample').forEach(b=>b.onclick=()=>sendSample(b.dataset.n))}).catch(()=>{});
+function busy(label){$('#work').classList.add('hide');$('#status').innerHTML=`<div class="loading"><div class="spinner"></div><h3>${t('loadingTitle')}</h3><p style="color:var(--muted);margin-top:6px">${esc(label)} ${t('loadingCopy')}</p></div>`}
+const done=r=>r.json().catch(()=>({detail:'Bad response'})).then(j=>{if(!r.ok)throw new Error(j.detail||r.status);return j});
+function fail(e){$('#status').innerHTML=`<div class="err">${t('failed')}: ${esc(e.message)}</div>`;$('#work').classList.remove('hide')}
 function post(url,body,label){busy(label);fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(done).then(render).catch(fail)}
 const sendSample=n=>post('/api/analyze-sample',{name:n,checks:picked()},n);
 function send(f){busy(f.name);const fd=new FormData();fd.append('file',f);fd.append('checks',picked().join(','));fetch('/api/analyze',{method:'POST',body:fd}).then(done).then(render).catch(fail)}
-$('#file').onchange=e=>{if(e.target.files[0])send(e.target.files[0])};
-const drop=$('#drop'); ['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('over')})); ['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('over')})); drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0]; if(f)send(f)});
-$('#back').onclick=()=>{$('#res').classList.add('hide');$('#home').classList.remove('hide');$('#status').innerHTML='';$('#work').classList.remove('hide');window.scrollTo(0,0)};
-
-function render(d){
-  RES=d;sevFilter=null;$('#home').classList.add('hide');$('#res').classList.remove('hide');$('#status').innerHTML='';window.scrollTo(0,0);
-  $('#rfile').textContent=d.file||''; const meta=[KIND[d.kind]||d.kind]; if(d.standard)meta.push(d.standard); if(d.first_angle!==null&&d.first_angle!==undefined)meta.push(d.first_angle?'1각법':'3각법'); meta.push('Job '+d.job); $('#rmeta').textContent=meta.filter(Boolean).join(' · ');
-  const warn=[]; if(d.refs_ok===false)warn.push('참조 모델을 찾지 못했습니다. 모델 파일과 함께 zip으로 묶어 다시 올리면 3D 관련 검토까지 더 정확해집니다.'); if(d.model_error)warn.push('3D 미리보기를 만들지 못했습니다. '+esc(d.model_error)); $('#rwarn').innerHTML=warn.map(t=>`<div class="warn">${t}</div>`).join('');
-  drawScore(d.scorecard||{},d.summary||{}); drawItems(d.scorecard||{}); drawFindings(d); drawInfo(d); drawSvg(d); draw3D(d);
-  let disc='자동 검사는 제출 전 확인을 돕는 보조 도구입니다. 최종 제출 전에는 도면 기준과 지시사항을 함께 확인하세요.'; const sc=d.scorecard||{}; if(sc.review_points>0)disc+=` ${sc.review_points}점은 사람이 직접 확인해야 하는 항목입니다.`; $('#disc').textContent=disc;
-}
-function drawScore(sc,sum){
-  if(sc.disqualified){$('#score').innerHTML=`<div class="card score fail"><div class="big">실격</div><p>점수와 무관하게 불합격 처리되는 조건입니다.</p><div style="margin-top:12px;color:#ffc4cb">${(sc.disqualifiers||[]).map(r=>`• ${esc(r)}`).join('<br>')}</div></div>`;return}
-  const pct=sc.percent!=null?Math.round(sc.percent):0; const c=[['error','오류',SEV.error],['warn','경고',SEV.warn],['info','참고',SEV.info]];
-  $('#score').innerHTML=`<div class="card score pass"><div class="big">${pct}%</div><p>자동 채점 <b class="mono">${sc.auto_score} / ${sc.auto_max}</b></p><div class="counts">${c.map(([k,l,col])=>`<div class="count"><span>${l}</span><b style="color:${col}">${sum[k]||0}</b></div>`).join('')}</div></div>`;
-}
-function drawItems(sc){$('#items').innerHTML=(sc.items||[]).map(it=>{const rev=it.mode==='review';const val=rev?`확인 / ${it.max}`:`${it.score} / ${it.max}`;const w=rev||!it.max?0:(it.score/it.max)*100;return `<div class="item"><div class="itemtop"><span>${esc(it.label)}${it.mode==='ai'?' <span style="color:var(--violet)">AI</span>':''}</span><span class="mono">${val}</span></div><div class="bar"><i style="width:${w}%"></i></div></div>`}).join('');$('#verdict').innerHTML=sc.ai_verdict?`<div class="disc" style="margin-top:8px"><b>AI 총평</b> · ${esc(sc.ai_verdict)}</div>`:''}
-function drawFindings(d){
-  const all=d.findings||[],counts={}; all.forEach(f=>counts[f.severity]=(counts[f.severity]||0)+1);
-  $('#fbar').innerHTML=[['','전체',all.length]].concat(Object.keys(SEVKO).filter(k=>counts[k]).map(k=>[k,SEVKO[k],counts[k]])).map(([k,l,n])=>`<button data-s="${k}" class="${sevFilter===(k||null)?'on':''}">${l} ${n}</button>`).join('');
-  $('#fbar').querySelectorAll('button').forEach(b=>b.onclick=()=>{sevFilter=b.dataset.s||null;drawFindings(d)});
-  const idx=d.markers_placed?(d.marker_index||[]):[]; const rows=all.filter(f=>!sevFilter||f.severity===sevFilter).map(f=>{
-    const col=SEV[f.severity]||SEV.info; const marked=d.markers_placed&&(f.code==='DIM_MISSING'||f.code==='EX_DIM_MISSING'||f.code==='EX_NO_DIMS');
-    const markers=marked?idx.filter(m=>!m.finding_code||m.finding_code===f.code||(f.code==='DIM_MISSING'&&m.finding_code==='EX_DIM_MISSING')):[];
-    const chips=markers.length?`<div class="marker-summary">${markers.map(m=>`<span class="marker-chip"><b>${m.n}</b>Ø${Number(m.diameter_mm).toFixed(1)} · ${m.count||1}곳</span>`).join('')}</div>`:'';
-    const bits=[]; if(f.item)bits.push(esc(f.item)); if(f.deduct)bits.push(`${f.deduct}점 차감`);
-    const w=f.where||{}; const where=['sheet','view','sketch','feature'].filter(k=>w[k]).map(k=>esc(w[k])).join(' · ');
-    return `<div class="finding" style="border-color:${col}"><button data-t="1"><div><div class="ftitle">${esc(f.title)}</div><div class="fmeta">${bits.join(' · ')}</div>${chips}</div><span style="color:var(--muted)">⌄</span></button><div class="fbody hide">${f.detail?`<div>${esc(f.detail)}</div>`:''}${f.fix?`<div class="fix">${esc(f.fix)}</div>`:''}${where?`<div class="fmeta" style="margin-top:10px">위치 · ${where}</div>`:''}</div></div>`;
-  }).join('');
-  $('#finds').innerHTML=rows||'<div class="disc">해당 지적사항이 없습니다.</div>'; $('#finds').querySelectorAll('button[data-t]').forEach(b=>b.onclick=()=>{const x=b.nextElementSibling;x.classList.toggle('hide');b.lastElementChild.textContent=x.classList.contains('hide')?'⌄':'⌃'});
-}
-function drawInfo(d){const rows=[]; Object.entries(d.props||{}).forEach(([k,v])=>{if(v)rows.push([PROP[k]||k,v])}); Object.entries(d.stats||{}).forEach(([k,v])=>{if(v!==null&&v!==undefined&&v!==''&&k!=='kind')rows.push([STAT[k]||k,typeof v==='boolean'?(v?'있음':'없음'):v])}); $('#info').classList.toggle('hide',!rows.length); $('#igrid').innerHTML=rows.map(([l,v])=>`<div><span>${esc(l)}</span><b>${esc(v)}</b></div>`).join('')}
-
-let zoom=1,ox=0,oy=0; const pan=$('#pan'),stage=$('#stage');
-function apply(){pan.style.transform=`translate(${ox}px,${oy}px) scale(${zoom})`;$('#zoomv').textContent=Math.round(zoom*100)+'%'}
-function fit(){const svg=pan.querySelector('svg');if(!svg)return;const r=stage.getBoundingClientRect();const w=svg.viewBox.baseVal.width||svg.clientWidth||1,h=svg.viewBox.baseVal.height||svg.clientHeight||1;zoom=Math.min(r.width/w,r.height/h)*.94;ox=(r.width-w*zoom)/2;oy=(r.height-h*zoom)/2;apply()}
+$('#file').onchange=e=>{if(e.target.files[0])send(e.target.files[0])};const drop=$('#drop');['dragenter','dragover'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add('over')}));['dragleave','drop'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove('over')}));drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});$('#back').onclick=()=>{$('#res').classList.add('hide');$('#home').classList.remove('hide');$('#status').innerHTML='';$('#work').classList.remove('hide');window.scrollTo(0,0)};
+function render(d){RES=d;sevFilter=sevFilter&&d===RES?sevFilter:null;$('#home').classList.add('hide');$('#res').classList.remove('hide');$('#status').innerHTML='';window.scrollTo(0,0);$('#rfile').textContent=d.file||'';const meta=[t('kind')[d.kind]||d.kind];if(d.standard)meta.push(d.standard);if(d.first_angle!==null&&d.first_angle!==undefined)meta.push(d.first_angle?'1st angle':'3rd angle');meta.push('Job '+d.job);$('#rmeta').textContent=meta.filter(Boolean).join(' · ');const warn=[];if(d.refs_ok===false)warn.push(t('refsWarn'));if(d.model_error)warn.push(t('modelErr')+' '+esc(d.model_error));$('#rwarn').innerHTML=warn.map(x=>`<div class="warn">${x}</div>`).join('');drawScore(d.scorecard||{},d.summary||{});drawItems(d.scorecard||{});drawFindings(d);drawInfo(d);drawSvg(d);draw3D(d);let disc=t('disc');const sc=d.scorecard||{};if(sc.review_points>0)disc+=` ${sc.review_points}${t('reviewPoints')}`;$('#disc').textContent=disc}
+function drawScore(sc,sum){if(sc.disqualified){$('#score').innerHTML=`<div class="card score fail"><div class="big">${t('disqualified')}</div><p>${t('dqCopy')}</p><div style="margin-top:12px;color:#ffc4cb">${(sc.disqualifiers||[]).map(r=>`• ${esc(r)}`).join('<br>')}</div></div>`;return}const pct=sc.percent!=null?Math.round(sc.percent):0;const c=[['error',t('error'),SEV.error],['warn',t('warn'),SEV.warn],['info',t('info'),SEV.info]];$('#score').innerHTML=`<div class="card score pass"><div class="big">${pct}%</div><p>${t('autoScore')} <b class="mono">${sc.auto_score} / ${sc.auto_max}</b></p><div class="counts">${c.map(([k,l,col])=>`<div class="count"><span>${l}</span><b style="color:${col}">${sum[k]||0}</b></div>`).join('')}</div></div>`}
+function drawItems(sc){$('#items').innerHTML=(sc.items||[]).map(it=>{const rev=it.mode==='review';const val=rev?`${t('review')} / ${it.max}`:`${it.score} / ${it.max}`;const w=rev||!it.max?0:(it.score/it.max)*100;return `<div class="item"><div class="itemtop"><span>${esc(it.label)}${it.mode==='ai'?' <span style="color:var(--violet)">AI</span>':''}</span><span class="mono">${val}</span></div><div class="bar"><i style="width:${w}%"></i></div></div>`}).join('');$('#verdict').innerHTML=sc.ai_verdict?`<div class="disc" style="margin-top:8px"><b>${t('aiTotal')}</b> · ${esc(sc.ai_verdict)}</div>`:''}
+function drawFindings(d){const all=d.findings||[],counts={};all.forEach(f=>counts[f.severity]=(counts[f.severity]||0)+1);$('#fbar').innerHTML=[['',t('all'),all.length]].concat(Object.keys(SEV).filter(k=>counts[k]).map(k=>[k,t(k),counts[k]])).map(([k,l,n])=>`<button data-s="${k}" class="${sevFilter===(k||null)?'on':''}">${l} ${n}</button>`).join('');$('#fbar').querySelectorAll('button').forEach(b=>b.onclick=()=>{sevFilter=b.dataset.s||null;drawFindings(d)});const idx=d.markers_placed?(d.marker_index||[]):[];const rows=all.filter(f=>!sevFilter||f.severity===sevFilter).map(f=>{const col=SEV[f.severity]||SEV.info;const marked=d.markers_placed&&(f.code==='DIM_MISSING'||f.code==='EX_DIM_MISSING'||f.code==='EX_NO_DIMS');const markers=marked?idx.filter(m=>!m.finding_code||m.finding_code===f.code||(f.code==='DIM_MISSING'&&m.finding_code==='EX_DIM_MISSING')):[];const chips=markers.length?`<div class="marker-summary">${markers.map(m=>`<span class="marker-chip"><b>${m.n}</b>Ø${Number(m.diameter_mm).toFixed(1)} · ${m.count||1}${t('places')}</span>`).join('')}</div>`:'';const bits=[];if(f.item)bits.push(esc(f.item));if(f.deduct)bits.push(`${f.deduct}${t('deduct')}`);const w=f.where||{};const where=['sheet','view','sketch','feature'].filter(k=>w[k]).map(k=>esc(w[k])).join(' · ');return `<div class="finding" style="border-color:${col}"><button data-t="1"><div><div class="ftitle">${esc(f.title)}</div><div class="fmeta">${bits.join(' · ')}</div>${chips}</div><span style="color:var(--muted)">⌄</span></button><div class="fbody hide">${f.detail?`<div>${esc(f.detail)}</div>`:''}${f.fix?`<div class="fix">${esc(f.fix)}</div>`:''}${where?`<div class="fmeta" style="margin-top:10px">${t('where')} · ${where}</div>`:''}</div></div>`}).join('');$('#finds').innerHTML=rows||`<div class="disc">${t('emptyFindings')}</div>`;$('#finds').querySelectorAll('button[data-t]').forEach(b=>b.onclick=()=>{const x=b.nextElementSibling;x.classList.toggle('hide');b.lastElementChild.textContent=x.classList.contains('hide')?'⌄':'⌃'})}
+function drawInfo(d){const rows=[];Object.entries(d.props||{}).forEach(([k,v])=>{if(v)rows.push([t('prop')[k]||k,v])});Object.entries(d.stats||{}).forEach(([k,v])=>{if(v!==null&&v!==undefined&&v!==''&&k!=='kind')rows.push([t('stat')[k]||k,typeof v==='boolean'?(v?t('bool').yes:t('bool').no):v])});$('#info').classList.toggle('hide',!rows.length);$('#igrid').innerHTML=rows.map(([l,v])=>`<div><span>${esc(l)}</span><b>${esc(v)}</b></div>`).join('')}
+let zoom=1,ox=0,oy=0;const pan=$('#pan'),stage=$('#stage');
+function apply(){pan.style.transform=`translate(${ox}px,${oy}px) scale(${zoom})`}
+function fit(){const svg=pan.querySelector('svg');if(!svg)return;const r=stage.getBoundingClientRect();const w=svg.viewBox.baseVal.width||svg.clientWidth||1,h=svg.viewBox.baseVal.height||svg.clientHeight||1;zoom=Math.min(r.width/w,r.height/h)*.98;ox=(r.width-w*zoom)/2;oy=(r.height-h*zoom)/2;apply()}
 function drawSvg(d){const has=!!d.svg;$('#viewer').classList.toggle('hide',!has);$('#novw').classList.toggle('hide',has||!d.svg_note);if(!has){if(d.svg_note)$('#novw').textContent=d.svg_note;return}pan.innerHTML=d.svg;const svg=pan.querySelector('svg');if(svg&&svg.viewBox.baseVal.width){svg.setAttribute('width',svg.viewBox.baseVal.width);svg.setAttribute('height',svg.viewBox.baseVal.height)}requestAnimationFrame(fit)}
-$('.tools').addEventListener('click',e=>{const a=e.target.dataset.z;if(!a)return;if(a==='in')zoom=Math.min(40,zoom*1.25);else if(a==='out')zoom=Math.max(.02,zoom/1.25);else if(a==='fit')return fit();else if(a==='one')zoom=1;else if(a==='full'){const v=$('#viewer');if(document.fullscreenElement)document.exitFullscreen();else if(v.requestFullscreen)v.requestFullscreen().then(()=>setTimeout(fit,120));return}apply()});
-stage.addEventListener('wheel',e=>{e.preventDefault();const r=stage.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,k=e.deltaY<0?1.12:1/1.12,nz=Math.max(.02,Math.min(40,zoom*k));ox=mx-(mx-ox)*(nz/zoom);oy=my-(my-oy)*(nz/zoom);zoom=nz;apply()},{passive:false});
-let dragging=false,px=0,py=0; stage.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;stage.classList.add('drag');stage.setPointerCapture(e.pointerId)}); stage.addEventListener('pointermove',e=>{if(!dragging)return;ox+=e.clientX-px;oy+=e.clientY-py;px=e.clientX;py=e.clientY;apply()}); ['pointerup','pointercancel'].forEach(t=>stage.addEventListener(t,()=>{dragging=false;stage.classList.remove('drag')})); stage.addEventListener('dblclick',()=>{zoom=Math.min(40,zoom*1.6);apply()});
-
+addEventListener('resize',()=>{if(!$('#viewer').classList.contains('hide'))fit()});
 let renderer,scene,camera,mesh,wire=false,raf=0;
 function parseSTL(buf){const dv=new DataView(buf);if(buf.byteLength>=84&&84+dv.getUint32(80,true)*50===buf.byteLength){const n=dv.getUint32(80,true),pos=new Float32Array(n*9),nor=new Float32Array(n*9);for(let i=0;i<n;i++){const o=84+i*50,nx=dv.getFloat32(o,true),ny=dv.getFloat32(o+4,true),nz=dv.getFloat32(o+8,true);for(let v=0;v<3;v++){const p=o+12+v*12,j=i*9+v*3;pos[j]=dv.getFloat32(p,true);pos[j+1]=dv.getFloat32(p+4,true);pos[j+2]=dv.getFloat32(p+8,true);nor[j]=nx;nor[j+1]=ny;nor[j+2]=nz}}return{pos,nor}}const txt=new TextDecoder().decode(buf),out=[],re=/vertex\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)/g;let m;while((m=re.exec(txt)))out.push(+m[1],+m[2],+m[3]);return{pos:new Float32Array(out),nor:null}}
 function draw3D(d){const box=$('#m3d'),host=$('#mstage');cancelAnimationFrame(raf);box.classList.toggle('hide',!d.model_url);if(!d.model_url||!window.THREE)return;fetch(d.model_url).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(buf=>{const{pos,nor}=parseSTL(buf);host.innerHTML='';scene=new THREE.Scene();scene.background=new THREE.Color(0x0a0f14);const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));if(nor)g.setAttribute('normal',new THREE.BufferAttribute(nor,3));else g.computeVertexNormals();g.computeBoundingSphere();const s=g.boundingSphere;g.translate(-s.center.x,-s.center.y,-s.center.z);mesh=new THREE.Mesh(g,new THREE.MeshPhongMaterial({color:0x9db2c4,shininess:36,flatShading:!nor}));scene.add(mesh);scene.add(new THREE.AmbientLight(0xffffff,.55));const l1=new THREE.DirectionalLight(0xffffff,.8);l1.position.set(1,1,1);scene.add(l1);const w=host.clientWidth||500,h=host.clientHeight||320;camera=new THREE.PerspectiveCamera(45,w/h,s.radius/100,s.radius*100);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(w,h);renderer.setPixelRatio(Math.min(2,devicePixelRatio));host.appendChild(renderer.domElement);let rx=.5,ry=.6,dist=s.radius*3,dg=false,lx=0,ly=0;const el=renderer.domElement;el.addEventListener('pointerdown',e=>{dg=true;lx=e.clientX;ly=e.clientY;el.setPointerCapture(e.pointerId)});el.addEventListener('pointermove',e=>{if(!dg)return;ry+=(e.clientX-lx)*.01;rx+=(e.clientY-ly)*.01;lx=e.clientX;ly=e.clientY});['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,()=>dg=false));el.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(s.radius*1.2,Math.min(s.radius*20,dist*(e.deltaY<0?.9:1.1)))},{passive:false});$('#mreset').onclick=()=>{rx=.5;ry=.6;dist=s.radius*3};$('#mwire').onclick=()=>{wire=!wire;mesh.material.wireframe=wire};(function loop(){raf=requestAnimationFrame(loop);camera.position.set(Math.cos(rx)*Math.sin(ry)*dist,Math.sin(rx)*dist,Math.cos(rx)*Math.cos(ry)*dist);camera.lookAt(0,0,0);renderer.render(scene,camera)})()}).catch(()=>box.classList.add('hide'))}
+applyLang();
 </script>
 </body>
 </html>
