@@ -1,14 +1,3 @@
----
-title: 도면 자가진단기
-emoji: 📐
-colorFrom: gray
-colorTo: green
-sdk: docker
-app_port: 7860
-pinned: false
-license: mit
----
-
 # 도면 자가진단기 — 전산응용기계제도기능사 자동 채점
 
 > CAD 도면을 올리면 **실제 채점 기준으로 점수를 매기고, 어디가 왜 틀렸는지와 고치는 방법**을 알려줍니다.
@@ -21,8 +10,6 @@ license: mit
 | 라이브 데모 | (배포 URL — [배포 절차](docs/deploy.md)) |
 | 피치 영상 | (유튜브 링크 — [대본](docs/pitch.md)) |
 | 라이선스 | [MIT](LICENSE) · 서드파티 고지 [NOTICE.md](NOTICE.md) |
-
-> 맨 위 설정 블록은 Hugging Face Spaces 배포용입니다. 나머지 문서와 무관합니다.
 
 ---
 
@@ -206,7 +193,7 @@ python smoke.py         # 엔드투엔드 점검
 
 | 쓰임 | 모델 | 구현 |
 |---|---|---|
-| **투상도 선택과 배열 판정 (30점)** | `claude-opus-5` (Vision) | [`ai_review.py`](ai_review.py) |
+| **투상도 선택과 배열 판정 (30점)** | `gemini-3.6-flash` (기본) 또는 `claude-opus-5` | [`ai_review.py`](ai_review.py) |
 
 채점 항목 중 **배점이 가장 큰 "투상도 선택과 배열"(30점)은 규칙으로 풀리지 않습니다.**
 "정면도를 제대로 골랐는가", "평면도·측면도가 제3각법 위치에 놓였는가", "이 형상을
@@ -226,10 +213,25 @@ python smoke.py         # 엔드투엔드 점검
 점수가 나와야 하고, 채점은 재현 가능해야 하기 때문입니다. **AI는 규칙이 닿지
 못하는 곳에만 씁니다.**
 
-AI 판정을 켜려면 `ANTHROPIC_API_KEY`를 설정하세요. 키가 없거나 API 호출이
-실패하면 `ai_review`는 조용히 물러나고, 투상도 항목은 예전처럼 `score: null` /
-`mode: "review"`로 남습니다. **외부 API 때문에 채점기 전체가 멈추지 않습니다.**
-이 검사는 다른 22개와 마찬가지로 UI에서 끌 수 있습니다(`AI_PROJECTION`).
+**모델은 갈아끼울 수 있습니다.** 환경변수로 감지합니다:
+
+| 환경변수 | 쓰이는 모델 | 비용 |
+|---|---|---|
+| `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` | `gemini-3.6-flash` | 무료 티어 |
+| `ANTHROPIC_API_KEY` | `claude-opus-5` | 도면 1장당 약 60~100원 |
+
+둘 다 있으면 무료인 Gemini를 먼저 씁니다. `AI_PROVIDER=claude`로 강제할 수
+있습니다. 판정 프롬프트와 JSON 스키마는 두 모델이 공유하므로, 제공자를 바꿔도
+채점 결과의 구조는 같습니다.
+
+키가 없거나 API 호출이 실패하면 `ai_review`는 조용히 물러나고, 투상도 항목은
+`score: null` / `mode: "review"`로 남습니다. **외부 API 때문에 채점기 전체가
+멈추지 않습니다.** 이 검사는 다른 22개와 마찬가지로 UI에서 끌 수 있습니다
+(`AI_PROJECTION`).
+
+> 무료 티어는 입력 데이터가 모델 개선에 쓰일 수 있습니다. 도면 표제란에는
+> 설계자 이름이 들어가므로, 실제 학생 도면을 다룰 때는 유료 티어를 쓰거나
+> 표제란의 개인정보를 지우고 올리세요.
 
 ### 개발 과정에서 쓴 AI
 

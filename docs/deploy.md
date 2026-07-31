@@ -1,76 +1,68 @@
-# 무료 배포 — Hugging Face Spaces
+# 무료 배포
 
 심사위원이 접속할 상시 URL을 **신용카드 없이** 만드는 절차입니다.
 
-Cloudflare Containers는 Workers 유료 플랜(월 $5) 전용이라 제외했습니다.
-Workers 무료 플랜은 JS/Pyodide만 돌아서 이 앱(`pymupdf` C 확장, `LibreDWG`
-네이티브 바이너리)을 실행할 수 없습니다.
+## 왜 Koyeb인가
 
-| 후보 | 카드 필요 | 판단 |
-|---|---|---|
-| **Hugging Face Spaces** | ❌ | **채택** — Docker 그대로, 2vCPU/16GB, 상시 URL |
-| Render 무료 | ❌ | 15분 유휴 후 정지, 콜드스타트 ~50초 (심사 중 "고장난 줄" 오해 위험) |
-| Fly.io | ✅ | 무료 할당량에도 카드 등록 요구 |
-| Cloudflare Containers | ✅ | 월 $5 유료 플랜 전용 |
+| 후보 | 카드 | 잠듦 | 판단 |
+|---|---|---|---|
+| **Koyeb** | ❌ 불필요 | ❌ 항상 켜짐 | **채택** — 512MB / 0.1 vCPU / 2GB, 서비스 1개 무료 |
+| Render 무료 | ✅ 필요 | ✅ 15분 후 정지 (기상 30~50초) | 카드도 필요하고 콜드스타트가 심사에 위험 |
+| Hugging Face Spaces | ✅ PRO $9/월 | — | **Docker Space는 유료 전용**입니다. 무료는 Static만 |
+| Cloudflare Containers | ✅ Workers $5/월 | — | 유료 플랜 전용 |
+| Fly.io | ✅ 필요 | — | 무료 할당량에도 카드 등록 |
 
----
+Koyeb의 0.1 vCPU는 느립니다. 도면 한 장 분석에 **10~30초** 걸릴 수 있습니다.
+첫 화면에 "분석에 시간이 걸립니다" 안내가 이미 들어가 있으니 그대로 두세요.
 
-## 1. Space 만들기
+## 1. Koyeb 배포
 
-1. https://huggingface.co/join 에서 가입 (무료, 카드 불필요)
-2. https://huggingface.co/new-space 접속
-3. 입력:
-   - **Space name**: `cad-checker` (원하는 이름)
-   - **License**: `mit`
-   - **SDK**: **Docker** → **Blank** 선택 ← 반드시 Docker
-   - **Hardware**: `CPU basic · 2 vCPU · 16GB` (무료)
-   - **Visibility**: **Public** ← 심사위원이 봐야 하므로 Public
+1. https://www.koyeb.com 에서 **GitHub 계정으로 가입** (카드 불필요)
+2. **Create Service** → **GitHub** → `ritual1127/naverogq` 선택
+3. 설정:
+   - **Builder**: `Dockerfile` (자동 감지됩니다)
+   - **Instance**: `Free` (eco-nano)
+   - **Port**: `7860`
+   - **Region**: `Frankfurt` 또는 `Washington`
+4. **Environment variables** 에 키 추가:
+   - `GOOGLE_API_KEY` = AI Studio에서 받은 키
+5. **Deploy** → 첫 빌드 5~10분
 
-생성 후 주소: `https://huggingface.co/spaces/<아이디>/cad-checker`
-실제 앱 주소: `https://<아이디>-cad-checker.hf.space`  ← **이게 제출할 프로덕트 URL**
+배포되면 `https://<서비스명>-<계정명>.koyeb.app` 이 나옵니다.
+**이게 신청서에 적을 프로덕트 URL입니다.**
 
-## 2. API 키를 시크릿으로 넣기
+## 2. Google AI Studio 키 받기 (무료)
 
-Space 페이지 → **Settings** → **Variables and secrets** → **New secret**
+1. https://aistudio.google.com/apikey 접속 (구글 계정만 있으면 됨)
+2. **Create API key** → 복사
+3. 카드 등록·결제 없음. 무료 티어에 분당·일일 요청 제한이 있지만
+   심사용 데모에는 충분합니다.
 
-- Name: `ANTHROPIC_API_KEY`
-- Value: 발급받은 키
+> ⚠️ **무료 티어는 입력 데이터가 모델 개선에 쓰일 수 있습니다.**
+> 도면 표제란에는 설계자 이름이 들어갑니다. 심사·시연용 도면은 표제란의
+> 개인정보를 지우고 쓰거나, 유료 티어로 올리세요. 대회 심사기준의
+> 윤리·안전 항목(P/F)에 개인정보가 포함되어 있습니다.
 
-키를 넣지 않아도 배포는 되지만, 투상도 30점 AI 판정이 꺼진 채로 뜹니다.
-
-## 3. 코드 올리기
-
-```powershell
-git remote add hf https://huggingface.co/spaces/<아이디>/cad-checker
-git push hf main
-```
-
-푸시할 때 사용자명은 HF 아이디, 비밀번호 자리에는
-**Access Token**(Settings → Access Tokens → New token, `write` 권한)을 넣습니다.
-
-푸시하면 Space가 자동으로 Dockerfile을 빌드합니다. **첫 빌드는 5~10분** 걸립니다.
-진행 상황은 Space 페이지의 **Logs** 탭에서 볼 수 있습니다.
-
-## 4. 확인
-
-빌드가 끝나면:
+## 3. 확인
 
 ```
-https://<아이디>-cad-checker.hf.space/api/health
+https://<서비스명>-<계정명>.koyeb.app/api/health
 ```
 
-`{"ok": true, "inventor": false, "ai": true, ...}` 가 나오면 정상입니다.
+```json
+{"ok": true, "inventor": false, "ai": true,
+ "ai_provider": "gemini", "ai_model": "gemini-3.6-flash"}
+```
+
 - `inventor: false` — 정상입니다. 리눅스에는 Inventor가 없습니다.
-- `ai: true` — 시크릿이 제대로 들어갔다는 뜻입니다. `false`면 2번을 다시 확인하세요.
+- `ai: true` — 키가 제대로 들어갔다는 뜻입니다. `false`면 2번을 다시 하세요.
 
-그다음 첫 화면에서 **예제 도면 버튼**을 눌러 채점이 돌아가는지 확인하세요.
-이게 심사위원이 밟을 경로와 정확히 같습니다.
-
----
+그다음 첫 화면에서 **예제 도면 버튼**을 눌러 채점이 도는지 보세요.
+심사위원이 밟을 경로와 똑같습니다.
 
 ## 이 서버가 하는 것과 못 하는 것
 
-| | 로컬 (Windows + Inventor) | 이 배포본 |
+| | 로컬 (Windows + Inventor) | Koyeb |
 |---|---|---|
 | `.dxf` / `.dwg` | ✅ | ✅ |
 | `.ipt` / `.idw` / `.iam` | ✅ | ❌ Inventor는 리눅스에서 안 돔 |
@@ -78,8 +70,18 @@ https://<아이디>-cad-checker.hf.space/api/health
 | 투상도 30점 AI 판정 | ✅ | ✅ 동일 |
 | 예제 도면 원클릭 | ✅ | ✅ |
 
-README에 이 표를 그대로 적어두면, 심사위원이 `.idw`를 올렸다가 실패해도
-버그가 아니라 설계 결정이라는 걸 압니다.
+README에 이 표가 그대로 들어가 있습니다. 심사위원이 `.idw`를 올렸다 실패해도
+버그가 아니라 설계 결정이라는 걸 알 수 있습니다.
+
+## 피치 영상은 로컬로 찍으세요
+
+Koyeb 배포본은 Inventor가 없어서 `.idw`를 못 엽니다. 영상에서 보여줄
+**오작 판정·3D 뷰어·화살표**는 전부 Inventor 경로라, 촬영은 로컬에서 하세요:
+
+```powershell
+.\run.ps1            # http://127.0.0.1:8000
+.\run.ps1 -Tunnel    # 임시 공개 주소까지 (trycloudflare, 재시작하면 주소 바뀜)
+```
 
 ## 자주 막히는 곳
 
@@ -87,14 +89,10 @@ README에 이 표를 그대로 적어두면, 심사위원이 `.idw`를 올렸다
 데비안 저장소 이름이 바뀐 경우입니다. Dockerfile의 `apt-get install` 줄을
 지워도 됩니다. DWG만 못 읽고 DXF 채점은 그대로 동작합니다.
 
-**Space가 계속 `Building`**
-Logs 탭을 보세요. `pip install`에서 멈췄다면 무료 티어 메모리 문제일 수 있습니다.
-`requirements.txt`에서 `anthropic`과 `pymupdf`를 빼면 가벼워지지만 AI 판정이 꺼집니다.
+**메모리 부족으로 빌드가 죽음**
+Koyeb 무료는 512MB입니다. `requirements.txt`에서 `anthropic` 줄을 지우세요.
+Gemini만 쓸 거면 필요 없습니다.
 
-**한동안 안 쓰면 잠듦**
-무료 Space는 유휴 상태로 두면 정지합니다. 다시 접속하면 자동으로 깨어나고
-30초쯤 걸립니다. **심사 기간에는 하루 한 번 접속해서 깨워 두세요.**
-
-**푸시가 거부됨 — 파일이 큼**
-`samples/` 의 도면이 10MB를 넘으면 HF가 Git LFS를 요구합니다. 지금 파일들은
-전부 그보다 작아서 문제없습니다.
+**`ai: false` 로 뜸**
+환경변수 이름을 확인하세요. `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` 입니다.
+Claude를 쓰려면 `ANTHROPIC_API_KEY`를 넣고 `AI_PROVIDER=claude`를 추가합니다.

@@ -1,23 +1,58 @@
 import base64
+import copy
+import json
 import os
 
-MODEL = "claude-opus-5"
+CLAUDE_MODEL = "claude-opus-5"
+GEMINI_MODEL = "gemini-3.6-flash"
+
 MAX_POINTS = 30
 RENDER_DPI = 150
-
 MAX_PIXELS = 2400
 
 
-def is_available():
-    if not (os.environ.get("ANTHROPIC_API_KEY")
-            or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        return False
+def _claude_key():
+    return (os.environ.get("ANTHROPIC_API_KEY")
+            or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+
+
+def _gemini_key():
+    return (os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY"))
+
+
+def _importable(*names):
     try:
-        import anthropic
-        import pymupdf
+        for n in names:
+            __import__(n)
     except ImportError:
         return False
     return True
+
+
+def provider():
+    forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
+    if not _importable("pymupdf"):
+        return None
+    gemini = _gemini_key() and _importable("google.genai")
+    claude = _claude_key() and _importable("anthropic")
+    if forced == "gemini":
+        return "gemini" if gemini else None
+    if forced == "claude":
+        return "claude" if claude else None
+    if gemini:
+        return "gemini"
+    if claude:
+        return "claude"
+    return None
+
+
+def active_model():
+    return {"gemini": GEMINI_MODEL, "claude": CLAUDE_MODEL}.get(provider())
+
+
+def is_available():
+    return provider() is not None
 
 
 def render_png(dxf_path):
@@ -60,14 +95,15 @@ SYSTEM = """\
   감점하지 말고 info로 남기세요. 확신 없는 감점은 학습자를 잘못된 방향으로 보냅니다.
 - fix에는 Inventor에서 취할 구체적 동작을 적으세요.
   예: "배치 > 투상도 로 정면도 위쪽에 평면도를 추가하세요."
-- 결함이 없으면 findings를 빈 배열로 두고 30점을 주세요.
+- 결함이 없으면 deductions를 빈 배열로 두고 30점을 주세요.
 - 모든 문장은 한국어로 씁니다."""
+
+PROMPT = "이 도면의 투상도 선택과 배열을 채점하세요.\n\n참고 정보(CAD 파일에서 직접 읽은 값):\n"
 
 SCHEMA = {
     "type": "object",
     "properties": {
-        "verdict": {"type": "string",
-                    "description": "투상도 배열 전반에 대한 한 문장 총평"},
+        "verdict": {"type": "string"},
         "deductions": {
             "type": "array",
             "items": {
@@ -89,6 +125,15 @@ SCHEMA = {
 }
 
 
+def _without_additional_properties(node):
+    if isinstance(node, dict):
+        return {k: _without_additional_properties(v) for k, v in node.items()
+                if k != "additionalProperties"}
+    if isinstance(node, list):
+        return [_without_additional_properties(v) for v in node]
+    return node
+
+
 def _context(facts):
     sh = (facts.get("sheets") or [{}])[0]
     views = sh.get("views", [])
@@ -102,9 +147,54 @@ def _context(facts):
     return "\n".join(bits)
 
 
+def _ask_claude(png, prompt, timeout):
+    import anthropic
+    client = anthropic.Anthropic(timeout=timeout)
+    response = client.messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=16000,
+        system=SYSTEM,
+        output_config={"format": {"type": "json_schema", "schema": SCHEMA}},
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image",
+                 "source": {"type": "base64", "media_type": "image/png",
+                            "data": base64.standard_b64encode(png).decode()}},
+                {"type": "text", "text": prompt},
+            ],
+        }],
+    )
+    if response.stop_reason == "refusal":
+        return None
+    return next(b.text for b in response.content if b.type == "text")
+
+
+def _ask_gemini(png, prompt, timeout):
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(
+        api_key=_gemini_key(),
+        http_options=types.HttpOptions(timeout=int(timeout * 1000)),
+    )
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=[types.Part.from_bytes(data=png, mime_type="image/png"), prompt],
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM,
+            response_mime_type="application/json",
+            response_json_schema=_without_additional_properties(
+                copy.deepcopy(SCHEMA)),
+        ),
+    )
+    return response.text
+
+
 def judge(facts, timeout=120.0):
+    name = provider()
     dxf = facts.get("dxf")
-    if not dxf or not os.path.exists(dxf) or not is_available():
+    if not name or not dxf or not os.path.exists(dxf):
         return None
 
     try:
@@ -112,46 +202,35 @@ def judge(facts, timeout=120.0):
     except Exception:
         return None
 
+    prompt = PROMPT + _context(facts)
+    ask = {"claude": _ask_claude, "gemini": _ask_gemini}[name]
     try:
-        import anthropic
-        client = anthropic.Anthropic(timeout=timeout)
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=16000,
-            system=SYSTEM,
-            output_config={"format": {"type": "json_schema", "schema": SCHEMA}},
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "image",
-                     "source": {"type": "base64", "media_type": "image/png",
-                                "data": base64.standard_b64encode(png).decode()}},
-                    {"type": "text",
-                     "text": "이 도면의 투상도 선택과 배열을 채점하세요.\n\n"
-                             "참고 정보(CAD 파일에서 직접 읽은 값):\n" + _context(facts)},
-                ],
-            }],
-        )
+        text = ask(png, prompt, timeout)
     except Exception:
         return None
-
-    if response.stop_reason == "refusal":
+    if not text:
         return None
 
-    import json
     try:
-        text = next(b.text for b in response.content if b.type == "text")
         data = json.loads(text)
-    except (StopIteration, ValueError):
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
         return None
 
-    return _to_findings(data)
+    return _to_findings(data, active_model())
 
 
-def _to_findings(data):
+def _to_findings(data, model):
     findings, total = [], 0
-    for d in data.get("deductions", []):
-        deduct = max(0, min(MAX_POINTS - total, int(d.get("deduct", 0))))
+    for d in data.get("deductions") or []:
+        if not isinstance(d, dict):
+            continue
+        try:
+            raw = int(d.get("deduct", 0))
+        except (TypeError, ValueError):
+            raw = 0
+        deduct = max(0, min(MAX_POINTS - total, raw))
         total += deduct
         findings.append({
             "code": "AI_PROJECTION",
@@ -166,5 +245,4 @@ def _to_findings(data):
     return {"verdict": data.get("verdict", ""),
             "findings": findings,
             "score": MAX_POINTS - total,
-            "model": MODEL}
-
+            "model": model}
