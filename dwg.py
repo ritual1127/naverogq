@@ -141,8 +141,11 @@ def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
                            f"(업로드 작업 상태: {(up or {}).get('status')})")
 
     with open(dwg_path, "rb") as fh:
-        _cc_check(requests.post(form["url"], data=form["parameters"],
-                                files={"file": fh}, timeout=timeout), "파일 업로드")
+        _cc_check(
+            requests.post(
+                form["url"], data=form["parameters"], timeout=timeout,
+                files={"file": ("input.dwg", fh, "application/acad")}),
+            "파일 업로드")
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
