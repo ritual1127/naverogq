@@ -1,117 +1,230 @@
-# CADSCAN
+# 도면 자가진단기 — 전산응용기계제도기능사 자동 채점
 
-Inventor 도면 설계 오류 자동 검출기 · CAD Drawing Error Detector
+> CAD 도면을 올리면 **실제 채점 기준으로 점수를 매기고, 어디가 왜 틀렸는지와 고치는 방법**을 알려줍니다.
+> 화면에 그려진 그림을 보는 게 아니라, **Autodesk Inventor를 직접 구동해 도면 안의 치수·공차·표면거칠기·기하공차·주서 데이터를 실제로 읽습니다.**
 
-라이브 데모: https://inventer-checker.smilepea.workers.dev
+제4회 NAVER OGQ마켓 AI Competition 출품작 · 트랙: **AI × 교육·학습**
 
-제4회 NAVER OGQ마켓 AI Competition 출품작 · 트랙: AI × 산업 혁신
+| | |
+|---|---|
+| 라이브 데모 | (배포 URL) |
+| 피치 영상 | (유튜브 링크) |
+| 라이선스 | [MIT](LICENSE) · 서드파티 고지 [NOTICE.md](NOTICE.md) |
 
-## 문제정의
+---
 
-기계설계 실습·현장에서 도면(Inventor/AutoCAD 산출물)에 치수 누락, 공차 미표기, KS 표준
-위반이 섞여 나가면 후공정(가공·조립)에서야 발견되어 재작업 비용이 커집니다. 사람이 도면을
-한 장씩 눈으로 검토하는 지금 방식은 느리고 놓치기 쉽습니다. 이 프로덕트는 도면 파일을
-업로드하는 것만으로 규칙 기반 1차 검사 + AI 2차 검토를 자동으로 수행하고, 문제가 도면의
-어느 위치에서 발생했는지 시각적으로 표시하여 검토 시간을 줄입니다.
+## 1. 문제 정의
 
-DXF · PDF · DWG · IPT · IAM · IDW 도면을 업로드하면, 치수 누락 · 공차 미표기 · KS 표준 위반을
-규칙 기반 검사 + AI가 자동으로 찾아 도면 위에 위치까지 표시해줍니다.
+전산응용기계제도기능사 실기시험은 **연간 수만 명이 응시하는 국가기술자격**이고,
+전국 마이스터고·특성화고 기계과의 사실상 필수 관문입니다. 그런데 준비 과정에
+구조적인 병목이 하나 있습니다.
 
-## 아키텍처
+**"내가 그린 도면이 몇 점짜리인지, 시험을 보기 전에는 아무도 모른다."**
 
-프론트엔드와 백엔드를 하나의 Cloudflare Worker로 묶어서 배포합니다 (별도 서버 없음).
+- 채점은 **사람이 눈으로** 합니다. 교사 1명이 학생 30명의 도면을 매번 채점할 수 없습니다.
+- 그래서 학생은 피드백을 **일주일에 한 번, 그것도 일부만** 받습니다.
+- 가장 뼈아픈 건 **오작(실격)**입니다. 표면거칠기 기호를 하나도 안 넣었다거나
+  투상법이 제1각법이면, 나머지를 아무리 잘 그려도 **점수와 무관하게 불합격**입니다.
+  학생 대부분은 시험장을 나온 뒤에야 그 사실을 압니다.
+- 기존 CAD 도구는 "도면이 열리는가"만 봅니다. **"이 도면이 채점 기준에 맞는가"를
+  보는 도구는 없습니다.**
 
-```text
-브라우저 ── /              ─▶ Cloudflare Worker Static Assets (public/*)
-         └─ /analyze (POST) ─▶ Worker Fetch Handler (src/index.js)
-                                 ├─ .dxf                → src/dxf.js (직접 파싱) + src/render.js (SVG 시각화)
-                                 ├─ .pdf                 → unpdf (텍스트 추출)
-                                 ├─ .dwg/.ipt/.iam/.idw  → src/aps.js (Autodesk Platform Services)
-                                 └─ 규칙 검사 결과 + 원본 요약 → src/ai-review.js
-                                                                → Cloudflare Workers AI (Llama 3.3)
+이 도구는 그 피드백 주기를 **일주일에서 30초로** 줄입니다.
+
+## 2. 무엇을 하는가
+
+```
+도면 파일 업로드  →  CAD 데이터 실제 판독  →  채점 + 오작 판정  →  틀린 위치에 화살표 + 고치는 법
 ```
 
-DXF는 그룹코드를 직접 태그 파싱해 치수/텍스트/레이어/도형 좌표를 추출하고, 같은
-데이터로 KS 기준 규칙 검사와 문제 위치가 표시된 SVG 도면을 함께 만듭니다.
+- **공개된 채점 기준표 배점 그대로 채점** — 투상도 30 / 치수 15 / 공차 10 /
+  표면거칠기 10 / 기하공차 10 / 주서·표제란 8 / 재료 7 (`exam.py:RUBRIC`)
+- **오작(실격) 5종 선판정** — 표면거칠기 기호 없음 · 기하공차 기호 없음 ·
+  투상법 불일치 · 도면 크기 불일치 · 비표준 척도
+- **총 23개 검사**, 각각 켜고 끌 수 있음. 끄면 그 감점도 함께 사라집니다.
+- **틀린 위치를 도면 위에 직접 표시** — 치수가 빠진 원에 번호 붙은 빨간 화살표를
+  그리고, 지적사항 목록의 번호와 짝지어 보여줍니다.
+- **모든 지적에 `fix`(고치는 방법)가 붙습니다.** Inventor 메뉴 경로까지 적습니다.
+  예: *"주석 > 형상 공차 로 데이텀(A, B...)을 먼저 지정하고 동심도·직각도를 기입하세요."*
+- **3D 미리보기** — 부품·조립 파일은 STL로 뽑아 브라우저에서 회전시켜 봅니다.
 
-DWG/IPT/IAM/IDW는 Inventor 네이티브 포맷이라 순수 코드로 못 열어서, Autodesk Platform
-Services에 업로드 → 변환한 뒤, 프론트엔드에 내장한 Autodesk APS Viewer로 실제 모델을
-확대/회전까지 되게 보여줍니다 (`/aps-token`이 뷰어 전용 단기 토큰을 발급). Model Derivative
-properties API로 실제 객체/레이어 데이터(엔티티 타입별 개수, 레이어명)를 뽑아 규칙 검사(치수
-객체가 하나도 없으면 `missing_dimension` 자동 검출)와 AI 프롬프트에 그대로 넣습니다 — AI가
-"오른쪽 상단" 같은 실제로 알 수 없는 위치를 지어내지 않도록, 데이터에 없는 위치 추정은
-금지하고 실제 레이어명만 `location_hint`로 쓰게 프롬프트에 명시했습니다.
+### 정직성 원칙
 
-AI 검토는 원래 Google Gemini REST API를 직접 호출했으나, Cloudflare Workers의 이그레스
-IP가 Google 쪽에서 지역 차단(`FAILED_PRECONDITION`)되는 문제가 있어 Cloudflare Workers AI
-(Llama 3.3 70B, JSON 스키마 구조화 출력)로 교체했습니다. 외부 AI 공급자 호출 자체가 없어져서
-네트워크 경계 문제가 근본적으로 사라집니다.
+이 도구는 **공식 채점이 아닙니다.** 자동으로 확인할 수 있는 것은 "기호가 있는가,
+값이 규격에 맞는가"까지입니다. 그래서 점수는 **자동 판정이 가능한 항목만 집계**하고,
+사람이 봐야 하는 항목은 `score: null` / `mode: "review"` 로 **비워 둔 채 그렇게 표시**합니다.
+채우지 못한 점수를 채운 척하지 않습니다.
 
-## 사용 스택
+## 3. 아키텍처
 
-프론트엔드는 HTML / CSS / Vanilla JS (프레임워크 없음)이고, 백엔드는 Cloudflare Workers
-(JavaScript, ES Modules)입니다. 정적 파일은 Cloudflare Workers Static Assets로 호스팅하고,
-AI 추론은 Cloudflare Workers AI(`@cf/meta/llama-3.3-70b-instruct-fp8-fast`)를 사용합니다.
-CAD 연동은 Autodesk Platform Services(Model Derivative API), PDF 파싱은 `unpdf`를 씁니다.
-배포 도구는 Wrangler입니다.
+```mermaid
+flowchart LR
+    U[브라우저<br/>단일 HTML] -->|multipart 업로드| API[FastAPI<br/>main.py]
+    U -->|로컬 경로| API
 
-## 실행방법
+    API --> C{check.py<br/>확장자 라우팅}
+
+    C -->|.ipt .idw .iam| INV[inventor.py<br/>Inventor COM API]
+    C -->|.dxf .dwg| DWG[dwg.py<br/>ezdxf + LibreDWG]
+
+    INV --> F[(facts<br/>순수 데이터)]
+    DWG --> F
+
+    F --> E[exam.py<br/>채점 규칙 23개]
+    E --> S[scorecard<br/>+ findings]
+
+    INV -.DXF 내보내기.-> R[dwg.render_svg<br/>화살표 오버레이]
+    INV -.STL 내보내기.-> M[3D 뷰어]
+    R --> U
+    S --> U
+```
+
+설계의 중심은 **`facts` / `rules` 분리**입니다.
+
+- **추출기**(`inventor.py`, `dwg.py`)는 CAD에서 사실만 뽑습니다. 판단하지 않습니다.
+- **채점기**(`exam.py`)는 `facts`만 보고 판정합니다. CAD를 모릅니다.
+- 덕분에 `check.py`가 사소해집니다(확장자로 추출기 고르고 넘기면 끝). 채점 규칙을
+  고칠 때 CAD 코드를 건드릴 일이 없고, `.dxf` 픽스처만으로 규칙을 테스트할 수 있습니다.
+
+**각 검사가 자기 감점량(`deduct`)을 들고 다닙니다.** 점수는 "켜져 있는 지적의 감점
+합계"로 계산되므로, 검사를 끄면 감점도 자동으로 사라집니다. 점수 계산 로직이
+검사 목록과 따로 놀지 않습니다.
+
+### 왜 로컬 서버인가
+
+`.idw`/`.ipt`의 치수·공차·스케치 구속 정보는 **Inventor를 통해서만** 읽을 수 있습니다.
+Inventor는 Vercel/Render에서 돌지 않고, 클라우드 대안(APS Design Automation)은
+크레딧이 과금됩니다. 그래서 **Inventor가 설치된 PC에서 도는 로컬 서버**로 만들고,
+공개가 필요할 때만 Cloudflare 터널로 내보냅니다.
+
+`.dxf`/`.dwg`는 Inventor 없이 순수 파이썬(ezdxf)으로 분석되므로, **클라우드에도
+그대로 배포됩니다.** 심사·체험용 데모가 이 경로입니다.
+
+## 4. 사용 스택
+
+| 영역 | 기술 | 왜 이걸 골랐나 |
+|---|---|---|
+| CAD 판독 | Autodesk Inventor COM API (pywin32) | `.idw`의 치수·공차·스케치를 읽는 유일한 방법 |
+| CAD 판독 | [ezdxf](https://ezdxf.mozman.at/) 1.4.4 | DXF를 Inventor 없이 순수 파이썬으로 파싱 |
+| DWG 변환 | GNU LibreDWG `dwg2dxf` | 무료·오프라인·계정 불필요. 3rd-party AutoCAD 파일도 읽음 |
+| 서버 | FastAPI + Uvicorn | 타입 기반 검증, 단일 파일로 끝나는 작은 API |
+| 도면 렌더 | ezdxf drawing addon → SVG | 래스터가 아니라 벡터라 확대해도 치수가 읽힘 |
+| 3D 뷰어 | three.js (로컬 번들) | 바이너리 STL 직접 파싱. CDN 없이 오프라인 동작 |
+| 프론트 | 의존성 없는 단일 HTML | 빌드 스텝 없음. 파일 하나 열면 끝 |
+
+**프레임워크를 일부러 쓰지 않은 곳:** 프론트엔드에 React/Vue를 넣지 않았습니다.
+화면이 하나이고 상태가 얕아서, 빌드 파이프라인 비용이 얻는 것보다 큽니다.
+
+## 5. 실행 방법
+
+### 요구사항
+
+- Python 3.11 이상 (개발 환경 3.14)
+- (선택) Autodesk Inventor — 있으면 `.ipt`/`.idw`/`.iam`까지, 없으면 `.dxf`/`.dwg`만
+
+### Windows — 전체 기능
+
+```powershell
+git clone <이 저장소>
+cd "new 캐드 분석기"
+
+.\setup.ps1          # 가상환경 + 의존성 + 자체 테스트
+.\run.ps1            # http://127.0.0.1:8000
+.\run.ps1 -Tunnel    # 공개 주소까지 (Cloudflare 임시 터널)
+```
+
+DWG를 쓰려면 [LibreDWG](https://www.gnu.org/software/libredwg/) 바이너리를
+`vendor/libredwg/` 에 두세요. 라이선스 문제로 저장소에 포함하지 않습니다
+([NOTICE.md](NOTICE.md) 참고).
+
+### macOS / Linux — DXF·DWG 분석
 
 ```bash
-npm install
-npx wrangler dev        # 로컬 개발 서버
-npx wrangler deploy     # Cloudflare Workers 배포
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+sudo apt install libredwg-tools     # DWG를 쓸 때만
+python main.py                      # http://127.0.0.1:8000
 ```
 
-시크릿 등록 (배포 전 1회):
+### CLI로 한 파일만
 
 ```bash
-npx wrangler secret put APS_CLIENT_ID       # DWG/IPT/IAM/IDW 분석 시에만 필요
-npx wrangler secret put APS_CLIENT_SECRET
+python check.py 도면.idw
 ```
 
-`GOOGLE_API_KEY`는 더 이상 사용하지 않습니다 (Workers AI로 대체). AI 검토는 Workers AI 바인딩
-(`wrangler.toml`의 `[ai]`)만 있으면 별도 키 없이 동작합니다.
+### 테스트
 
-## 환경변수 / 바인딩
-
-`AI` 바인딩(필수)은 Cloudflare Workers AI로 AI 검토를 담당합니다. `APS_CLIENT_ID` /
-`APS_CLIENT_SECRET`는 DWG/IPT/IAM/IDW 분석 시에만 필요한 Autodesk Platform Services 앱
-자격증명입니다.
-
-## 파일 구조
-
-```text
-public/                   # 프론트엔드 정적 파일 (index.html, style.css, script.js, favicon.svg)
-src/
-  index.js                # Worker 진입점 — /analyze 라우팅
-  dxf.js                  # DXF 태그 파서 + KS 규칙 검사
-  render.js               # DXF → SVG 렌더링 (문제 위치 마커 오버레이)
-  aps.js                  # Autodesk Platform Services 연동
-  ai-review.js            # Cloudflare Workers AI 검토
-Knowledge/                # AI 프롬프트에 참고자료로 넣는 KS 표준 요약
-Data/                     # 테스트용 샘플 도면
-wrangler.toml             # Worker 설정 (assets, AI 바인딩)
-docs/brand-guidelines.md  # 디자인 시스템 (컬러/타이포/로고 규칙)
+```bash
+python test_rules.py    # 채점 규칙 14개 (CAD·Inventor 불필요, DXF 픽스처를 코드로 생성)
+python smoke.py         # 엔드투엔드 점검
 ```
 
-## AI 사용 내역 (공개 원칙)
+`test_rules.py`는 외부 의존성도 CAD 파일도 없이 돕니다. 규칙 테스트가 CAD와 분리된
+것이 `facts`/`rules` 분리의 실질적인 이득입니다.
 
-개발 보조는 Claude(Anthropic, Claude Code / Sonnet 5)로 코드 작성, 리팩터링, 디버깅 전반에
-사용했습니다. 런타임 AI 모델은 Cloudflare Workers AI `@cf/meta/llama-3.3-70b-instruct-fp8-fast`로,
-규칙 검사로 못 잡는 KS 표준 위반 후보를 도면 데이터 기반으로 2차 검토합니다. 오픈소스
-패키지는 `unpdf`(PDF 텍스트 추출), `wrangler`(배포 도구)를 사용했습니다. 외부 API는 Autodesk
-Platform Services(Model Derivative API)로 DWG/IPT/IAM/IDW 변환에 사용했습니다. 외부 자문은
-없습니다.
+## 6. AI 사용 내역
 
-## 이번 버전에서 제외한 것
+> 대회 규정 5.2.1.1 ⑤ 항목에 따라 사용한 AI 모델·오픈소스·외부 자문을 모두 밝힙니다.
 
-DWG/IPT/IAM/IDW의 정밀 치수 추출은 Inventor Design Automation AppBundle이 있어야 가능한
-범위라, 이번 버전은 Autodesk APS Viewer로 모델을 직접 확대/회전해서 보여주고 AI 판단은
-썸네일 이미지 기반까지만 지원합니다. 문제 위치 마커 오버레이(SVG)는 좌표 데이터가 있는
-DXF만 지원합니다. PDF 페이지의 이미지 기반 시각 검토는 Cloudflare Workers에 canvas가 없어
-텍스트 추출만 지원합니다.
+### 제품 안에서 쓰는 AI
 
-## 라이선스
+| 쓰임 | 모델 | 왜 AI여야 하는가 |
+|---|---|---|
+| **투상도 선택과 배열 판정 (30점)** | Claude (Vision) | (아래 설명) |
 
-MIT License — [`LICENSE`](./LICENSE) 참고.
+채점 항목 중 **배점이 가장 큰 "투상도 선택과 배열"(30점)은 규칙으로 풀리지 않습니다.**
+"정면도를 제대로 골랐는가", "평면도·측면도가 제3각법 위치에 놓였는가", "이 형상을
+표현하는 데 이 조합으로 충분한가"는 **도면을 보고 판단해야** 하는 문제입니다.
+치수 개수를 세는 것과는 종류가 다릅니다.
+
+그래서 이 항목은 오랫동안 `score: null`(사람이 확인)로 비어 있었습니다.
+**전체 100점 중 30점이 자동 채점 불가 영역이었습니다.**
+이 구멍을 채우는 것이 이 프로젝트에서 AI를 쓰는 유일하고 정확한 이유입니다.
+
+렌더된 도면 SVG를 이미지로 넣고, 투상도 배치·개수·제3각법 정합성·단면 선택의
+타당성을 판정하게 합니다. 나머지 70점은 여전히 **결정론적 규칙**으로 채점합니다.
+같은 도면은 언제나 같은 점수가 나와야 하고, 채점은 재현 가능해야 하기 때문입니다.
+**AI는 규칙이 닿지 못하는 곳에만 씁니다.**
+
+### 개발 과정에서 쓴 AI
+
+- **Claude (Anthropic)** — Inventor COM API 탐색(`experiments/probe*.py` 23개가 그
+  탐색 기록입니다), 채점 규칙 설계 검토, 리팩터링, 프론트엔드 초안 생성
+  (`DESIGN_PROMPT.md`가 실제로 사용한 프롬프트입니다).
+- 최종 아키텍처 결정(`facts`/`rules` 분리, 검사별 `deduct` 자기기술, 로컬 서버 선택)과
+  채점 기준 매핑은 직접 판단했습니다.
+
+### 오픈소스
+
+`ezdxf`(MIT) · `FastAPI`(MIT) · `Uvicorn`(BSD-3) · `python-multipart`(Apache-2.0) ·
+`pywin32`(PSF) · `three.js`(MIT) · `GNU LibreDWG`(GPL-3.0, 별도 프로세스 실행)
+— 전체 목록과 라이선스는 [NOTICE.md](NOTICE.md).
+
+### 외부 자문
+
+- (지도교사 성함 / 자문 내용)
+- (현직자 자문이 있었다면 기입)
+
+## 7. 프로젝트 구조
+
+```
+main.py          FastAPI 서버 · 업로드 · zip 전개 · 결과 조립
+check.py         확장자로 추출기를 고르고 채점기로 넘기는 라우터
+inventor.py      Inventor COM API — .ipt/.idw/.iam 판독
+dwg.py           ezdxf + LibreDWG — .dxf/.dwg 판독, SVG 렌더, 화살표 오버레이
+exam.py          전산응용기계제도기능사 채점 기준 · 검사 23개 · 스코어카드
+rules.py         일반 설계 품질 검사 (시험 대상이 아닌 파일용)
+static/index.html   프론트엔드 전체 (의존성 없는 단일 HTML)
+test_rules.py    채점 규칙 테스트 (CAD 불필요)
+smoke.py         엔드투엔드 점검
+experiments/     Inventor COM API 탐색 기록 (probe1~23)
+```
+
+## 8. 라이선스
+
+[MIT](LICENSE). 서드파티 구성요소 고지는 [NOTICE.md](NOTICE.md)를 보세요.
+
+---
+
+**면책**: 공식 채점이 아닙니다. 기호·값의 유무와 규격 적합성을 자동 확인하는
+학습 보조 도구입니다. 실제 시험 결과를 보장하지 않습니다.
