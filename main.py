@@ -245,8 +245,8 @@ def _render(facts):
             index.append({"n": len(markers), "diameter_mm": c["diameter_mm"],
                           "sheet": sh.get("name")})
     try:
-        svg, _ = dwg.render_svg(dxf, markers)
-        return svg, bool(markers), index
+        svg, _, placed = dwg.render_svg(dxf, markers)
+        return svg, bool(placed), index[:placed]
     except Exception:
         traceback.print_exc()
         return None, False, []

@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import traceback
 
 import ezdxf
 from ezdxf import bbox
@@ -126,7 +127,10 @@ def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
         state = requests.get(f"{CLOUDCONVERT_API}/jobs/{data['id']}",
                              headers=head, timeout=30).json()["data"]
         if state["status"] == "error":
-            return False
+            why = "; ".join(
+                f"{t.get('name')}: {t.get('message') or t.get('code')}"
+                for t in state["tasks"] if t.get("status") == "error")
+            raise RuntimeError("CloudConvert 작업 실패 — " + (why or "사유 불명"))
         if state["status"] == "finished":
             exp = next(t for t in state["tasks"] if t["name"] == "exp")
             url = exp["result"]["files"][0]["url"]
@@ -163,8 +167,12 @@ def dwg_to_dxf(dwg_path):
         out = os.path.join(work, f"{fn.__name__}.dxf")
         try:
             if fn(dwg_path, out):
+                print(f"[dwg] {fn.__name__}: 변환 성공", flush=True)
                 return out
-        except Exception:
+            print(f"[dwg] {fn.__name__}: 변환 실패 (내용 없음)", flush=True)
+        except Exception as e:
+            print(f"[dwg] {fn.__name__}: {type(e).__name__}: {e}", flush=True)
+            traceback.print_exc()
             continue
 
     exe = find_oda()
@@ -377,21 +385,59 @@ def _props_from_titles(titles):
     return out
 
 
+MIN_DRAWABLE = 5
+
+
+def _drawable_count(space, cap=MIN_DRAWABLE):
+    n = 0
+    try:
+        for e in space:
+            if e.dxftype() in REAL_ENTITIES:
+                n += 1
+                if n >= cap:
+                    break
+    except Exception:
+        return 0
+    return n
+
+
+def drawable_space(doc):
+    msp = doc.modelspace()
+    if _drawable_count(msp) >= MIN_DRAWABLE:
+        return msp, True
+    for name in doc.layout_names_in_taborder():
+        if name.lower() == "model":
+            continue
+        try:
+            lay = doc.layouts.get(name)
+        except Exception:
+            continue
+        if _drawable_count(lay) >= MIN_DRAWABLE:
+            print(f"[dwg] 모델 공간이 비어 배치 '{name}' 을 미리보기로 씁니다",
+                  flush=True)
+            return lay, False
+    return msp, True
+
+
 def render_svg(dxf_path, markers=()):
     doc = ezdxf.readfile(dxf_path)
-    msp = doc.modelspace()
+    space, is_model = drawable_space(doc)
     if ERR_LAYER not in doc.layers:
         doc.layers.add(ERR_LAYER, color=1)
 
-    bb0 = bbox.extents(msp)
-    span = max(bb0.size.x, bb0.size.y) if bb0.has_data else 100.0
-    for i, m in enumerate(markers, 1):
-        x, y = m.get("dxf_x"), m.get("dxf_y")
-        if x is None or y is None:
-            continue
-        r = m.get("dxf_r") or span * 0.01
-        _arrow(msp, x, y, max(r * 1.6, span * 0.010), span, str(i))
-    return _finish(doc, msp)
+    placed = 0
+    if is_model:
+        bb0 = bbox.extents(space)
+        span = max(bb0.size.x, bb0.size.y) if bb0.has_data else 100.0
+        for i, m in enumerate(markers, 1):
+            x, y = m.get("dxf_x"), m.get("dxf_y")
+            if x is None or y is None:
+                continue
+            r = m.get("dxf_r") or span * 0.01
+            _arrow(space, x, y, max(r * 1.6, span * 0.010), span, str(i))
+            placed += 1
+    svg, tf = _finish(doc, space)
+    return svg, tf, placed
 
 
 def _arrow(msp, x, y, ring, span, label):
