@@ -116,16 +116,31 @@ CADLens는 수험생의 최종 확인을 돕는 보조 도구입니다. 도면�
 
 최종 제출 전에는 반드시 해당 시험 회차의 공개문제, 지급 자료와 감독위원의 지시사항을 함께 확인해야 합니다.
 
-## 사용한 AI 도구
+## AI·오픈소스·외부 자문 공개
 
-CADLens를 개발하면서 다음 AI 도구를 사용했습니다.
+### 사용한 AI 모델
 
-- GPT-5.6 Sol: 기능 기획, 코드 작성, 오류 해결과 다국어 화면 개선
-- Claude Opus 5: 코드 검토, 분석 규칙 점검과 사용자 화면 구성 보완
+- GPT-5.6 Sol
+- Claude Opus 5
+- Gemini API
 
-AI가 제안한 내용은 그대로 사용하지 않고, 실제 DWG와 DXF 도면으로 실행해 결과를 확인한 뒤 프로젝트에 반영했습니다.
+### 사용한 오픈소스 패키지
 
-서비스에서는 Gemini를 사용해 투상도 선택과 배치를 추가로 검토합니다. Gemini를 사용할 수 없는 경우에도 나머지 도면 검사 기능은 그대로 작동합니다.
+- FastAPI
+- Uvicorn
+- ezdxf
+- LibreDWG
+- PyMuPDF
+- Pillow
+- python-multipart
+- Requests
+- Three.js
+- Google Gen AI SDK
+- Anthropic Python SDK
+
+### 외부 자문
+
+- 교사 또는 현직자 외부 자문 없음
 
 ## 라이선스
 
