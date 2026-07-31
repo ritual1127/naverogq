@@ -113,6 +113,27 @@ def _cc_check(resp, what):
     raise RuntimeError(f"{what} HTTP {resp.status_code} {body}".strip())
 
 
+def _cc_post(send, what, attempts=3):
+    import time
+
+    import requests
+
+    last = None
+    for i in range(attempts):
+        try:
+            resp = send()
+            if resp.status_code < 500 and resp.status_code != 429:
+                return _cc_check(resp, what)
+            last = RuntimeError(f"{what} HTTP {resp.status_code}")
+        except requests.RequestException as e:
+            last = RuntimeError(f"{what} {type(e).__name__}: {e}")
+        if i < attempts - 1:
+            print(f"[dwg] CloudConvert 일시 오류, 재시도 {i + 1}/{attempts - 1}: "
+                  f"{last}", flush=True)
+            time.sleep(2 * (i + 1))
+    raise last
+
+
 def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
     key = find_cloudconvert()
     if not key:
@@ -122,15 +143,14 @@ def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
     import requests
 
     head = {"Authorization": "Bearer " + key}
-    job = _cc_check(
-        requests.post(f"{CLOUDCONVERT_API}/jobs", headers=head, timeout=60,
-                      json={"tasks": {
-                          "up": {"operation": "import/upload"},
-                          "conv": {"operation": "convert", "input": "up",
-                                   "input_format": "dwg",
-                                   "output_format": "dxf"},
-                          "exp": {"operation": "export/url",
-                                  "input": "conv"}}}),
+    job = _cc_post(
+        lambda: requests.post(
+            f"{CLOUDCONVERT_API}/jobs", headers=head, timeout=60,
+            json={"tasks": {
+                "up": {"operation": "import/upload"},
+                "conv": {"operation": "convert", "input": "up",
+                         "input_format": "dwg", "output_format": "dxf"},
+                "exp": {"operation": "export/url", "input": "conv"}}}),
         "작업 생성")
     data = job.json()["data"]
     up = next((t for t in data["tasks"] if t["name"] == "up"), None)
@@ -140,12 +160,13 @@ def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
         raise RuntimeError("업로드 주소를 받지 못했습니다 "
                            f"(업로드 작업 상태: {(up or {}).get('status')})")
 
-    with open(dwg_path, "rb") as fh:
-        _cc_check(
-            requests.post(
+    def upload():
+        with open(dwg_path, "rb") as fh:
+            return requests.post(
                 form["url"], data=form["parameters"], timeout=timeout,
-                files={"file": ("input.dwg", fh, "application/acad")}),
-            "파일 업로드")
+                files={"file": ("input.dwg", fh, "application/acad")})
+
+    _cc_post(upload, "파일 업로드")
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
