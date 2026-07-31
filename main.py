@@ -211,7 +211,7 @@ def _run(job, path, name, enabled=None):
         traceback.print_exc()
         raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}")
 
-    svg, marked, marker_index = _render(facts)
+    svg, marked, marker_index, svg_note = _render(facts)
     payload = {
         "job": job, "file": name, "kind": facts.get("kind"),
         "props": facts.get("props", {}),
@@ -225,7 +225,7 @@ def _run(job, path, name, enabled=None):
         "model_url": f"/api/model/{job}" if facts.get("stl") else None,
         "model_error": facts.get("stl_error"),
         "refs_ok": facts.get("refs_ok", True),
-        "svg_note": None,
+        "svg_note": svg_note,
     }
     _RESULTS[job] = payload
     return JSONResponse(payload)
@@ -234,7 +234,7 @@ def _run(job, path, name, enabled=None):
 def _render(facts):
     dxf = facts.get("dxf")
     if not dxf or not os.path.exists(dxf):
-        return None, False, []
+        return None, False, [], "이 형식은 2D 도면 미리보기를 만들지 않습니다."
     import dwg
     markers, index = [], []
     for sh in facts.get("sheets", []):
@@ -246,10 +246,11 @@ def _render(facts):
                           "sheet": sh.get("name")})
     try:
         svg, _, placed = dwg.render_svg(dxf, markers)
-        return svg, bool(placed), index[:placed]
-    except Exception:
+        return svg, bool(placed), index[:placed], None
+    except Exception as e:
         traceback.print_exc()
-        return None, False, []
+        print(f"[svg] 렌더 실패: {type(e).__name__}: {e}", flush=True)
+        return None, False, [], f"도면 미리보기를 만들지 못했습니다 — {type(e).__name__}: {e}"
 
 
 @app.get("/api/model/{job}")

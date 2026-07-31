@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| 라이브 데모 | (배포 URL — [배포 절차](docs/deploy.md)) |
+| 라이브 데모 | [https://naverogq.onrender.com](https://naverogq.onrender.com) · [배포 절차](docs/deploy.md) |
 | 피치 영상 | (유튜브 링크 — [대본](docs/pitch.md)) |
 | 라이선스 | [MIT](LICENSE) · 서드파티 고지 [NOTICE.md](NOTICE.md) |
 
@@ -131,6 +131,14 @@ cd "new 캐드 분석기"
 .\setup.ps1          # 가상환경 + 의존성 + 자체 테스트
 .\run.ps1            # http://127.0.0.1:8000
 .\run.ps1 -Tunnel    # 공개 주소까지 (Cloudflare 임시 터널)
+```
+
+PowerShell 5에서 한글 스크립트 인코딩 문제로 `setup.ps1` / `run.ps1` 이 바로 실행되지 않으면
+아래 래퍼를 쓰면 됩니다:
+
+```cmd
+setup.cmd
+run.cmd
 ```
 
 DWG를 쓰려면 [LibreDWG](https://www.gnu.org/software/libredwg/) 바이너리를

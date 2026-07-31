@@ -420,6 +420,7 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
         </div>
         <div class="vstage" id="stage"><div class="pan" id="pan"></div></div>
       </div>
+      <div class="warnbar hide" id="novw"></div>
       <div class="viewer hide" id="m3d">
         <div class="vbar">
           <div class="g">
@@ -803,7 +804,11 @@ function fit(){
 function drawSvg(d){
   const has = !!d.svg;
   $('#viewer').classList.toggle('hide', !has);
-  if (!has) return;
+  $('#novw').classList.toggle('hide', has || !d.svg_note);
+  if (!has){
+    if (d.svg_note) $('#novw').textContent = d.svg_note;
+    return;
+  }
   pan.innerHTML = d.svg;
   const svg = pan.querySelector('svg');
   if (svg && svg.viewBox.baseVal.width){

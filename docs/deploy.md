@@ -27,8 +27,11 @@ Render 무료는 **15분간 요청이 없으면 잠들고, 다시 깨는 데 30~
 
 빌드 로그는 서비스 페이지의 **Logs** 탭에서 실시간으로 보입니다.
 
-배포되면 `https://cad-checker-<임의문자>.onrender.com` 이 나옵니다.
-**이게 신청서에 적을 프로덕트 URL입니다.**
+현재 공개 주소는 [https://naverogq.onrender.com](https://naverogq.onrender.com) 입니다.
+같은 Render 서비스에 GitHub 자동배포가 연결돼 있다면, `main` 브랜치에 푸시할 때 이 주소로 다시 반영됩니다.
+
+처음 배포하면 `https://cad-checker-<임의문자>.onrender.com` 같은 기본 주소가 나올 수 있습니다.
+커스텀 주소를 붙이지 않았다면 **그 주소가 신청서에 적을 프로덕트 URL입니다.**
 
 > Blueprint가 안 보이면 수동으로도 됩니다:
 > **New +** → **Web Service** → 저장소 선택 → **Language**를 `Docker`로 →
@@ -113,6 +116,15 @@ Render 배포본은 Inventor가 없어서 `.idw`를 못 엽니다. 영상에서 
 **빌드가 메모리 부족으로 죽음**
 무료는 512MB입니다. `requirements.txt`에서 `anthropic` 줄을 지우세요.
 Gemini만 쓸 거면 필요 없습니다.
+
+**로컬에선 되는데 Render 화면이 예전 버전 같음**
+GitHub 저장소에 변경이 푸시되지 않았거나, Render가 마지막 커밋을 아직 다시 빌드하지 않은 경우입니다.
+확인 순서는 다음이 가장 빠릅니다.
+
+1. `git status` 로 로컬 수정이 남아 있는지 확인
+2. `git push origin main` 으로 GitHub에 올리기
+3. Render 서비스의 Deploys 탭에서 최신 커밋으로 재배포됐는지 확인
+4. `https://naverogq.onrender.com/api/health` 에서 `supported`, `dwg_converter`, `ai` 값을 다시 확인
 
 **`ai: false` 로 뜸**
 환경변수 이름을 확인하세요. `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` 입니다.

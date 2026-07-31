@@ -4,7 +4,9 @@ ARG LIBREDWG_VERSION=0.14
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends build-essential curl ca-certificates; \
+    apt-get install -y --no-install-recommends \
+      build-essential curl ca-certificates \
+      fonts-dejavu-core fonts-nanum; \
     ( set -eux; \
       curl -fsSL -o /tmp/libredwg.tar.gz \
         "https://github.com/LibreDWG/libredwg/releases/download/${LIBREDWG_VERSION}/libredwg-${LIBREDWG_VERSION}.tar.gz"; \
