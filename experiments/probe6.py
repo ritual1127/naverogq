@@ -1,9 +1,3 @@
-"""Probe 6: last two unknowns.
-
-A. What does DiameterGeneralDimension actually expose? (dir it, don't guess)
-   And what is GeneralDimensionType 72194?
-B. Build a 2-part assembly with deliberate overlap -> AnalyzeInterference.
-"""
 import os
 import win32com.client as w32
 
@@ -49,7 +43,6 @@ sect("A3. reverse route: does a DrawingCurve know its dimensions?")
 view = sheet.DrawingViews.Item(1)
 dc = view.DrawingCurves.Item(1)
 print("  Sheet.FindUsingPoint exists:", hasattr(sheet, "FindUsingPoint"))
-# try locating annotations at a circle's centre
 for dcx in view.DrawingCurves:
     if dcx.CurveType == C.kCircleCurve:
         cp = dcx.CenterPoint
@@ -69,12 +62,12 @@ print("  assembly template:", tmpl)
 asm = w32.CastTo(app.Documents.Add(C.kAssemblyDocumentObject, tmpl, True), "AssemblyDocument")
 acd = asm.ComponentDefinition
 
-m1 = tg.CreateMatrix()  # identity: at origin
+m1 = tg.CreateMatrix()
 occ1 = acd.Occurrences.Add(P1, m1)
 print("  occ1 added:", occ1.Name)
 
 m2 = tg.CreateMatrix()
-m2.SetTranslation(tg.CreateVector(1.0, 0.0, 0.0))  # +10 mm -> guaranteed overlap
+m2.SetTranslation(tg.CreateVector(1.0, 0.0, 0.0))
 occ2 = acd.Occurrences.Add(P1, m2)
 print("  occ2 added:", occ2.Name, "(shifted 10mm, must interfere)")
 
@@ -117,3 +110,4 @@ except Exception as e:
     print("  SaveAs FAIL:", str(e)[:150])
 asm.Close(True)
 print("\nDONE")
+

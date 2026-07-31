@@ -1,7 +1,3 @@
-"""Self-check for rules.py. Run: python test_rules.py
-
-No pytest, no fixtures. Fails loudly if the check logic breaks.
-"""
 import rules as R
 
 
@@ -31,13 +27,12 @@ def test_sketches():
 
 def test_holes():
     f = R.check_holes({"holes": [
-        {"name": "h1", "diameter_mm": 1.5, "depth_mm": 5},      # too small
-        {"name": "h2", "diameter_mm": 10.0, "depth_mm": 200},   # 20:1 too deep
-        {"name": "h3", "diameter_mm": 8.0, "depth_mm": 16},     # fine
+        {"name": "h1", "diameter_mm": 1.5, "depth_mm": 5},
+        {"name": "h2", "diameter_mm": 10.0, "depth_mm": 200},
+        {"name": "h3", "diameter_mm": 8.0, "depth_mm": 16},
     ]})
     assert codes(f) == {"HOLE_TOO_SMALL", "HOLE_TOO_DEEP"}
     assert len(f) == 2
-    # boundary: exactly at the threshold is acceptable
     assert R.check_holes({"holes": [{"name": "x", "diameter_mm": R.MIN_HOLE_DIA_MM,
                                      "depth_mm": None}]}) == []
 
@@ -45,7 +40,6 @@ def test_holes():
 def test_walls():
     f = R.check_walls({"walls": [{"faces": [6, 26], "gap_mm": 2.0},
                                  {"faces": [1, 2], "gap_mm": 0.8}]})
-    # 2.0 is exactly MIN_WALL_MM -> acceptable; 0.8 is not
     assert len(f) == 1 and f[0]["where"]["faces"] == [1, 2]
 
 
@@ -56,8 +50,6 @@ def test_material():
     assert codes(R.check_material(part("Generic"))) == {"MATERIAL_NOT_SET"}
     assert codes(R.check_material(part(""))) == {"MATERIAL_NOT_SET"}
     assert R.check_material(part("SS400")) == []
-    # neither a drawing nor an assembly owns a material; checking them flagged
-    # every real drawing and every assembly in the sample set
     assert R.check_material({"kind": "drawing", "props": {"material": ""}}) == []
     assert R.check_material({"kind": "assembly", "props": {"material": ""}}) == []
 
@@ -72,13 +64,13 @@ def test_tolerances():
     sheets = [{"name": "s1", "dims": [
         {"value_mm": 30.0, "tol_type": "none", "text": "30", "x_cm": 1, "y_cm": 2},
         {"value_mm": 20.0, "tol_type": "deviation", "upper_mm": -0.1, "lower_mm": 0.1,
-         "text": "20"},                                            # inverted
+         "text": "20"},
         {"value_mm": 10.0, "tol_type": "deviation", "upper_mm": 0.0, "lower_mm": 0.0,
-         "text": "10"},                                            # zero span
+         "text": "10"},
         {"value_mm": 25.0, "tol_type": "deviation", "upper_mm": 5.0, "lower_mm": -5.0,
-         "text": "25"},                                            # absurdly loose
+         "text": "25"},
         {"value_mm": 25.0, "tol_type": "deviation", "upper_mm": 0.05, "lower_mm": -0.05,
-         "text": "25"},                                            # sensible
+         "text": "25"},
     ]}]
     f = R.check_dimension_tolerances({"sheets": sheets})
     assert codes(f) == {"TOL_MISSING", "TOL_INVERTED", "TOL_ZERO", "TOL_TOO_LOOSE"}
@@ -88,8 +80,6 @@ def test_tolerances():
 
 
 def test_text_tolerance_state():
-    """Real dimension labels lifted from 3축.idw -- these exact strings were all
-    being mis-flagged as untoleranced."""
     explicit = ["52-0.03^-0.05", "n10+0.1^  0", "3+0.1^  0", "14+0.2^  0", "3±0.007"]
     fit = ["Ø17js5", "n17js5", "5N9", "n14h6", "20H7", "30g6"]
     na = ["R0.3", "R0.5", "R2", "M10", "(R)", "(25)"]
@@ -123,7 +113,6 @@ def test_missing_dimensions():
         {"id": 76, "diameter_mm": 15.0, "x_cm": 25.3, "y_cm": 20.0}]}]})
     assert codes(f) == {"DIM_MISSING"}
     assert f[0]["where"]["x_cm"] == 25.3, "UI needs coordinates to place the marker"
-    # identical holes collapse into one finding that states how many
     g = R.check_missing_dimensions({"sheets": [{"name": "s1", "undimensioned": [
         {"id": 5, "diameter_mm": 6.0, "x_cm": 1, "y_cm": 2, "count": 4}]}]})
     assert len(g) == 1 and "4곳" in g[0]["title"]
@@ -135,14 +124,11 @@ def test_drawing_meta():
         {"name": "s1", "title_block": None, "border": None, "dims": [], "views": [
             {"name": "v1", "scale": 0.333, "scale_string": "1:3"}]}]})
     assert codes(f) == {"TITLEBLOCK_MISSING", "SCALE_NONSTANDARD", "NO_DIMENSIONS_AT_ALL"}
-    # a custom Border carries the title info in every real drawing sampled, so
-    # a bordered sheet must NOT be reported as untitled
     bordered = R.check_drawing_meta({"kind": "drawing", "sheets": [
         {"name": "s1", "title_block": None, "border": "1111",
          "dims": [{"value_mm": 1, "tol_type": "none"}],
          "views": [{"name": "v1", "scale": 1.0}]}]})
     assert bordered == [], bordered
-    # a healthy drawing produces nothing
     assert R.check_drawing_meta({"kind": "drawing", "sheets": [
         {"name": "s1", "title_block": "ISO", "dims": [{"value_mm": 1, "tol_type": "none"}],
          "views": [{"name": "v1", "scale": 1.0, "scale_string": "1:1"}]}]}) == []
@@ -167,8 +153,7 @@ def test_run_sorts_and_survives_bad_rules():
     assert summary["total"] == len(findings) > 0
     sev = [f["severity"] for f in findings]
     assert sev == sorted(sev, key=lambda s: R._SEV_ORDER[s]), "errors must come first"
-    assert summary["error"] >= 2  # under-constrained sketch + generic material
-    # a rule that explodes is reported, not fatal
+    assert summary["error"] >= 2
     boom = lambda _: (_ for _ in ()).throw(ValueError("boom"))
     boom.__name__ = "check_boom"
     orig = R.ALL_CHECKS
@@ -181,12 +166,6 @@ def test_run_sorts_and_survives_bad_rules():
 
 
 def test_unit_detection():
-    """Wrong units make every length wrong, and DXF files lie about theirs.
-
-    Both failures below are real: an AutoCAD file that says "unitless" while
-    being metres, and ezdxf's own setup=True stamping metres on a millimetre
-    drawing.
-    """
     import ezdxf
     import dwg
 
@@ -197,20 +176,15 @@ def test_unit_detection():
             [(0, 0), (size, 0), (size, size * 0.6), (0, size * 0.6)], close=True)
         return d
 
-    # honest millimetres
     d = doc_with(4, 210)
     assert dwg.detect_mm_per_unit(d, d.modelspace())[0] == 1.0
-    # metres declared as unitless -> must be inferred from the size
     d = doc_with(0, 0.12)
     assert dwg.detect_mm_per_unit(d, d.modelspace())[0] == 1000.0
-    # a lying header: says metres, but 210 m is not a machine part
     d = doc_with(6, 210)
     k, why = dwg.detect_mm_per_unit(d, d.modelspace())
     assert k == 1.0, f"should reject the implausible declaration, got {k} ({why})"
-    # genuine metres, honestly declared
     d = doc_with(6, 0.12)
     assert dwg.detect_mm_per_unit(d, d.modelspace())[0] == 1000.0
-    # inches
     d = doc_with(1, 12)
     assert dwg.detect_mm_per_unit(d, d.modelspace())[0] == 25.4
 
@@ -221,3 +195,4 @@ if __name__ == "__main__":
         t()
         print(f"  ok  {t.__name__}")
     print(f"\n{len(tests)} checks passed")
+

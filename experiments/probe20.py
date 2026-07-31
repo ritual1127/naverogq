@@ -1,9 +1,3 @@
-"""Probe 20: how long does one analysis actually take?
-
-Design Automation bills by runtime, so cost per file is our measured time plus
-cloud file-transfer overhead. Autodesk's published example uses a 400 MB file;
-these are the user's real ones.
-"""
 import os
 import time
 
@@ -16,8 +10,8 @@ FILES = [
     r"C:\Users\smile\OneDrive\Desktop\캐드 파일\편심구동장치(조립)_(배포)\조립품1.iam",
 ]
 
-CREDITS_PER_HOUR = 6.0     # Inventor on Design Automation
-USD_PER_CREDIT = 1.0       # from Autodesk's own worked example: 1 min = $0.10
+CREDITS_PER_HOUR = 6.0
+USD_PER_CREDIT = 1.0
 
 print(f"{'file':28} {'MB':>6} {'sec':>7} {'USD/job':>9}  findings")
 print("-" * 72)
@@ -43,8 +37,8 @@ if rows:
     avg = sum(r[0] for r in rows) / len(rows)
     print("-" * 72)
     print(f"average runtime: {avg:.1f} s")
-    # cloud adds upload/download of the file plus container spin-up
     for overhead in (30, 60):
         per = (avg + overhead) / 3600 * CREDITS_PER_HOUR * USD_PER_CREDIT
         print(f"  with {overhead}s cloud overhead -> ${per:.3f}/file  "
               f"= ${per * 100:.2f} per 100 files  = ${per * 1000:.0f} per 1000 files")
+

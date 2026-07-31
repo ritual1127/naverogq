@@ -1,10 +1,3 @@
-"""Build a DXF fixture with known-wrong content, and verify SVG rendering.
-
-Inventor's own DXF export turns circles into splines, so it can't stand in for a
-human-authored AutoCAD file. This writes a real DXF containing genuine CIRCLE
-and DIMENSION entities with deliberate defects, so dwg.py has something honest
-to be tested against.
-"""
 import os
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
@@ -18,35 +11,28 @@ msp = doc.modelspace()
 doc.layers.add("OUTLINE", color=7)
 doc.layers.add("DIMS", color=1)
 
-# 120 x 80 plate
 msp.add_lwpolyline([(0, 0), (120, 0), (120, 80), (0, 80)], close=True,
                    dxfattribs={"layer": "OUTLINE"})
 
-# four holes: two will get dimensions, two will not
 holes = [(20, 20, 6.0), (100, 20, 6.0), (20, 60, 1.2), (100, 60, 12.5)]
 for x, y, r in holes:
     msp.add_circle((x, y), r, dxfattribs={"layer": "OUTLINE"})
 
-# dimension WITH a sane tolerance
 d1 = msp.add_linear_dim(base=(0, -15), p1=(0, 0), p2=(120, 0),
                         dxfattribs={"layer": "DIMS"},
                         override={"dimtol": 1, "dimtp": 0.05, "dimtm": 0.05})
 d1.render()
-# dimension with NO tolerance
 d2 = msp.add_linear_dim(base=(-20, 0), p1=(0, 0), p2=(0, 80),
                         dxfattribs={"layer": "DIMS"})
 d2.render()
-# dimension with an INVERTED tolerance (upper < lower)
 d3 = msp.add_linear_dim(base=(0, 95), p1=(20, 80), p2=(100, 80),
                         dxfattribs={"layer": "DIMS"},
                         override={"dimtol": 1, "dimtp": -0.2, "dimtm": 0.3})
 d3.render()
-# diameter dim on ONE hole only (20,20)
 d4 = msp.add_diameter_dim(center=(20, 20), radius=6.0, angle=45,
                           dxfattribs={"layer": "DIMS"})
 d4.render()
 
-# a title block-ish block with attributes, one of them empty
 blk = doc.blocks.new(name="TITLEBLOCK")
 blk.add_lwpolyline([(0, 0), (80, 0), (80, 25), (0, 25)], close=True)
 for tag, default, y in (("PART_NUMBER", "PLATE-001", 18),
@@ -62,7 +48,6 @@ msp.add_text("SAMPLE PLATE", height=5,
 doc.saveas(OUT)
 print("wrote", OUT, os.path.getsize(OUT), "bytes")
 
-# --- what does ezdxf's SVG backend actually expose in 1.4.x? ---------------
 print("\n=== SVG backend API check ===")
 from ezdxf.addons.drawing import RenderContext, Frontend
 from ezdxf.addons.drawing import svg, layout as dlayout
@@ -82,7 +67,6 @@ print("  viewBox:", m.group(1) if m else "NONE")
 m2 = re.search(r'width="([^"]+)"\s+height="([^"]+)"', s)
 print("  width/height:", m2.groups() if m2 else "NONE")
 
-# --- read it back the way dwg.py will ---------------------------------------
 print("\n=== read-back check ===")
 d = ezdxf.readfile(OUT)
 m = d.modelspace()
@@ -97,3 +81,4 @@ for e in m.query("DIMENSION"):
 print("  inserts:", len(m.query("INSERT")))
 for i in m.query("INSERT"):
     print("     ", i.dxf.name, {a.dxf.tag: a.dxf.text for a in i.attribs})
+

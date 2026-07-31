@@ -1,21 +1,3 @@
-"""투상도 선택과 배열(30점)을 비전 모델로 판정한다.
-
-채점 기준 7개 항목 중 6개는 규칙으로 풀린다. 표면거칠기 기호가 있는가, 공차값이
-비어 있는가, 주서에 일반공차 문구가 있는가 — 전부 세거나 찾으면 되는 문제다.
-
-'투상도 선택과 배열'만 다르다. "정면도를 제대로 골랐는가", "평면도와 측면도가
-제3각법 위치에 놓였는가", "이 형상을 표현하는 데 이 조합으로 충분한가"는 도면을
-**보고** 판단해야 한다. 세서 나오는 답이 아니다. 그래서 exam.py는 이 항목을
-`score: null` / `mode: "review"`로 비워 두었다. 100점 중 배점이 가장 큰 30점이
-자동 채점 불가 영역으로 남아 있었다.
-
-이 모듈이 그 구멍을 채운다. 도면을 이미지로 렌더해서 비전 모델에 넘기고, 배치와
-선택의 타당성을 판정받는다. 나머지 70점은 계속 결정론적 규칙이 채점한다 — 같은
-도면은 언제나 같은 점수가 나와야 하기 때문이다. AI는 규칙이 닿지 못하는 곳에만 쓴다.
-
-API 키가 없으면 조용히 물러난다. 그 경우 제품은 이 모듈이 없던 때와 똑같이,
-투상도 30점을 '사람이 확인'으로 비워 둔 채 동작한다.
-"""
 import base64
 import os
 
@@ -23,34 +5,22 @@ MODEL = "claude-opus-5"
 MAX_POINTS = 30
 RENDER_DPI = 150
 
-# 도면 한 장이 이 정도면 치수선과 뷰 배치가 또렷하게 보인다. 더 키우면 이미지
-# 토큰만 늘고 판정은 나아지지 않는다.
 MAX_PIXELS = 2400
 
 
 def is_available():
-    """비전 판정을 쓸 수 있으면 True.
-
-    키가 없는 것은 오류가 아니라 기본 상태다. 이 함수가 False를 돌려주면
-    호출부는 규칙 채점만으로 진행한다.
-    """
     if not (os.environ.get("ANTHROPIC_API_KEY")
             or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         return False
     try:
-        import anthropic  # noqa: F401
-        import pymupdf  # noqa: F401
+        import anthropic
+        import pymupdf
     except ImportError:
         return False
     return True
 
 
 def render_png(dxf_path):
-    """도면을 PNG 바이트로. 비전 API는 SVG를 받지 않는다.
-
-    Page(0, 0)은 도면 내용에서 크기를 잡으라는 뜻이고, max_*는 그 결과가 커져도
-    이미지 토큰이 폭주하지 않게 잡는 상한이다.
-    """
     import ezdxf
     from ezdxf.addons.drawing import Frontend, RenderContext
     from ezdxf.addons.drawing import layout as dlayout
@@ -120,7 +90,6 @@ SCHEMA = {
 
 
 def _context(facts):
-    """모델이 이미지만으로는 알 수 없는 사실만 넘긴다."""
     sh = (facts.get("sheets") or [{}])[0]
     views = sh.get("views", [])
     bits = [f"파일 종류: {facts.get('kind')}",
@@ -134,11 +103,6 @@ def _context(facts):
 
 
 def judge(facts, timeout=120.0):
-    """투상도 30점 판정 결과, 또는 판정할 수 없으면 None.
-
-    실패는 전부 None으로 흡수한다. 채점 도구가 외부 API 때문에 통째로 죽으면
-    안 된다 — AI가 빠지면 그 항목만 '사람이 확인'으로 돌아갈 뿐이다.
-    """
     dxf = facts.get("dxf")
     if not dxf or not os.path.exists(dxf) or not is_available():
         return None
@@ -171,7 +135,6 @@ def judge(facts, timeout=120.0):
     except Exception:
         return None
 
-    # 안전 분류기가 요청을 거절하면 content가 비어 있다. 인덱싱하기 전에 확인한다.
     if response.stop_reason == "refusal":
         return None
 
@@ -186,14 +149,8 @@ def judge(facts, timeout=120.0):
 
 
 def _to_findings(data):
-    """모델 응답을 exam.py가 이미 쓰는 finding 모양으로 바꾼다.
-
-    deduct를 그대로 실어 보내면 grade()의 '감점 합계' 계산이 이 항목도 똑같이
-    처리한다. 점수 계산 경로를 하나 더 만들 필요가 없다.
-    """
     findings, total = [], 0
     for d in data.get("deductions", []):
-        # 모델이 배점을 벗어난 값을 주더라도 스코어카드가 음수로 깨지지 않게 한다.
         deduct = max(0, min(MAX_POINTS - total, int(d.get("deduct", 0))))
         total += deduct
         findings.append({
@@ -210,3 +167,4 @@ def _to_findings(data):
             "findings": findings,
             "score": MAX_POINTS - total,
             "model": MODEL}
+

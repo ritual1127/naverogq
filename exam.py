@@ -1,22 +1,8 @@
-"""전산응용기계제도기능사 채점기준 기반 도면 자가진단.
-
-배점은 공개된 채점 기준표(투상도 30 / 치수 15 / 공차 10 / 표면거칠기 10 /
-기하공차 10 / 주서·표제란 8 / 재료 7)를 따릅니다.
-
-공식 채점이 아닙니다. 자동으로 확인할 수 있는 것은 "기호가 있는가, 값이
-규격에 맞는가"까지이고, 배점이 가장 큰 '투상도 선택과 배열'(30점)은 사람이
-봐야 판단됩니다. 그래서 점수는 자동 판정분만 집계합니다.
-
-검사 항목은 켜고 끌 수 있습니다. 각 검사는 자기 감점량(deduct)을 findings에
-담아 두고, 점수는 '켜져 있는 findings의 감점 합계'로 계산합니다. 그래서 검사를
-끄면 그 감점도 같이 사라집니다.
-"""
 import re
 
-# --- 시험 요구사항 (회차에 따라 다르면 여기만 고치세요) --------------------
-REQUIRED_SHEET = ("A3", 420.0, 297.0)   # (이름, 가로 mm, 세로 mm)
+REQUIRED_SHEET = ("A3", 420.0, 297.0)
 SHEET_TOL_MM = 3.0
-REQUIRED_THIRD_ANGLE = True             # 제3각법
+REQUIRED_THIRD_ANGLE = True
 STANDARD_SCALES = {"1:1", "1:2", "1:2.5", "1:5", "1:10", "1:20", "1:50", "1:100",
                    "2:1", "5:1", "10:1", "20:1", "50:1"}
 REQUIRED_NOTE_PATTERNS = [
@@ -42,9 +28,7 @@ RUBRIC_MAX = {c: p for c, _, p, _ in RUBRIC}
 RUBRIC_LABEL = {c: l for c, l, _, _ in RUBRIC}
 RUBRIC_MODE = {c: m for c, _, _, m in RUBRIC}
 
-# 켜고 끌 수 있는 검사 목록. UI가 이걸 그대로 체크박스로 그립니다.
 CHECKS = [
-    # (id, 이름, 소속 채점항목, 기본값)
     ("DQ_NO_SURFACE_SYMBOL", "표면거칠기 기호가 아예 없음", "오작", True),
     ("DQ_NO_GEOMETRIC_TOL", "기하공차 기호가 아예 없음", "오작", True),
     ("DQ_PROJECTION", "투상법이 제3각법이 아님", "오작", True),
@@ -100,9 +84,6 @@ def _scale_str(v):
         return ""
     return f"{int(1 / sc)}:1" if sc < 1 else f"{sc:g}:1"
 
-
-# --- 개별 검사 --------------------------------------------------------------
-# 각 함수는 findings만 만듭니다. 점수는 grade()가 감점 합계로 계산합니다.
 
 def _disqualifiers(facts):
     out = []
@@ -167,8 +148,6 @@ def _dimensions(facts):
     sh = _sheet_of(facts)
     dims, missing = sh.get("dims", []), sh.get("undimensioned", [])
     if not dims:
-        # 공식 오작 목록(도면 크기·투상법·척도·KS규격·기하공차/표면거칠기 미기입)에
-        # '치수 없음'은 없다. 배점 15점을 전부 잃을 뿐 실격은 아니다.
         return [_f("EX_NO_DIMS", SEV_ERROR, "치수가 하나도 없음",
                    "도면에 치수가 전혀 기입되지 않았습니다. 치수 기입 15점을 "
                    "전부 잃습니다.",
@@ -219,9 +198,8 @@ def _surface(facts):
     syms = sh.get("surface_symbols", [])
     n = sh.get("counts", {}).get("SurfaceTextureSymbols", len(syms))
     if n == 0:
-        return []     # 오작에서 이미 처리
+        return []
     out = []
-    # 제거가공 불가 기호는 거칠기 값이 없는 것이 정상이므로 제외
     empty = [s for s in syms if not s.get("no_machining")
              and not (s.get("max") or s.get("min") or s.get("method"))]
     if empty:
@@ -365,7 +343,6 @@ _ORDER = {SEV_FAIL: 0, SEV_ERROR: 1, SEV_WARN: 2, SEV_INFO: 3}
 
 
 def check_catalog():
-    """UI가 체크박스로 그릴 검사 목록."""
     return [{"id": cid, "label": label, "group": grp,
              "group_label": "오작(실격)" if grp == "오작" else RUBRIC_LABEL.get(grp, grp),
              "default": on}
@@ -373,12 +350,6 @@ def check_catalog():
 
 
 def grade(facts, enabled=None, ai_projection=None):
-    """(findings, scorecard). enabled=None 이면 전체 검사.
-
-    ai_projection은 ai_review.judge()의 결과. 있으면 '투상도 선택과 배열'(30점)이
-    'review'(사람이 확인)에서 실제 점수로 바뀐다. None이면 이 모듈은 AI가 없던
-    때와 완전히 동일하게 동작한다.
-    """
     on = ALL_CHECK_IDS if enabled is None else (set(enabled) & ALL_CHECK_IDS)
 
     findings = []
@@ -391,12 +362,9 @@ def grade(facts, enabled=None, ai_projection=None):
                                "개발자에게 알려주세요."))
     if ai_projection:
         findings += ai_projection["findings"]
-    # 꺼진 검사는 결과에서도, 감점에서도 빠진다
     findings = [f for f in findings
                 if f["code"] in on or f["code"] == "EX_RULE_ERROR"]
 
-    # AI 판정 findings가 deduct를 들고 오므로, 투상도 항목도 다른 항목과 똑같이
-    # '감점 합계'로 계산된다. 점수 계산 경로가 하나 더 생기지 않는다.
     ai_scored = bool(ai_projection) and "AI_PROJECTION" in on
 
     items, got, mx_total = [], 0, 0
@@ -406,7 +374,7 @@ def grade(facts, enabled=None, ai_projection=None):
                           "score": None, "mode": "review"})
             continue
         if mode == "review":
-            mode = "ai"     # 규칙이 아니라 AI가 채운 항목임을 UI가 구분하도록
+            mode = "ai"
         lost = sum(f["deduct"] for f in findings if f.get("item") == code)
         score = max(0, mx - lost)
         got += score
@@ -435,3 +403,4 @@ def grade(facts, enabled=None, ai_projection=None):
             "info": sum(1 for f in findings if f["severity"] == SEV_INFO),
         },
     }
+

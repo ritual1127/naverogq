@@ -1,6 +1,3 @@
-"""Probe 8: DWG. Can Inventor open one directly (no ODA needed), or must we
-convert DWG->DXF first?
-"""
 import os
 import glob
 import win32com.client as w32
@@ -24,7 +21,7 @@ C = w32.constants
 print("\n=== make a DWG from the fixture drawing ===")
 drw = w32.CastTo(app.Documents.Open(IDW, False), "DrawingDocument")
 try:
-    drw.SaveAs(DWG, True)  # save-a-copy as DWG
+    drw.SaveAs(DWG, True)
     print("  SaveAs dwg OK:", os.path.exists(DWG), os.path.getsize(DWG) if os.path.exists(DWG) else "")
 except Exception as e:
     print("  SaveAs dwg FAIL:", str(e)[:200])
@@ -78,3 +75,4 @@ if os.path.exists(dxf):
         attrs = {a.dxf.tag: a.dxf.text for a in ins.attribs} if ins.attribs else {}
         print(f"     block={ins.dxf.name!r} attribs={attrs}")
 print("\nDONE")
+

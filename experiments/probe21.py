@@ -1,8 +1,3 @@
-"""Probe 21: can we read the things the exam actually scores?
-
-Surface-texture symbols and geometric-tolerance frames are 오작 (instant fail)
-if missing, so being able to count them reliably is the whole point.
-"""
 import glob
 import os
 import win32com.client as w32
@@ -16,7 +11,6 @@ app.Visible = False
 app.SilentOperation = True
 C = w32.constants
 
-# every annotation collection a Sheet exposes, per probe4's dir() dump
 COLLS = ["SurfaceTextureSymbols", "FeatureControlFrames", "DatumIdentifierSymbols",
          "DatumTargetSymbols", "Centerlines", "Centermarks", "DrawingNotes",
          "PartsLists", "Balloons", "HoleTables", "RevisionTables", "WeldingSymbols",
@@ -64,7 +58,6 @@ for p in files:
     if missing:
         print(f"     (no such collection: {', '.join(missing)})")
 
-    # what do the notes actually say? 주서 is scored
     try:
         for i in range(1, min(sh.DrawingNotes.Count, 4) + 1):
             n = sh.DrawingNotes.Item(i)
@@ -74,3 +67,4 @@ for p in files:
         print("     notes unreadable:", type(e).__name__)
     d.Close(True)
 print("\nDONE")
+

@@ -1,14 +1,3 @@
-"""Everything DXF/DWG: parsing to `facts`, and SVG rendering for the viewer.
-
-DWG notes (probe8/9 established these the hard way):
-  * Inventor CAN open a .dwg but exposes it as a bare "Model (AutoCAD)" sheet
-    with zero DrawingViews/DrawingDimensions, and SaveAs(.dxf) from it writes
-    no file. So Inventor is NOT a usable DWG->DXF converter.
-  * Therefore .dwg needs ODA File Converter (free). .dxf needs nothing.
-  * Inventor's own DXF export turns circles into splines, so a .idw's exported
-    DXF is fine to LOOK at but useless to measure -- circle checks for .idw
-    come from the COM API, not from here.
-"""
 import glob
 import math
 import os
@@ -24,36 +13,23 @@ from ezdxf.addons.drawing import layout as dlayout
 from ezdxf.addons.drawing import svg as dsvg
 
 MARGIN_MM = 5.0
-CENTER_TOL = 0.5      # mm, for matching a diameter/radius dim to its circle
+CENTER_TOL = 0.5
 ERR_LAYER = "_CHECKER_ERRORS"
 
 DIM_LINEAR, DIM_ALIGNED, DIM_ANGULAR, DIM_DIAMETER, DIM_RADIUS = 0, 1, 2, 3, 4
 
-
-# --- DWG -> DXF -------------------------------------------------------------
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LIBREDWG = os.path.join(HERE, "vendor", "libredwg", "dwg2dxf.exe")
 
 
 def find_libredwg():
-    """GNU LibreDWG's dwg2dxf, beside the repo or on PATH.
-
-    This is the converter that actually works on third-party AutoCAD files:
-    free, offline, no install and no account, unlike ODA File Converter, and
-    unlike Inventor it reads DWGs it did not write.
-
-    The vendored copy is Windows-only and GPL-3.0, so it stays out of the repo
-    (see NOTICE.md). On Linux `apt install libredwg-tools` puts dwg2dxf on PATH,
-    which is what lets the cloud demo accept DWG at all.
-    """
     if os.path.exists(LIBREDWG):
         return LIBREDWG
     return shutil.which("dwg2dxf")
 
 
 def find_oda():
-    """Path to ODAFileConverter.exe, or None."""
     pats = (r"C:\Program Files\ODA\*\ODAFileConverter.exe",
             r"C:\Program Files\ODA\*\*\ODAFileConverter.exe",
             r"C:\Program Files (x86)\ODA\*\ODAFileConverter.exe")
@@ -81,12 +57,6 @@ REAL_ENTITIES = {"LINE", "CIRCLE", "ARC", "DIMENSION", "POLYLINE", "LWPOLYLINE",
 
 
 def dxf_has_content(path):
-    """Does this DXF actually contain drawing geometry?
-
-    Inventor happily 'converts' a third-party AutoCAD DWG into a 455 KB DXF
-    holding nothing but arrowhead block definitions, so file size proves
-    nothing -- the layouts have to be checked.
-    """
     try:
         d = ezdxf.readfile(path)
     except Exception:
@@ -102,12 +72,6 @@ def dxf_has_content(path):
 
 
 def dwg_via_inventor(dwg_path, out_dxf):
-    """Convert with Inventor, which is already installed and free.
-
-    Only works for DWGs Inventor itself wrote (a common case -- exporting a
-    .idw to .dwg). For an AutoCAD-authored file Inventor opens an empty shell,
-    which is why the result is content-checked rather than trusted.
-    """
     import win32com.client as w32
     import inventor as inv
     with inv._LOCK:
@@ -126,12 +90,6 @@ def dwg_via_inventor(dwg_path, out_dxf):
 
 
 def dwg_to_dxf(dwg_path):
-    """DWG -> DXF, trying converters in order of how much they can read.
-
-    LibreDWG first: it handles AutoCAD-authored files, which is most of them.
-    Inventor second: only understands DWGs it wrote itself. ODA last, if the
-    user happens to have installed it.
-    """
     work = tempfile.mkdtemp(prefix="dwg_conv_")
     for fn in (dwg_via_libredwg, dwg_via_inventor):
         out = os.path.join(work, f"{fn.__name__}.dxf")
@@ -152,7 +110,6 @@ def dwg_to_dxf(dwg_path):
     base = os.path.basename(dwg_path)
     with open(dwg_path, "rb") as a, open(os.path.join(src, base), "wb") as b:
         b.write(a.read())
-    # ODAFileConverter <in> <out> <ver> <type> <recurse> <audit> [filter]
     subprocess.run([exe, src, dst, "ACAD2018", "DXF", "0", "1", "*.DWG"],
                    check=False, timeout=300,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -163,14 +120,7 @@ def dwg_to_dxf(dwg_path):
     return out[0]
 
 
-# --- parsing ----------------------------------------------------------------
-
 def _walk(entities, depth=0, seen=frozenset()):
-    """Flatten INSERTs so geometry inside blocks is visible.
-
-    Circles very often live inside a block, so a plain modelspace scan reports
-    zero of them.
-    """
     for e in entities:
         if e.dxftype() == "INSERT":
             if depth > 4 or e.dxf.name in seen:
@@ -184,11 +134,6 @@ def _walk(entities, depth=0, seen=frozenset()):
 
 
 def _dim_tolerance(dim):
-    """(tol_type, upper_mm, lower_mm) from a DXF DIMENSION's effective style.
-
-    DXF convention: dimtp is the PLUS magnitude, dimtm the MINUS magnitude, so
-    the deviations are +dimtp and -dimtm.
-    """
     try:
         ovr = dim.override()
     except Exception:
@@ -205,7 +150,6 @@ def _dim_tolerance(dim):
 
 
 def _dim_center(dim):
-    """Circle centre a diameter/radius dimension refers to, else None."""
     try:
         t = dim.dimtype & 7
         if t == DIM_RADIUS:
@@ -219,23 +163,12 @@ def _dim_center(dim):
     return None
 
 
-# $INSUNITS code -> millimetres per drawing unit
 _UNIT_MM = {1: 25.4, 2: 304.8, 4: 1.0, 5: 10.0, 6: 1000.0, 8: 2.54e-5,
             9: 0.0254, 10: 914.4, 11: 1e-7, 12: 1e-6, 13: 1e-3, 14: 100.0}
-# A mechanical drawing's overall size, in mm. Used to sanity-check the unit.
 PLAUSIBLE_MM = (5.0, 20000.0)
 
 
 def detect_mm_per_unit(doc, msp):
-    """How many millimetres is one drawing unit? -> (factor, why)
-
-    $INSUNITS alone is not trustworthy: a real AutoCAD file here declares 0
-    (unitless) while actually being metres, and ezdxf's own `setup=True`
-    stamps 6 (metres) on a file authored in millimetres. Either one taken at
-    face value turns a 27 mm hole into "0.03 mm" or "27 m". So the declared
-    unit is only accepted when it yields a drawing of believable size, and
-    otherwise the size decides.
-    """
     try:
         size = max(bbox.extents(msp).size.x, bbox.extents(msp).size.y)
     except Exception:
@@ -256,7 +189,6 @@ def facts_from_dxf(path, source_name=None):
     msp = doc.modelspace()
     layouts = [msp] + [doc.layouts.get(n) for n in doc.layout_names()
                        if n.lower() != "model"]
-    # every length below is in drawing units; K converts to millimetres
     K, unit_why = detect_mm_per_unit(doc, msp)
     dims, circles, dim_centers, titles = [], [], [], {}
 
@@ -277,14 +209,12 @@ def facts_from_dxf(path, source_name=None):
                 tol, up, lo = _dim_tolerance(e)
                 dtype = e.dimtype & 7
                 if dtype in (DIM_ANGULAR, 5):
-                    continue  # radians, not a length
+                    continue
                 try:
                     org = e.dxf.text_midpoint
                     x, y = org.x, org.y
                 except Exception:
                     x = y = None
-                # "<>" is the DXF placeholder for "print the measured value",
-                # not a label -- treat it as no override text at all.
                 label = (e.dxf.get("text", "") or "").strip()
                 if label in ("<>", ""):
                     label = ""
@@ -304,7 +234,6 @@ def facts_from_dxf(path, source_name=None):
                                     "layer": e.dxf.layer})
                 except Exception:
                     continue
-        # title block attributes
         for ins in lay.query("INSERT"):
             try:
                 attrs = {a.dxf.tag.upper(): (a.dxf.text or "").strip()
@@ -314,9 +243,6 @@ def facts_from_dxf(path, source_name=None):
             if attrs:
                 titles.setdefault(ins.dxf.name, {}).update(attrs)
 
-    # A circle is "dimensioned" if a diameter/radius dim points at its centre,
-    # or if some dimension already states that diameter -- "8xO6" is how you
-    # dimension eight identical holes, and flagging the other seven is wrong.
     dimmed_dia = {round(abs(d["value_mm"]), 2) for d in dims}
     tol_units = CENTER_TOL / K if K else CENTER_TOL
     groups = {}
@@ -329,10 +255,6 @@ def facts_from_dxf(path, source_name=None):
         dia = round(c["r"] * 2 * K, 2)
         if dia in dimmed_dia or round(c["r"] * K, 2) in dimmed_dia:
             continue
-        # One entry per distinct diameter. A drawing with no dimensions at all
-        # otherwise produces a 173-item list nobody can act on.
-        # NOTE: dxf_* stay in DRAWING units -- markers are drawn back into the
-        # DXF, so they must not be converted.
         g = groups.get(dia)
         if g:
             g["count"] += 1
@@ -377,20 +299,11 @@ def _props_from_titles(titles):
                 val = flat[n.upper()]
                 break
         out[key] = val
-    # only complain about missing props if the file actually has a title block
     out["_has_title_block"] = bool(flat)
     return out
 
 
-# --- rendering --------------------------------------------------------------
-
 def render_svg(dxf_path, markers=()):
-    """SVG of the drawing with error markers drawn INTO the DXF first.
-
-    Baking the markers means ezdxf applies the same transform to markers and
-    geometry, so a marker cannot drift off its feature. The returned transform
-    is only for pan/zoom on click, where sub-millimetre error is irrelevant.
-    """
     doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
     if ERR_LAYER not in doc.layers:
@@ -408,23 +321,20 @@ def render_svg(dxf_path, markers=()):
 
 
 def _arrow(msp, x, y, ring, span, label):
-    """A ring round the feature plus a leader arrow and number pointing at it."""
     a = {"layer": ERR_LAYER}
     msp.add_circle((x, y), ring, dxfattribs=a)
 
-    # leader comes in at 45 degrees from the upper right
     lead = max(ring * 3.2, span * 0.045)
     d = 0.7071
-    tipx, tipy = x + ring * d, y + ring * d           # touches the ring, not the centre
+    tipx, tipy = x + ring * d, y + ring * d
     tailx, taily = x + lead * d, y + lead * d
     msp.add_line((tipx, tipy), (tailx, taily), dxfattribs=a)
     msp.add_line((tailx, taily), (tailx + lead * 0.55, taily), dxfattribs=a)
 
-    # arrowhead: two barbs swept back from the tip along the leader
     head = ring * 0.55
     for ang in (0.4, -0.4):
         ca, sa = math.cos(ang), math.sin(ang)
-        dx, dy = d * ca - d * sa, d * sa + d * ca     # rotate the leader direction
+        dx, dy = d * ca - d * sa, d * sa + d * ca
         msp.add_line((tipx, tipy), (tipx + head * dx, tipy + head * dy), dxfattribs=a)
 
     msp.add_text(label, height=max(ring * 1.1, span * 0.011), dxfattribs=a
@@ -432,7 +342,6 @@ def _arrow(msp, x, y, ring, span, label):
 
 
 def _finish(doc, msp):
-    """Render the (possibly annotated) modelspace to an SVG string."""
     back = dsvg.SVGBackend()
     Frontend(RenderContext(doc), back).draw_layout(msp)
     s = back.get_string(dlayout.Page(0, 0, dlayout.Units.mm,
@@ -441,12 +350,6 @@ def _finish(doc, msp):
 
 
 def _transform(svg_text, bb):
-    """Approximate DXF->SVG mapping, for click-to-zoom only.
-
-    ponytail: derived from the SVG's page size, which ezdxf rounds to 0.1mm, so
-    this drifts by ~0.25mm. Fine for centring a viewport; that is why markers
-    are baked into the DXF instead of overlaid using this.
-    """
     try:
         vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', svg_text).group(1).split()]
         w_mm = float(re.search(r'width="([\d.]+)mm"', svg_text).group(1))
@@ -459,7 +362,6 @@ def _transform(svg_text, bb):
 
 
 def analyze(path):
-    """.dxf directly; .dwg via ODA File Converter."""
     ext = os.path.splitext(path)[1].lower()
     if ext == ".dwg":
         dxf = dwg_to_dxf(path)
@@ -472,3 +374,4 @@ if __name__ == "__main__":
     import sys
     f = analyze(sys.argv[1])
     print(json.dumps(f, ensure_ascii=False, indent=2, default=str))
+

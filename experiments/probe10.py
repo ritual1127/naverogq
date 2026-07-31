@@ -1,9 +1,3 @@
-"""Probe 10: derive the exact DXF -> SVG transform and PROVE it.
-
-Markers that land in the wrong place are worse than no markers, so this
-predicts the SVG coordinate of a known DXF point and compares it against what
-the renderer actually emitted.
-"""
 import os
 import re
 import ezdxf
@@ -33,7 +27,6 @@ print(f"dxf extents: min=({bb.extmin.x:.4f},{bb.extmin.y:.4f}) "
       f"max=({bb.extmax.x:.4f},{bb.extmax.y:.4f})  "
       f"size=({bb.size.x:.4f},{bb.size.y:.4f})")
 
-# viewBox units per millimetre of page
 upm = vb[2] / w_mm
 print(f"units per mm = {upm:.4f}")
 print(f"content mm = {w_mm - 2 * MARGIN_MM:.4f} x {h_mm - 2 * MARGIN_MM:.4f}"
@@ -45,8 +38,6 @@ def to_svg(x, y):
             (bb.extmax.y - y + MARGIN_MM) * upm)
 
 
-# The plate's bottom-left corner is DXF (0,0). Find where the renderer put the
-# plate outline: it is the only 4-segment closed path of 120x80.
 paths = re.findall(r'd="M ([\d.-]+) ([\d.-]+) l 545076 0', s)
 print("\nobserved plate origin in svg:", paths[:1])
 pred = to_svg(0, 0)
@@ -59,12 +50,10 @@ if paths:
     ok = err[0] < 2 and err[1] < 2
     print("TRANSFORM EXACT" if ok else "TRANSFORM WRONG")
 
-# verify against a circle centre too (independent point)
 print("\ncircle centres: predicted vs observed")
 for c in msp.query("CIRCLE"):
     cx, cy, r = c.dxf.center.x, c.dxf.center.y, c.dxf.radius
     px, py = to_svg(cx, cy)
-    # the renderer emits circles as 4 bezier arcs starting at (cx+r, cy)
     sx, sy = to_svg(cx + r, cy)
     hit = re.search(rf'd="M {sx:.0f}', s) or re.search(rf'd="M {sx - 1:.0f}', s) \
         or re.search(rf'd="M {sx + 1:.0f}', s)
@@ -73,3 +62,4 @@ for c in msp.query("CIRCLE"):
 
 print(f"\nradius scale check: 1 dxf unit = {upm:.4f} svg units "
       f"(so r={6.0:g} -> {6.0 * upm:.0f})")
+

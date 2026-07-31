@@ -1,6 +1,3 @@
-"""Probe 12: survey EVERY real drawing. Are dimensions really absent, or am I
-reading the wrong place? Also look in sheet/view sketches and notes.
-"""
 import glob
 import os
 import win32com.client as w32
@@ -86,3 +83,4 @@ for p in [x for x in glob.glob(os.path.join(BASE, "**", "*.ipt"), recursive=True
     except Exception as e:
         print(f"  {os.path.basename(p)[:40]:42} FAIL {type(e).__name__}: {str(e)[:60]}")
 print("\nDONE")
+

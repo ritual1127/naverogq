@@ -1,8 +1,3 @@
-"""Probe 2: interrogate a real .ipt and report which COM paths actually work.
-
-Every section is guarded so one bad API path doesn't kill the run. Output tells
-us exactly what inventor.py is allowed to rely on.
-"""
 import sys
 import win32com.client as w32
 
@@ -28,10 +23,8 @@ app.Visible = False
 app.SilentOperation = True
 
 sect(f"OPEN {PATH}")
-doc = app.Documents.Open(PATH, False)  # False = don't make visible
+doc = app.Documents.Open(PATH, False)
 print("  opened:", doc.DisplayName, "| type:", doc.DocumentType)
-# Documents.Open hands back the generic Document interface; must cast to reach
-# ComponentDefinition. This is THE pywin32/Inventor gotcha.
 doc = w32.CastTo(doc, "PartDocument")
 print("  cast to PartDocument OK")
 cd = doc.ComponentDefinition
@@ -126,7 +119,7 @@ try:
         planar = 0
         for fc in b.Faces:
             try:
-                if fc.SurfaceType == 51201:  # kPlaneSurface
+                if fc.SurfaceType == 51201:
                     planar += 1
             except Exception:
                 pass
@@ -150,7 +143,7 @@ sect("DOC HEALTH / SICK FEATURES")
 try_("cd.Features.Count", lambda: cd.Features.Count)
 for feat in cd.Features:
     try:
-        if feat.HealthStatus != 41217:  # kUpToDateHealth
+        if feat.HealthStatus != 41217:
             print(f"  !! {feat.Name!r} HealthStatus={feat.HealthStatus}")
     except Exception:
         pass
@@ -158,3 +151,4 @@ print("  (41217 == kUpToDateHealth; anything else is a sick/failed feature)")
 
 doc.Close(True)
 print("\nDONE, doc closed.")
+

@@ -1,8 +1,3 @@
-"""Probe 3: the drawing side. Dimensions, tolerances, curves, projection, DXF export.
-
-Builds a real .idw from the user's part so we have a fixture AND verify the API
-paths that rules.py will depend on.
-"""
 import os
 import win32com.client as w32
 
@@ -33,7 +28,6 @@ app.SilentOperation = True
 C = w32.constants
 
 sect("CONSTANT NAME HUNT (projection / view / curve / tolerance)")
-# dump every constant whose name hints at what we need
 import win32com.client.gencache as gc
 mod = gc.GetModuleForProgID("Inventor.Application")
 allc = {}
@@ -100,7 +94,6 @@ if circles:
         print("  AddDiameter OK")
     except Exception as e:
         print("  FAIL AddDiameter:", e)
-# linear dim between two straight curves
 lines = [c for c in curves if c.CurveType == C.kLineSegmentCurve]
 print("  line curves:", len(lines))
 if len(lines) >= 2:
@@ -180,3 +173,4 @@ print("\nleaving docs open for inspection is bad; closing")
 drw.Close(True)
 model.Close(True)
 print("DONE")
+

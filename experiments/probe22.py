@@ -1,9 +1,3 @@
-"""Probe 22: which additional deduction items can actually be read?
-
-Candidates: line weights/types (KS line standard), decimal marker (comma vs
-period), view labels and scale display, dimension precision, surface-roughness
-values, datum references on geometric tolerances.
-"""
 import collections
 import glob
 import os
@@ -143,3 +137,4 @@ for path in FILES:
         print("   FAIL", e)
     d.Close(True)
 print("\nDONE")
+

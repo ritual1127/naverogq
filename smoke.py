@@ -1,11 +1,3 @@
-"""End-to-end HTTP smoke test.
-
-Written in Python because PowerShell/curl mangle Korean paths in the console
-codepage, which repeatedly produced fake failures.
-
-    python smoke.py            전체 검사
-    python smoke.py <file...>  특정 파일만
-"""
 import json
 import sys
 import urllib.request
@@ -87,14 +79,12 @@ sc = r.get("scorecard")
 if sc:
     print(f"  disqualified={sc['disqualified']}  사유={sc['disqualifiers']}")
     assert sc["disqualified"], "1본체는 기하공차가 없어 실격이어야 함"
-    # 오작 검사군을 끄면 실격 판정이 풀려야 한다
     keep = [c["id"] for c in h["checks"] if c["group"] != "오작"]
     sc2 = post("/api/analyze-path",
                {"path": DRAWINGS[0], "checks": keep})["scorecard"]
     print(f"  오작 검사 끈 뒤: disqualified={sc2['disqualified']} "
           f"점수={sc2['auto_score']}/{sc2['auto_max']}")
     assert not sc2["disqualified"], "오작 검사를 껐는데 실격이 유지됨"
-    # 전부 끄면 감점이 하나도 없어야 한다
     sc3 = post("/api/analyze-path",
                {"path": DRAWINGS[0], "checks": []})["scorecard"]
     print(f"  전부 끈 뒤: 켜짐 {sc3['enabled_count']}/{sc3['total_checks']} "
@@ -104,3 +94,4 @@ if sc:
     assert sc3["auto_score"] == sc3["auto_max"], "검사를 다 껐는데 감점이 남음"
     print("  토글 반영 OK")
 print("\nDONE")
+

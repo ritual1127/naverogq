@@ -1,4 +1,3 @@
-"""Probe 17: does unit detection give sane millimetres for all three sources?"""
 import os
 import dwg
 
@@ -22,3 +21,4 @@ for path, label in TESTS:
     print(f"   scale : {f['unit_mm_per_drawing_unit']:g} mm/unit   [{f['unit_source']}]")
     print(f"   dims  : {[round(d['value_mm'], 2) for d in sh['dims'][:6]]}")
     print(f"   holes : {[(round(c['diameter_mm'], 2), c['count']) for c in sh['undimensioned'][:6]]}")
+

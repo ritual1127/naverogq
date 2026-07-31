@@ -1,10 +1,3 @@
-"""Probe 14: the two things the user asked for.
-
-A. Do .idw sheet coordinates (cm) map onto the exported DXF (mm) by x10?
-   Verified by predicting a known circle's position and looking for real
-   geometry there. If it holds, markers/arrows on .idw work after all.
-B. Can Inventor export a part to STL/OBJ for a rotatable 3D preview?
-"""
 import os
 import math
 import win32com.client as w32
@@ -29,7 +22,6 @@ d = w32.CastTo(app.Documents.Open(IDW, False), "DrawingDocument")
 sh = d.Sheets.Item(1)
 print(f"  sheet {sh.Width} x {sh.Height} cm")
 
-# collect every projected circle with its sheet position and diameter
 circles = []
 for vi in range(1, sh.DrawingViews.Count + 1):
     v = sh.DrawingViews.Item(vi)
@@ -45,7 +37,7 @@ for vi in range(1, sh.DrawingViews.Count + 1):
                 continue
             if dc.ProjectedCurveType != getattr(C, "kCircleCurve2d", -1):
                 continue
-            r = dc.ModelGeometry.Geometry.Radius * 10  # cm -> mm
+            r = dc.ModelGeometry.Geometry.Radius * 10
             circles.append((dc.CenterPoint.X * 10, dc.CenterPoint.Y * 10, r, v.Name))
         except Exception:
             continue
@@ -80,7 +72,6 @@ def walk(ents, depth=0, seen=frozenset()):
             yield e
 
 
-# gather every point the DXF actually draws, so we can ask "is anything there?"
 pts = []
 for e in walk(msp):
     t = e.dxftype()
@@ -132,7 +123,6 @@ for ext in ("stl", "obj"):
     except Exception as e:
         print(f"  SaveAs .{ext}: FAIL {str(e)[:120]}")
 
-# translator route (the documented way, gives control over units/resolution)
 print("\n  -- TranslatorAddIn route --")
 for addin in app.ApplicationAddIns:
     try:
@@ -143,3 +133,4 @@ for addin in app.ApplicationAddIns:
         print(f"     {nm}  ClassId={addin.ClassIdString}")
 part.Close(True)
 print("\nDONE")
+

@@ -1,8 +1,3 @@
-# 서버를 실행합니다.
-#   .\run.ps1            로컬만  (http://127.0.0.1:8000)
-#   .\run.ps1 -Tunnel    공개 주소까지 (Cloudflare 임시 터널)
-#
-# 창을 닫으면 서버도 함께 종료됩니다. 계속 띄워두려면 install-autostart.ps1.
 
 param([switch]$Tunnel, [int]$Port = 8000)
 
@@ -16,7 +11,6 @@ if (-not (Test-Path $vpy)) {
     exit 1
 }
 
-# 이미 떠 있는 서버 정리
 Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.CommandLine -like "*main.py*" } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }

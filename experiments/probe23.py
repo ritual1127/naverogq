@@ -1,6 +1,3 @@
-"""Probe 23: are the "empty roughness" symbols real omissions, or legitimate
-'제거가공 불가' symbols that correctly carry no Ra value?
-"""
 import os
 import win32com.client as w32
 
@@ -41,3 +38,4 @@ for i in range(1, coll.Count + 1):
 d.Close(True)
 print("\nIf the blank ones are kBasicSurfaceTexture / material-removal-prohibited,"
       "\nthen a missing Ra value is CORRECT and must not be flagged.")
+

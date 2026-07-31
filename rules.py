@@ -1,45 +1,28 @@
-"""Check rules. Pure functions over the `facts` dict -- no COM, no I/O.
-
-Keeping this COM-free is what makes it testable (see test_rules.py) and what
-lets the same rules run against .ipt/.idw facts and .dwg facts alike.
-
-ponytail: thresholds are module constants, not config. Lift to YAML when a
-second site needs different numbers.
-"""
 import re
 
-# --- thresholds (edit these) ------------------------------------------------
-MIN_HOLE_DIA_MM = 3.0        # holes below this are hard to drill
-MIN_WALL_MM = 2.0            # walls thinner than this are fragile / hard to mould
-MAX_WALL_GAP_MM = 15.0       # face pairs farther apart than this aren't "walls"
+MIN_HOLE_DIA_MM = 3.0
+MIN_WALL_MM = 2.0
+MAX_WALL_GAP_MM = 15.0
 GENERIC_MATERIALS = {"일반", "generic", "기본값", "default", ""}
-REQUIRED_PROPS = {           # iProperty -> human label
+REQUIRED_PROPS = {
     "part_number": "품번 (Part Number)",
     "material": "재질 (Material)",
     "designer": "설계자 (Designer)",
 }
-# Fit-tolerance-free dimensions this size or larger really ought to be toleranced.
-TOL_REQUIRED_ABOVE_MM = 0.0  # 0 = every dimension needs an explicit tolerance
-ISO2768_M = [                # (upper bound mm, permissible deviation +/- mm)
+TOL_REQUIRED_ABOVE_MM = 0.0
+ISO2768_M = [
     (3, 0.10), (6, 0.10), (30, 0.20), (120, 0.30),
     (400, 0.50), (1000, 0.80), (2000, 1.20), (4000, 2.00),
 ]
 
 SEV_ERROR, SEV_WARN, SEV_INFO = "error", "warn", "info"
 
-# Drafters routinely type the tolerance straight into the dimension text or use
-# an ISO fit code, and in both cases Inventor still reports ToleranceType ==
-# kDefaultTolerance. Reading only the Tolerance object flagged 22 of 30
-# perfectly-toleranced dimensions on a real drawing, so the text is checked too.
 _ISO_FIT = re.compile(r"\d\s*[A-Za-z]{1,2}\d{1,2}(?![\d.])")
 _EXPLICIT_TOL = re.compile(r"±|\^|[+\-]\s*\d*\.\d+|\bmin\b|\bmax\b", re.I)
-# Things a tolerance does not belong on: fillet/round radii, thread callouts,
-# reference dimensions in parentheses, and chamfer notes.
 _NO_TOL_NEEDED = re.compile(r"^\s*[(\[]|^\s*R[\d.]|^\s*M\s*\d|×|\bTYP\b|\bREF\b", re.I)
 
 
 def text_tolerance_state(text):
-    """'explicit' | 'fit' | 'not_applicable' | 'plain' for a dimension label."""
     t = (text or "").strip()
     if not t:
         return "plain"
@@ -53,12 +36,11 @@ def text_tolerance_state(text):
 
 
 def iso2768_m(value_mm):
-    """Permissible general deviation for a nominal size under ISO 2768-m."""
     v = abs(value_mm)
     for upper, dev in ISO2768_M:
         if v <= upper:
             return dev
-    return None  # outside the table
+    return None
 
 
 def _f(code, severity, title, detail, fix, where=None):
@@ -66,10 +48,7 @@ def _f(code, severity, title, detail, fix, where=None):
             "detail": detail, "fix": fix, "where": where or {}}
 
 
-# --- part rules -------------------------------------------------------------
-
 def check_sketches(facts):
-    """Under-constrained sketches: geometry that can still move."""
     out = []
     for sk in facts.get("sketches", []):
         if sk["status"] == "under":
@@ -132,9 +111,6 @@ def check_walls(facts):
 
 
 def check_material(facts):
-    # Only a part owns a material. A drawing reads it from the model it
-    # references and an assembly is just a collection of parts, so checking
-    # either one flags every file of that type.
     if facts.get("kind") != "part":
         return []
     props = facts.get("props", {})
@@ -156,7 +132,7 @@ def check_props(facts):
     props = facts.get("props", {})
     for key, label in REQUIRED_PROPS.items():
         if key == "material":
-            continue  # handled by check_material with a better message
+            continue
         if not (props.get(key) or "").strip():
             out.append(_f(
                 "PROP_MISSING", SEV_WARN,
@@ -167,10 +143,7 @@ def check_props(facts):
     return out
 
 
-# --- drawing rules ----------------------------------------------------------
-
 def check_dimension_tolerances(facts):
-    """Dimensions carrying no explicit tolerance, plus tolerances that are wrong."""
     out = []
     for sheet in facts.get("sheets", []):
         for d in sheet.get("dims", []):
@@ -178,7 +151,7 @@ def check_dimension_tolerances(facts):
             if d["tol_type"] == "none":
                 state = text_tolerance_state(d.get("text"))
                 if state in ("explicit", "fit", "not_applicable"):
-                    continue  # toleranced in the text, or a radius/thread/ref dim
+                    continue
                 if abs(val) >= TOL_REQUIRED_ABOVE_MM:
                     dev = iso2768_m(val)
                     out.append(_f(
@@ -247,8 +220,6 @@ def check_drawing_meta(facts):
     if facts.get("first_angle") is None and facts.get("kind") == "drawing":
         pass
     for sheet in facts.get("sheets", []):
-        # A custom Border often carries the title information instead of a
-        # TitleBlock object; requiring the object flags perfectly good drawings.
         if not sheet.get("title_block") and not sheet.get("border"):
             out.append(_f(
                 "TITLEBLOCK_MISSING", SEV_ERROR,
@@ -280,7 +251,6 @@ def check_drawing_meta(facts):
 
 
 def check_references(facts):
-    """A drawing whose models can't be resolved cannot be checked for geometry."""
     if facts.get("refs_ok", True):
         return []
     return [_f(
@@ -337,12 +307,11 @@ _SEV_ORDER = {SEV_ERROR: 0, SEV_WARN: 1, SEV_INFO: 2}
 
 
 def run(facts):
-    """Every rule against one facts dict. Returns (findings, summary)."""
     findings = []
     for chk in ALL_CHECKS:
         try:
             findings += chk(facts)
-        except Exception as e:  # a broken rule must not sink the whole report
+        except Exception as e:
             findings.append(_f("RULE_ERROR", SEV_INFO, f"검사 규칙 오류: {chk.__name__}",
                                f"{type(e).__name__}: {e}", "개발자에게 알려주세요."))
     findings.sort(key=lambda f: _SEV_ORDER.get(f["severity"], 9))
@@ -353,3 +322,4 @@ def run(facts):
         "info": sum(1 for f in findings if f["severity"] == SEV_INFO),
     }
     return findings, summary
+

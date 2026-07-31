@@ -1,9 +1,3 @@
-"""Probe 5: the last three unknowns.
-
-1. dimension -> geometry attachment (cast GeneralDimension to its subtype?)
-2. thin-wall primitive: planar face pairs + plane geometry
-3. interference: AnalyzeInterference on a real assembly
-"""
 import os
 import glob
 import win32com.client as w32
@@ -105,7 +99,6 @@ for a in range(len(planes)):
         dot = sum(x * y for x, y in zip(na, nb))
         if dot > -0.99:
             continue
-        # distance from plane a to point on plane b, along a's normal
         d = abs(sum(n * (q - p) for n, p, q in zip(na, pa, pb)))
         print(f"     faces {ia}<->{ib}  dot={dot:.4f}  gap={d * 10:.3f} mm")
         found += 1
@@ -156,3 +149,4 @@ if asm_path:
 drw.Close(True)
 part.Close(True)
 print("\nDONE")
+

@@ -1,6 +1,3 @@
-"""Probe 13: are the odd-diameter "missing dimension" circles actually tangent
-or silhouette edges rather than real holes? DrawingCurve.EdgeType should say.
-"""
 import win32com.client as w32
 
 PATHS = [r"C:\Users\smile\OneDrive\Desktop\캐드 파일\모델링, 도면\2V벨트풀리.idw",
@@ -15,7 +12,6 @@ D = w32.constants.__dict__.get("__dicts__", [{}])[0]
 
 def nm(v):
     return ([k for k, x in D.items() if x == v] or [str(v)])[0]
-
 
 
 for path in PATHS:
@@ -47,3 +43,4 @@ for path in PATHS:
         print(f"  {dia!s:>8}  {et:32} {pct:28} {n}")
     d.Close(True)
 print("\nDONE")
+

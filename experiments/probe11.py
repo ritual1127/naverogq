@@ -1,6 +1,3 @@
-"""Probe 11: why did a real production drawing report 0 dimensions and no
-title block? Fixtures lied; interrogate the real file.
-"""
 import sys
 import win32com.client as w32
 
@@ -67,7 +64,6 @@ for si in range(1, doc.Sheets.Count + 1):
             n = "ERR"
         print(f"     view {vi} {v.Name!r} scale={v.Scale} type={nm(v.ViewType)} curves={n}")
 
-    # sample a few real dimensions and see if my reader would cope
     print("  -- first 6 dims in detail --")
     shown = 0
     for i in range(1, dd.Count + 1):
@@ -95,3 +91,4 @@ for si in range(1, doc.Sheets.Count + 1):
 
 doc.Close(True)
 print("\nDONE")
+

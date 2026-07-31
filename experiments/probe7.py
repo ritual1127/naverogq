@@ -1,10 +1,3 @@
-"""Probe 7 (final): confirm the three paths rules.py will be built on.
-
-1. AnalyzeInterference with the CORRECT signature (arg2 is a second collection,
-   not a bool -- that was the type-mismatch-on-argument-2 error).
-2. dim.Type as the subtype discriminator + Intent -> DrawingCurve.
-3. Edge.AssociativeID as the identity key for matching dims to curves.
-"""
 import os
 import win32com.client as w32
 
@@ -57,13 +50,11 @@ drw = w32.CastTo(app.Documents.Open(IDW, False), "DrawingDocument")
 sheet = drw.Sheets.Item(1)
 view = sheet.DrawingViews.Item(1)
 
-# duck-typed intent reader: try the interfaces that own Intent members
 SINGLE = ("DiameterGeneralDimension", "RadiusGeneralDimension")
 MULTI = ("LinearGeneralDimension", "AngularGeneralDimension")
 
 
 def intents_of(dim):
-    """Every GeometryIntent a dimension attaches to, whatever its subtype."""
     for iface in SINGLE:
         try:
             return [w32.CastTo(dim, iface).Intent]
@@ -119,7 +110,6 @@ for dc in view.DrawingCurves:
         circles.append((aid, r_cm, (cp.X, cp.Y)))
     except Exception:
         pass
-# dedupe: the same model edge can project to several curves
 uniq = {}
 for aid, r, cp in circles:
     uniq.setdefault(aid, (r, cp))
@@ -137,3 +127,4 @@ print("  TitleBlock:", sheet.TitleBlock.Name if sheet.TitleBlock else None)
 print("  view.Scale:", view.Scale, " ScaleString:", view.ScaleString)
 drw.Close(True)
 print("\nDONE")
+

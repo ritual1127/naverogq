@@ -1,7 +1,3 @@
-"""Probe 9: (a) DWG -> DXF using Inventor itself (so no ODA install needed),
-(b) find circles hiding inside blocks, (c) what tolerance data does a DXF
-DIMENSION actually carry?
-"""
 import os
 import win32com.client as w32
 import ezdxf
@@ -30,7 +26,6 @@ msp = doc.modelspace()
 
 
 def walk(layout, depth=0, seen=None):
-    """Yield every entity, flattening INSERTs into their real geometry."""
     seen = seen if seen is not None else set()
     for e in layout:
         t = e.dxftype()
@@ -84,7 +79,6 @@ for name in doc.layout_names():
                                           for a in ("dimtol", "dimtp", "dimtm", "dimlim")})
         except Exception as ex:
             print("     dimstyle lookup failed:", ex)
-        # the resolved override view ezdxf offers
         try:
             ovr = e.override()
             print("     resolved override dimtol/dimtp/dimtm:",
@@ -92,3 +86,4 @@ for name in doc.layout_names():
         except Exception as ex:
             print("     override() failed:", type(ex).__name__, ex)
 print("\nDONE")
+

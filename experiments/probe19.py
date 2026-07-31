@@ -1,7 +1,3 @@
-"""Probe 19: decode the OLE property streams -- do real iProperties come out
-without Inventor? This is the last piece needed to say exactly what a cloud
-deployment could and could not check.
-"""
 import os
 import olefile
 
@@ -38,3 +34,4 @@ print("readable without Inventor : iProperties (part number, material, author...
 print("NOT readable              : sketches/constraints, dimensions, tolerances,")
 print("                            holes, walls, interference -- all of that is")
 print("                            in the proprietary RSeStorage streams.")
+

@@ -1,3 +1,14 @@
+---
+title: 도면 자가진단기
+emoji: 📐
+colorFrom: gray
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # 도면 자가진단기 — 전산응용기계제도기능사 자동 채점
 
 > CAD 도면을 올리면 **실제 채점 기준으로 점수를 매기고, 어디가 왜 틀렸는지와 고치는 방법**을 알려줍니다.
@@ -7,9 +18,11 @@
 
 | | |
 |---|---|
-| 라이브 데모 | (배포 URL) |
-| 피치 영상 | (유튜브 링크) |
+| 라이브 데모 | (배포 URL — [배포 절차](docs/deploy.md)) |
+| 피치 영상 | (유튜브 링크 — [대본](docs/pitch.md)) |
 | 라이선스 | [MIT](LICENSE) · 서드파티 고지 [NOTICE.md](NOTICE.md) |
+
+> 맨 위 설정 블록은 Hugging Face Spaces 배포용입니다. 나머지 문서와 무관합니다.
 
 ---
 
@@ -150,12 +163,20 @@ python main.py                      # http://127.0.0.1:8000
 
 ```bash
 docker build -t cad-checker .
-docker run -p 8000:8000 -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY cad-checker
+docker run -p 7860:7860 -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY cad-checker
 ```
 
-Railway·Render·Fly.io처럼 `$PORT`를 주입하는 호스트에 그대로 올라갑니다.
-이 이미지는 Inventor가 없으므로 **`.dxf`/`.dwg`만** 분석하지만, 채점 규칙 23개와
-투상도 AI 판정은 로컬 버전과 완전히 동일하게 적용됩니다.
+`$PORT`를 주입하는 호스트에 그대로 올라갑니다. 실제 배포는 Hugging Face
+Spaces를 씁니다 — 절차는 [docs/deploy.md](docs/deploy.md).
+
+이 이미지에는 Inventor가 없으므로 **`.dxf`/`.dwg`만** 분석합니다. 채점 규칙
+23개와 투상도 AI 판정은 로컬 버전과 완전히 동일하게 적용됩니다.
+
+| | 로컬 (Windows + Inventor) | 공개 데모 |
+|---|---|---|
+| `.dxf` / `.dwg` | ✅ | ✅ |
+| `.ipt` / `.idw` / `.iam` | ✅ | ❌ Inventor는 리눅스에서 동작하지 않음 |
+| 채점 규칙 23개 · 투상도 AI 판정 | ✅ | ✅ 동일 |
 
 **CAD 파일이 없어도 눌러볼 수 있습니다** — `GET /api/samples`가 저장소에 포함된
 예제 도면 목록을 주고, `POST /api/analyze-sample`이 그중 하나를 채점합니다.

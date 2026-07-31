@@ -1,9 +1,3 @@
-"""Probe 18: how much of an .ipt/.idw can be read with NO Inventor at all?
-
-This decides what a cloud deployment could honestly offer. .ipt/.iam/.idw are
-OLE compound documents, so the iProperty streams may be readable cross-platform
-even though the geometry (Autodesk ShapeManager) is not.
-"""
 import os
 import olefile
 
@@ -46,7 +40,6 @@ for path in FILES:
     except Exception as e:
         print("     get_metadata failed:", type(e).__name__, e)
 
-    # Inventor keeps its Design Tracking Properties in a custom property set
     print("\n  -- searching every stream for readable iProperty text --")
     hits = 0
     for s in streams:
@@ -64,3 +57,4 @@ for path in FILES:
 
 print("\n\nCONCLUSION: geometry lives in proprietary streams; only what prints "
       "above is reachable without Inventor.")
+

@@ -1,8 +1,3 @@
-"""Probe 4: dir() the objects whose members I guessed wrong. Stop guessing, read.
-
-Biggest open question: how does a GeneralDimension tell us WHICH curve it
-attaches to? That is the whole basis of the missing-dimension check.
-"""
 import os
 import win32com.client as w32
 
@@ -50,7 +45,6 @@ for attr in ("AttachedEntity", "AttachedEntities", "Geometry", "IntentOne", "Int
     except Exception as e:
         print(f"  --   dim.{attr}: {type(e).__name__}")
 
-# The documented route for "what does this dim measure"
 for meth in ("GetAttachedGeometry", "GetDimensionedGeometry", "GetGeometryIntents"):
     try:
         r = getattr(dim, meth)()
@@ -70,7 +64,6 @@ print("\n=== circle radius: which route works? ===")
 for dcx in view.DrawingCurves:
     if dcx.CurveType == C.kCircleCurve:
         members(dcx.Evaluator2D, "Evaluator2D")
-        # route A: the underlying model edge's geometry
         for a in ("Radius", "Center"):
             try:
                 g = dcx.ModelGeometry.Geometry
@@ -79,7 +72,6 @@ for dcx in view.DrawingCurves:
                 print(f"  OK   modelEdge.Geometry.{a} = {v!r}")
             except Exception as e:
                 print(f"  --   modelEdge.Geometry.{a}: {type(e).__name__}: {str(e)[:80]}")
-        # route B: geometric distance centre->start
         try:
             cp, sp = dcx.CenterPoint, dcx.StartPoint
             r = ((cp.X - sp.X) ** 2 + (cp.Y - sp.Y) ** 2) ** 0.5
@@ -110,3 +102,4 @@ for m in sorted(x for x in dir(sheet) if not x.startswith("_") and x[0].isupper(
 drw.Close(True)
 model.Close(True)
 print("\nDONE")
+

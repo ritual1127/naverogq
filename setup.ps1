@@ -1,8 +1,3 @@
-# 새 PC에 이 도구를 설치합니다.
-#   PowerShell에서:  .\setup.ps1
-#
-# 하는 일: 환경 점검 -> 가상환경 생성 -> 패키지 설치 -> 자체 테스트 실행.
-# 서버 실행은 run.ps1, 부팅 시 자동 시작은 install-autostart.ps1 을 쓰세요.
 
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -25,7 +20,6 @@ if (-not $py) {
 $pyver = (& python --version 2>&1)
 Ok "$pyver  ($($py.Source))"
 
-# Inventor 유무에 따라 지원 형식이 달라집니다
 $inv = $false
 foreach ($k in @("HKLM:\SOFTWARE\Autodesk\Inventor", "Registry::HKEY_CLASSES_ROOT\Inventor.Application")) {
     if (Test-Path $k) { $inv = $true; break }

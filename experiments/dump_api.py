@@ -1,4 +1,3 @@
-"""Dump the live API shape so the design prompt documents what really exists."""
 import json
 import urllib.request
 
@@ -54,3 +53,4 @@ print("\n=== marker_index ===")
 print(json.dumps(r["marker_index"], ensure_ascii=False, indent=2))
 print("\n=== all finding codes seen ===")
 print(sorted({f["code"] for f in r["findings"]}))
+

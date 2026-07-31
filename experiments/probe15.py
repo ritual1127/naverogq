@@ -1,8 +1,3 @@
-"""Probe 15: can Inventor read a REAL AutoCAD .dwg well enough to skip ODA?
-
-Earlier I only tested a DWG that Inventor itself had written, which is not the
-same thing. These are files the user actually uploaded.
-"""
 import os
 import sys
 import win32com.client as w32
@@ -61,7 +56,6 @@ for path in DWGS:
             except Exception as e:
                 print(f"    {coll}: {type(e).__name__}")
 
-        # AutoCAD content lives in blocks -- look inside one
         try:
             blocks = sh.AutoCADBlocks
             for bi in range(1, min(blocks.Count, 3) + 1):
@@ -72,7 +66,6 @@ for path in DWGS:
         except Exception as e:
             print("    AutoCADBlocks walk failed:", type(e).__name__, str(e)[:100])
 
-        # sheet sketches often hold imported 2D geometry
         try:
             for ki in range(1, min(sh.Sketches.Count, 2) + 1):
                 sk = sh.Sketches.Item(ki)
@@ -103,3 +96,4 @@ for path in DWGS:
     doc.Close(True)
 
 print("\nDONE")
+
