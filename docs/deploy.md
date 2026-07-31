@@ -1,52 +1,54 @@
-# 무료 배포
+# 배포 — Render
 
-심사위원이 접속할 상시 URL을 **신용카드 없이** 만드는 절차입니다.
+심사위원이 접속할 상시 URL을 만드는 절차입니다. 저장소에 [`render.yaml`](../render.yaml)이
+들어 있어서 Render가 설정을 알아서 읽습니다.
 
-## 왜 Koyeb인가
+## 왜 Render인가
 
 | 후보 | 카드 | 잠듦 | 판단 |
 |---|---|---|---|
-| **Koyeb** | ❌ 불필요 | ❌ 항상 켜짐 | **채택** — 512MB / 0.1 vCPU / 2GB, 서비스 1개 무료 |
-| Render 무료 | ✅ 필요 | ✅ 15분 후 정지 (기상 30~50초) | 카드도 필요하고 콜드스타트가 심사에 위험 |
-| Hugging Face Spaces | ✅ PRO $9/월 | — | **Docker Space는 유료 전용**입니다. 무료는 Static만 |
-| Cloudflare Containers | ✅ Workers $5/월 | — | 유료 플랜 전용 |
-| Fly.io | ✅ 필요 | — | 무료 할당량에도 카드 등록 |
+| **Render 무료** | 등록만 (과금 없음) | 15분 후 정지 | **채택** — Dockerfile 그대로, 설정 파일 지원 |
+| Koyeb | ❌ 불필요 | ❌ 항상 켜짐 | UI에서 막힘. 조직당 무료 1개 제한 |
+| Hugging Face | PRO $9/월 | — | Docker Space는 유료 전용 |
+| Cloudflare Containers | Workers $5/월 | — | 유료 전용 |
 
-Koyeb의 0.1 vCPU는 느립니다. 도면 한 장 분석에 **10~30초** 걸릴 수 있습니다.
-첫 화면에 "분석에 시간이 걸립니다" 안내가 이미 들어가 있으니 그대로 두세요.
+Render 무료는 **15분간 요청이 없으면 잠들고, 다시 깨는 데 30~50초** 걸립니다.
+심사 기간 대응은 아래 "잠들지 않게 하기"를 보세요.
 
-## 1. Koyeb 배포
+## 1. 배포
 
-1. https://www.koyeb.com 에서 **GitHub 계정으로 가입** (카드 불필요)
-2. **Create Service** → **GitHub** → `ritual1127/naverogq` 선택
-3. 설정:
-   - **Builder**: `Dockerfile` (자동 감지됩니다)
-   - **Instance**: `Free` (eco-nano)
-   - **Port**: `7860`
-   - **Region**: `Frankfurt` 또는 `Washington`
-4. **Environment variables** 에 키 추가:
-   - `GOOGLE_API_KEY` = AI Studio에서 받은 키
-5. **Deploy** → 첫 빌드 5~10분
+1. https://dashboard.render.com 에서 **GitHub 계정으로 가입**
+2. **New +** → **Blueprint** 선택
+   (`Web Service`가 아니라 **Blueprint** 입니다. `render.yaml`을 읽는 쪽)
+3. `ritual1127/naverogq` 저장소 연결 → **Connect**
+4. Render가 `render.yaml`을 읽고 서비스를 보여줍니다.
+   `GOOGLE_API_KEY` 값을 물어보면 발급받은 키를 붙여넣으세요.
+5. **Apply** → 첫 빌드 5~10분
 
-배포되면 `https://<서비스명>-<계정명>.koyeb.app` 이 나옵니다.
+빌드 로그는 서비스 페이지의 **Logs** 탭에서 실시간으로 보입니다.
+
+배포되면 `https://cad-checker-<임의문자>.onrender.com` 이 나옵니다.
 **이게 신청서에 적을 프로덕트 URL입니다.**
 
-## 2. Google AI Studio 키 받기 (무료)
+> Blueprint가 안 보이면 수동으로도 됩니다:
+> **New +** → **Web Service** → 저장소 선택 → **Language**를 `Docker`로 →
+> **Instance Type** `Free` → **Environment Variables**에 `GOOGLE_API_KEY` 추가.
+> 포트는 Render가 `PORT`를 주입하고 Dockerfile이 그걸 받으므로 건드릴 것 없습니다.
 
-1. https://aistudio.google.com/apikey 접속 (구글 계정만 있으면 됨)
-2. **Create API key** → 복사
-3. 카드 등록·결제 없음. 무료 티어에 분당·일일 요청 제한이 있지만
-   심사용 데모에는 충분합니다.
+## 2. Google AI Studio 키 (무료)
+
+1. https://aistudio.google.com/apikey → **Create API key**
+2. 구글 계정만 있으면 되고 결제 등록 없습니다.
 
 > ⚠️ **무료 티어는 입력 데이터가 모델 개선에 쓰일 수 있습니다.**
 > 도면 표제란에는 설계자 이름이 들어갑니다. 심사·시연용 도면은 표제란의
-> 개인정보를 지우고 쓰거나, 유료 티어로 올리세요. 대회 심사기준의
-> 윤리·안전 항목(P/F)에 개인정보가 포함되어 있습니다.
+> 개인정보를 지우고 쓰세요. 대회 심사기준의 윤리·안전 항목(P/F)에
+> 개인정보가 포함되어 있습니다.
 
 ## 3. 확인
 
 ```
-https://<서비스명>-<계정명>.koyeb.app/api/health
+https://<주소>.onrender.com/api/health
 ```
 
 ```json
@@ -60,9 +62,23 @@ https://<서비스명>-<계정명>.koyeb.app/api/health
 그다음 첫 화면에서 **예제 도면 버튼**을 눌러 채점이 도는지 보세요.
 심사위원이 밟을 경로와 똑같습니다.
 
+## 4. 잠들지 않게 하기
+
+무료 인스턴스는 15분 유휴 후 정지합니다. 심사위원이 처음 눌렀을 때 40초쯤
+빈 화면이 뜨면 고장으로 오해합니다. 무료 모니터링 서비스로 주기적으로
+깨워 두세요.
+
+1. https://cron-job.org 또는 https://uptimerobot.com 가입 (무료)
+2. 모니터 추가:
+   - URL: `https://<주소>.onrender.com/api/health`
+   - 간격: **10분**
+
+`/api/health`는 CAD를 열지 않고 즉시 응답하므로 이 핑은 거의 공짜입니다.
+**심사 기간(8월 1~17일) 동안만 켜두면 됩니다.**
+
 ## 이 서버가 하는 것과 못 하는 것
 
-| | 로컬 (Windows + Inventor) | Koyeb |
+| | 로컬 (Windows + Inventor) | Render |
 |---|---|---|
 | `.dxf` / `.dwg` | ✅ | ✅ |
 | `.ipt` / `.idw` / `.iam` | ✅ | ❌ Inventor는 리눅스에서 안 돔 |
@@ -75,12 +91,12 @@ README에 이 표가 그대로 들어가 있습니다. 심사위원이 `.idw`를
 
 ## 피치 영상은 로컬로 찍으세요
 
-Koyeb 배포본은 Inventor가 없어서 `.idw`를 못 엽니다. 영상에서 보여줄
+Render 배포본은 Inventor가 없어서 `.idw`를 못 엽니다. 영상에서 보여줄
 **오작 판정·3D 뷰어·화살표**는 전부 Inventor 경로라, 촬영은 로컬에서 하세요:
 
 ```powershell
 .\run.ps1            # http://127.0.0.1:8000
-.\run.ps1 -Tunnel    # 임시 공개 주소까지 (trycloudflare, 재시작하면 주소 바뀜)
+.\run.ps1 -Tunnel    # 임시 공개 주소까지 (재시작하면 주소가 바뀝니다)
 ```
 
 ## 자주 막히는 곳
@@ -89,10 +105,14 @@ Koyeb 배포본은 Inventor가 없어서 `.idw`를 못 엽니다. 영상에서 �
 데비안 저장소 이름이 바뀐 경우입니다. Dockerfile의 `apt-get install` 줄을
 지워도 됩니다. DWG만 못 읽고 DXF 채점은 그대로 동작합니다.
 
-**메모리 부족으로 빌드가 죽음**
-Koyeb 무료는 512MB입니다. `requirements.txt`에서 `anthropic` 줄을 지우세요.
+**빌드가 메모리 부족으로 죽음**
+무료는 512MB입니다. `requirements.txt`에서 `anthropic` 줄을 지우세요.
 Gemini만 쓸 거면 필요 없습니다.
 
 **`ai: false` 로 뜸**
 환경변수 이름을 확인하세요. `GOOGLE_API_KEY` 또는 `GEMINI_API_KEY` 입니다.
 Claude를 쓰려면 `ANTHROPIC_API_KEY`를 넣고 `AI_PROVIDER=claude`를 추가합니다.
+
+**첫 분석이 유난히 느림**
+잠들어 있다 깨는 중입니다(30~50초) + 무료 인스턴스는 CPU가 약합니다.
+도면 한 장에 10~30초는 정상입니다.
