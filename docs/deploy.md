@@ -101,9 +101,14 @@ Render 배포본은 Inventor가 없어서 `.idw`를 못 엽니다. 영상에서 
 
 ## 자주 막히는 곳
 
-**빌드 실패 — `libredwg-tools` 를 못 찾음**
-데비안 저장소 이름이 바뀐 경우입니다. Dockerfile의 `apt-get install` 줄을
-지워도 됩니다. DWG만 못 읽고 DXF 채점은 그대로 동작합니다.
+**DWG를 못 엽니다**
+의도된 동작입니다. LibreDWG(`libredwg-tools`)가 Debian trixie 저장소에 없어서
+이미지에 넣지 않았습니다. 배포본은 **DXF만** 읽습니다.
+
+그래서 `samples/`에 DWG 원본을 미리 DXF로 변환해 넣어 뒀고(`sample_autocad.dxf`),
+`/api/samples`는 서버가 실제로 열 수 있는 것만 목록에 내보냅니다 — 심사위원이
+눌렀다가 실패하는 일이 없습니다. DWG 업로드가 필요하면 로컬(`.\run.ps1`)을
+쓰세요. 거기엔 `vendor/libredwg`가 있습니다.
 
 **빌드가 메모리 부족으로 죽음**
 무료는 512MB입니다. `requirements.txt`에서 `anthropic` 줄을 지우세요.

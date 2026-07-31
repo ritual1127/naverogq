@@ -19,8 +19,9 @@ SAMPLES = os.path.join(HERE, "samples")
 MAX_BYTES = 200 * 1024 * 1024
 
 SAMPLE_NOTES = {
-    "sample_plate.dxf": "평판 부품도 (DXF) — Inventor 없이도 분석됩니다",
-    "sample_075em07z.dwg": "AutoCAD 도면 (DWG) — LibreDWG로 변환 후 분석",
+    "sample_plate.dxf": "평판 부품도 — 투상도가 1개뿐이라 감점이 나옵니다",
+    "sample_autocad.dxf": "AutoCAD 실도면 — 오작(실격) 판정이 나오는 예제",
+    "sample_075em07z.dwg": "위 도면의 DWG 원본 — LibreDWG가 있어야 열립니다",
     "연습도면.idw": "Inventor 도면 — Inventor가 설치된 서버에서만",
 }
 
@@ -68,8 +69,12 @@ def health(request: Request):
 
 @app.get("/api/samples")
 def samples():
+    import dwg
     import inventor
-    usable = check.SUPPORTED if inventor.is_available() else sorted(check.DXF_EXT)
+    inv = inventor.is_available()
+    usable = set(check.SUPPORTED) if inv else set(check.DXF_EXT)
+    if not (inv or dwg.find_libredwg() or dwg.find_oda()):
+        usable.discard(".dwg")
     if not os.path.isdir(SAMPLES):
         return {"samples": []}
     out = []
