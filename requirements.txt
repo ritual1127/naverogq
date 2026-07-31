@@ -4,3 +4,8 @@ ezdxf==1.4.4
 fastapi==0.141.1
 uvicorn==0.52.0
 python-multipart==0.0.32
+
+# 투상도 30점 AI 판정용. 이 둘이 없거나 ANTHROPIC_API_KEY가 없으면 ai_review는
+# 조용히 물러나고, 투상도 항목은 '사람이 확인'으로 남는다 (나머지 채점은 그대로).
+anthropic==0.120.2
+pymupdf==1.28.0

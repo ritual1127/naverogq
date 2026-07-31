@@ -12,12 +12,14 @@ DXF_EXT = {".dxf", ".dwg"}
 SUPPORTED = sorted(INVENTOR_EXT | DXF_EXT)
 
 
-def analyze(path, dxf_out=None, stl_out=None, mode="exam", enabled=None):
+def analyze(path, dxf_out=None, stl_out=None, mode="exam", enabled=None,
+            use_ai=True):
     """(facts, findings, summary) for one CAD file.
 
     mode="exam"    전산응용기계제도기능사 채점기준 (도면일 때만; 그 외는 일반 검사)
     mode="general" 일반 설계 품질 검사
     enabled        켤 검사 id 집합. None이면 전체.
+    use_ai         투상도 30점 비전 판정 사용 여부. 키가 없으면 어차피 건너뛴다.
     """
     ext = os.path.splitext(path)[1].lower()
     if ext in INVENTOR_EXT:
@@ -39,8 +41,12 @@ def analyze(path, dxf_out=None, stl_out=None, mode="exam", enabled=None):
     # 채점기준은 도면에만 적용된다. 부품/조립 파일은 시험 채점 대상이 아니므로
     # 일반 검사로 돌린다.
     if mode == "exam" and facts.get("kind") in ("drawing", "dwg"):
+        import ai_review
         import exam
-        findings, scorecard = exam.grade(facts, enabled)
+        # 투상도 배열 30점은 규칙으로 풀리지 않는다. 비전 판정이 가능하면 그
+        # 항목만 맡기고, 불가능하면 None이 돌아와 '사람이 확인'으로 남는다.
+        projection = ai_review.judge(facts) if use_ai else None
+        findings, scorecard = exam.grade(facts, enabled, projection)
         facts["scorecard"] = scorecard
         return facts, findings, scorecard["summary"]
 

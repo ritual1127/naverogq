@@ -53,6 +53,7 @@ def index():
 
 @app.get("/api/health")
 def health(request: Request):
+    import ai_review
     import dwg
     import exam
     import inventor
@@ -60,6 +61,8 @@ def health(request: Request):
     return {"ok": True,
             "supported": check.SUPPORTED if inv else sorted(check.DXF_EXT),
             "inventor": inv,
+            "ai": ai_review.is_available(),
+            "ai_model": ai_review.MODEL,
             "local": _is_local(request),
             "dwg_converter": bool(dwg.find_libredwg()) or bool(dwg.find_oda()),
             "oda": dwg.find_oda(),

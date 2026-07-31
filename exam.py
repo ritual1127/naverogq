@@ -75,6 +75,7 @@ CHECKS = [
     ("EX_NO_CENTERLINE", "중심선·중심마크 없음", "PROJECTION_LAYOUT", True),
     ("EX_VIEW_NO_LABEL", "상세도·단면도에 문자 표기 없음", "PROJECTION_LAYOUT", True),
     ("EX_VIEW_NO_SCALE", "척도 다른 뷰에 척도 표기 없음", "PROJECTION_LAYOUT", True),
+    ("AI_PROJECTION", "투상도 선택·배열 AI 판정 (30점)", "PROJECTION_LAYOUT", True),
 ]
 DEFAULT_ENABLED = {cid for cid, _, _, on in CHECKS if on}
 ALL_CHECK_IDS = {cid for cid, _, _, _ in CHECKS}
@@ -371,8 +372,13 @@ def check_catalog():
             for cid, label, grp, on in CHECKS]
 
 
-def grade(facts, enabled=None):
-    """(findings, scorecard). enabled=None 이면 전체 검사."""
+def grade(facts, enabled=None, ai_projection=None):
+    """(findings, scorecard). enabled=None 이면 전체 검사.
+
+    ai_projection은 ai_review.judge()의 결과. 있으면 '투상도 선택과 배열'(30점)이
+    'review'(사람이 확인)에서 실제 점수로 바뀐다. None이면 이 모듈은 AI가 없던
+    때와 완전히 동일하게 동작한다.
+    """
     on = ALL_CHECK_IDS if enabled is None else (set(enabled) & ALL_CHECK_IDS)
 
     findings = []
@@ -383,22 +389,30 @@ def grade(facts, enabled=None):
             findings.append(_f("EX_RULE_ERROR", SEV_INFO,
                                f"검사 오류: {fn.__name__}", f"{type(e).__name__}: {e}",
                                "개발자에게 알려주세요."))
+    if ai_projection:
+        findings += ai_projection["findings"]
     # 꺼진 검사는 결과에서도, 감점에서도 빠진다
     findings = [f for f in findings
                 if f["code"] in on or f["code"] == "EX_RULE_ERROR"]
 
+    # AI 판정 findings가 deduct를 들고 오므로, 투상도 항목도 다른 항목과 똑같이
+    # '감점 합계'로 계산된다. 점수 계산 경로가 하나 더 생기지 않는다.
+    ai_scored = bool(ai_projection) and "AI_PROJECTION" in on
+
     items, got, mx_total = [], 0, 0
     for code, label, mx, mode in RUBRIC:
-        if mode == "review":
+        if mode == "review" and not (ai_scored and code == "PROJECTION_LAYOUT"):
             items.append({"code": code, "label": label, "max": mx,
                           "score": None, "mode": "review"})
             continue
+        if mode == "review":
+            mode = "ai"     # 규칙이 아니라 AI가 채운 항목임을 UI가 구분하도록
         lost = sum(f["deduct"] for f in findings if f.get("item") == code)
         score = max(0, mx - lost)
         got += score
         mx_total += mx
         items.append({"code": code, "label": label, "max": mx,
-                      "score": score, "mode": "auto"})
+                      "score": score, "mode": mode})
 
     fails = [f for f in findings if f["severity"] == SEV_FAIL]
     findings.sort(key=lambda f: _ORDER.get(f["severity"], 9))
@@ -408,6 +422,8 @@ def grade(facts, enabled=None):
         "auto_score": got, "auto_max": mx_total,
         "percent": round(got / mx_total * 100, 1) if mx_total else 0.0,
         "review_points": sum(i["max"] for i in items if i["mode"] == "review"),
+        "ai_verdict": ai_projection["verdict"] if ai_scored else None,
+        "ai_model": ai_projection["model"] if ai_scored else None,
         "items": items,
         "disqualified": bool(fails),
         "disqualifiers": [f["title"] for f in fails],
