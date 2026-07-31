@@ -54,7 +54,7 @@ def health(request: Request):
     import inventor
     inv = inventor.is_available()
     return {"ok": True,
-            "supported": check.SUPPORTED if inv else sorted(check.DXF_EXT),
+            "supported": sorted(_openable()),
             "inventor": inv,
             "ai": ai_review.is_available(),
             "ai_provider": ai_review.provider(),
@@ -67,14 +67,18 @@ def health(request: Request):
                      "third_angle": exam.REQUIRED_THIRD_ANGLE}}
 
 
-@app.get("/api/samples")
-def samples():
+def _openable():
     import dwg
     import inventor
-    inv = inventor.is_available()
-    usable = set(check.SUPPORTED) if inv else set(check.DXF_EXT)
-    if not (inv or dwg.find_libredwg() or dwg.find_oda()):
-        usable.discard(".dwg")
+    exts = set(check.SUPPORTED) if inventor.is_available() else set(check.DXF_EXT)
+    if not dwg.has_dwg_support():
+        exts.discard(".dwg")
+    return exts
+
+
+@app.get("/api/samples")
+def samples():
+    usable = _openable()
     if not os.path.isdir(SAMPLES):
         return {"samples": []}
     out = []
@@ -138,9 +142,14 @@ def _enabled(src):
 def analyze(file: UploadFile = File(...), checks: str = Form(None)):
     name = os.path.basename(file.filename or "upload")
     ext = os.path.splitext(name)[1].lower()
-    if ext not in check.SUPPORTED and ext != ".zip":
+    openable = _openable()
+    if ext not in openable and ext != ".zip":
+        extra = ""
+        if ext == ".dwg":
+            extra = (" 이 서버에는 DWG 변환기가 없습니다. CAD에서 "
+                     "'다른 이름으로 저장 > DXF'로 내보낸 뒤 올리세요.")
         raise HTTPException(400, f"지원하지 않는 형식입니다: {ext or '(확장자 없음)'}. "
-                                 f"지원: {', '.join(check.SUPPORTED)}, .zip")
+                                 f"지원: {', '.join(sorted(openable))}, .zip.{extra}")
 
     job = uuid.uuid4().hex[:12]
     workdir = os.path.join(UPLOADS, job)

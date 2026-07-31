@@ -89,6 +89,11 @@ def dwg_via_inventor(dwg_path, out_dxf):
     return os.path.exists(out_dxf) and dxf_has_content(out_dxf)
 
 
+def has_dwg_support():
+    import inventor
+    return bool(find_libredwg() or find_oda() or inventor.is_available())
+
+
 def dwg_to_dxf(dwg_path):
     work = tempfile.mkdtemp(prefix="dwg_conv_")
     for fn in (dwg_via_libredwg, dwg_via_inventor):
@@ -101,6 +106,12 @@ def dwg_to_dxf(dwg_path):
 
     exe = find_oda()
     if not exe:
+        if not has_dwg_support():
+            raise RuntimeError(
+                "이 서버는 DWG를 열 수 없습니다. DWG를 DXF로 바꿔 주는 변환기가 "
+                "설치되어 있지 않습니다. CAD에서 '다른 이름으로 저장 > DXF'로 "
+                "내보낸 뒤 올리시면 그대로 채점됩니다."
+            )
         raise RuntimeError(
             "이 DWG를 읽지 못했습니다. 파일이 손상되었거나 지원하지 않는 버전일 수 "
             "있습니다. AutoCAD에서 DXF로 저장한 뒤 올리면 대부분 해결됩니다."
