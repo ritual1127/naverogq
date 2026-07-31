@@ -73,8 +73,10 @@ def dxf_has_content(path):
 
 
 def dwg_via_inventor(dwg_path, out_dxf):
-    import win32com.client as w32
     import inventor as inv
+    if not inv.is_available():
+        return False
+    import win32com.client as w32
     with inv._LOCK:
         inv._com_init()
         app = inv._get_app()
@@ -97,6 +99,20 @@ def find_cloudconvert():
     return os.environ.get("CLOUDCONVERT_API_KEY") or None
 
 
+def _cc_check(resp, what):
+    if resp.ok:
+        return resp
+    body = ""
+    try:
+        j = resp.json()
+        body = j.get("message") or j.get("error") or ""
+        if j.get("errors"):
+            body += " " + str(j["errors"])
+    except Exception:
+        body = (resp.text or "")[:200]
+    raise RuntimeError(f"{what} HTTP {resp.status_code} {body}".strip())
+
+
 def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
     key = find_cloudconvert()
     if not key:
@@ -106,21 +122,27 @@ def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
     import requests
 
     head = {"Authorization": "Bearer " + key}
-    job = requests.post(f"{CLOUDCONVERT_API}/jobs", headers=head, timeout=60,
-                        json={"tasks": {
-                            "up": {"operation": "import/upload"},
-                            "conv": {"operation": "convert", "input": "up",
-                                     "input_format": "dwg",
-                                     "output_format": "dxf"},
-                            "exp": {"operation": "export/url",
-                                    "input": "conv"}}})
-    job.raise_for_status()
+    job = _cc_check(
+        requests.post(f"{CLOUDCONVERT_API}/jobs", headers=head, timeout=60,
+                      json={"tasks": {
+                          "up": {"operation": "import/upload"},
+                          "conv": {"operation": "convert", "input": "up",
+                                   "input_format": "dwg",
+                                   "output_format": "dxf"},
+                          "exp": {"operation": "export/url",
+                                  "input": "conv"}}}),
+        "작업 생성")
     data = job.json()["data"]
-    form = next(t for t in data["tasks"] if t["name"] == "up")["result"]["form"]
+    up = next((t for t in data["tasks"] if t["name"] == "up"), None)
+    form = (up or {}).get("result", {}) or {}
+    form = form.get("form")
+    if not form:
+        raise RuntimeError("업로드 주소를 받지 못했습니다 "
+                           f"(업로드 작업 상태: {(up or {}).get('status')})")
 
     with open(dwg_path, "rb") as fh:
-        requests.post(form["url"], data=form["parameters"],
-                      files={"file": fh}, timeout=timeout).raise_for_status()
+        _cc_check(requests.post(form["url"], data=form["parameters"],
+                                files={"file": fh}, timeout=timeout), "파일 업로드")
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -161,17 +183,26 @@ def has_dwg_support():
     return dwg_converter_name() is not None
 
 
+SHORT_NAME = {"dwg_via_libredwg": "LibreDWG",
+              "dwg_via_inventor": "Inventor",
+              "dwg_via_cloudconvert": "CloudConvert"}
+
+
 def dwg_to_dxf(dwg_path):
     work = tempfile.mkdtemp(prefix="dwg_conv_")
+    tried = []
     for fn in (dwg_via_libredwg, dwg_via_inventor, dwg_via_cloudconvert):
+        label = SHORT_NAME.get(fn.__name__, fn.__name__)
         out = os.path.join(work, f"{fn.__name__}.dxf")
         try:
             if fn(dwg_path, out):
-                print(f"[dwg] {fn.__name__}: 변환 성공", flush=True)
+                print(f"[dwg] {label}: 변환 성공", flush=True)
                 return out
-            print(f"[dwg] {fn.__name__}: 변환 실패 (내용 없음)", flush=True)
+            print(f"[dwg] {label}: 사용 불가 또는 빈 결과", flush=True)
         except Exception as e:
-            print(f"[dwg] {fn.__name__}: {type(e).__name__}: {e}", flush=True)
+            reason = f"{label}: {e}".strip()
+            tried.append(reason)
+            print(f"[dwg] {reason}", flush=True)
             traceback.print_exc()
             continue
 
@@ -183,9 +214,10 @@ def dwg_to_dxf(dwg_path):
                 "설치되어 있지 않습니다. CAD에서 '다른 이름으로 저장 > DXF'로 "
                 "내보낸 뒤 올리시면 그대로 채점됩니다."
             )
+        detail = (" 변환기가 남긴 사유 — " + " | ".join(tried)) if tried else ""
         raise RuntimeError(
-            "이 DWG를 읽지 못했습니다. 파일이 손상되었거나 지원하지 않는 버전일 수 "
-            "있습니다. AutoCAD에서 DXF로 저장한 뒤 올리면 대부분 해결됩니다."
+            "이 DWG를 변환하지 못했습니다. CAD에서 '다른 이름으로 저장 > DXF'로 "
+            "내보낸 뒤 올리시면 그대로 채점됩니다." + detail
         )
     src = tempfile.mkdtemp(prefix="oda_in_")
     dst = tempfile.mkdtemp(prefix="oda_out_")
