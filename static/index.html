@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventor 도면 검사기</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --line:#2a2f3a;
+    --fg:#e6e9ef; --dim:#9aa3b2;
+    --err:#ff5d5d; --warn:#ffb84d; --info:#5aa9ff; --ok:#4ade80;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:14px/1.55 "Segoe UI","Malgun Gothic",system-ui,sans-serif}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
+    align-items:baseline;gap:14px;flex-wrap:wrap}
+  h1{font-size:17px;margin:0;font-weight:650}
+  header .sub{color:var(--dim);font-size:12.5px}
+  main{padding:22px;max-width:1600px;margin:0 auto}
+
+  #drop{border:1.5px dashed var(--line);border-radius:12px;padding:38px 20px;
+    text-align:center;cursor:pointer;transition:.15s;background:var(--panel)}
+  #drop:hover,#drop.over{border-color:var(--info);background:var(--panel2)}
+  #drop h2{margin:0 0 6px;font-size:15px;font-weight:600}
+  #drop p{margin:0;color:var(--dim);font-size:12.5px}
+  input[type=file]{display:none}
+
+  .pathbar{margin-top:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:13px 16px}
+  .pathbar label{display:block;font-size:13px;font-weight:600;margin-bottom:9px}
+  .pathbar label span{font-weight:400;color:var(--dim);font-size:12px;
+    margin-left:8px}
+  .pf{display:flex;gap:8px}
+  .pf input{flex:1;min-width:0;background:var(--bg);color:var(--fg);
+    border:1px solid var(--line);border-radius:8px;padding:8px 11px;
+    font:12.5px/1.4 ui-monospace,Consolas,monospace}
+  .pf input:focus{outline:none;border-color:var(--info)}
+  .pf .go{background:var(--info);color:#0c1017;border:0;border-radius:8px;
+    padding:8px 18px;font-size:13px;font-weight:650;cursor:pointer;flex:none}
+  .pf .go:hover{filter:brightness(1.1)}
+
+  .warnbar{margin-top:12px;padding:11px 15px;border-radius:10px;font-size:12.5px;
+    background:rgba(255,184,77,.1);border:1px solid rgba(255,184,77,.35);
+    color:var(--fg)}
+  .warnbar b{color:var(--warn)}
+
+  .picker{margin-top:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:0 16px}
+  .picker summary{cursor:pointer;padding:13px 0;font-size:13px;font-weight:600;
+    list-style:none;display:flex;align-items:center;gap:9px}
+  .picker summary::-webkit-details-marker{display:none}
+  .picker summary::before{content:"▸";color:var(--dim);transition:.15s}
+  .picker[open] summary::before{transform:rotate(90deg)}
+  .picker summary span{color:var(--dim);font-weight:400;font-size:12.5px;
+    margin-left:auto}
+  .pk-tools{display:flex;gap:7px;padding-bottom:11px}
+  .pk-grp{border-top:1px solid var(--line);padding:11px 0}
+  .pk-grp h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--dim)}
+  .pk-grp.dq h4{color:var(--err)}
+  .pk-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
+    gap:5px 16px}
+  .pk-items label{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;
+    cursor:pointer;padding:3px 0}
+  .pk-items input{margin:2px 0 0;accent-color:var(--info);cursor:pointer;flex:none}
+  .pk-items label.off{color:var(--dim);opacity:.6}
+
+  #status{margin-top:14px;color:var(--dim);font-size:13px;min-height:20px}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);
+    border-top-color:var(--info);border-radius:50%;animation:s .8s linear infinite;
+    vertical-align:-2px;margin-right:7px}
+  @keyframes s{to{transform:rotate(360deg)}}
+
+  #out{display:none;margin-top:20px}
+  .meta{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin-bottom:16px}
+  .meta .row1{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    margin-bottom:12px}
+  .fname{font-size:16px;font-weight:650}
+  .badge{font-size:11.5px;padding:2px 9px;border-radius:20px;
+    border:1px solid var(--line);color:var(--dim);background:var(--panel2)}
+  .counts{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .cnt{font-size:12.5px;padding:3px 11px;border-radius:20px;font-weight:600}
+  .cnt.e{background:rgba(255,93,93,.14);color:var(--err)}
+  .cnt.w{background:rgba(255,184,77,.14);color:var(--warn)}
+  .cnt.i{background:rgba(90,169,255,.14);color:var(--info)}
+  .cnt.k{background:rgba(74,222,128,.14);color:var(--ok)}
+  .props{display:flex;gap:22px;flex-wrap:wrap;font-size:13px}
+  .props span b{color:var(--dim);font-weight:500;margin-right:6px;font-size:12.5px}
+  .props .empty{color:var(--err)}
+
+  .scorecard{margin-bottom:16px;padding:16px 18px}
+  .sc-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .sc-title{font-size:14.5px;font-weight:650}
+  .sc-sub{color:var(--dim);font-size:12.5px;margin-top:3px}
+  .sc-big{margin-left:auto;font-size:26px;font-weight:700;letter-spacing:-.5px}
+  .sc-big small{font-size:13px;color:var(--dim);font-weight:500}
+  .dq{margin-top:13px;padding:11px 13px;border-radius:9px;
+    background:rgba(255,93,93,.12);border:1px solid rgba(255,93,93,.4)}
+  .dq b{color:var(--err);display:block;margin-bottom:5px;font-size:13px}
+  .dq ul{margin:0;padding-left:19px;font-size:12.5px;color:var(--fg)}
+  .bars{margin-top:15px;display:grid;gap:8px}
+  .bar{display:grid;grid-template-columns:150px 1fr 62px;gap:11px;
+    align-items:center;font-size:12.5px}
+  .bar .lb{color:var(--dim)}
+  .bar .tr{background:var(--panel2);border-radius:5px;height:9px;overflow:hidden}
+  .bar .fl{height:100%;border-radius:5px;background:var(--ok);transition:width .4s}
+  .bar .fl.mid{background:var(--warn)} .bar .fl.low{background:var(--err)}
+  .bar .vl{text-align:right;font-family:ui-monospace,monospace;font-size:12px}
+  .bar.review .tr{background:repeating-linear-gradient(45deg,
+    var(--panel2),var(--panel2) 5px,var(--line) 5px,var(--line) 10px)}
+  .bar.review .vl{color:var(--info)}
+  .sc-note{margin-top:14px;font-size:11.5px;color:var(--dim);line-height:1.6}
+  .sc-note b{color:var(--fg)}
+  .f.fail .dot{background:var(--err);box-shadow:0 0 0 3px rgba(255,93,93,.25)}
+  .f.fail .ttl{color:var(--err)}
+  .cnt.f{background:var(--err);color:#0f1115}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);
+    gap:16px;align-items:start}
+  @media(max-width:1080px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden}
+  .card > h3{margin:0;padding:12px 16px;font-size:13px;font-weight:600;
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .card > h3 .tools{margin-left:auto;display:flex;gap:6px}
+  button.t{background:var(--panel2);color:var(--fg);border:1px solid var(--line);
+    border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer}
+  button.t:hover{border-color:var(--info)}
+
+  #viewwrap{overflow:auto;max-height:74vh;background:#212830;padding:8px}
+  #viewwrap svg{display:block;width:100%;height:auto;transform-origin:0 0}
+  .note{padding:10px 16px;font-size:12.5px;color:var(--warn);
+    background:rgba(255,184,77,.07);border-bottom:1px solid var(--line)}
+
+  #modelcard{margin-top:16px}
+  #modelwrap{position:relative;background:#15181e;height:min(62vh,540px)}
+  #cv{display:block;width:100%;height:100%;cursor:grab}
+  #cv:active{cursor:grabbing}
+  #mstatus{position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;color:var(--dim);font-size:13px;pointer-events:none;
+    text-align:center;padding:20px}
+
+  #list{max-height:74vh;overflow:auto}
+  .f{padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+  .f:last-child{border-bottom:none}
+  .f:hover{background:var(--panel2)}
+  .f .t{display:flex;gap:9px;align-items:flex-start}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;margin-top:7px}
+  .f.error .dot{background:var(--err)} .f.warn .dot{background:var(--warn)}
+  .f.info .dot{background:var(--info)}
+  .f .ttl{font-weight:600;font-size:13.5px}
+  .f .num{flex:none;min-width:19px;height:19px;border-radius:50%;
+    background:var(--err);color:#0f1115;font-size:11.5px;font-weight:700;
+    display:grid;place-items:center;margin-top:1px}
+  .f .code{font-size:10.5px;color:var(--dim);font-family:ui-monospace,monospace;
+    border:1px solid var(--line);padding:0 5px;border-radius:4px;margin-left:auto;
+    flex:none}
+  .f .body{display:none;margin:9px 0 0 16px;font-size:12.5px;color:var(--dim)}
+  .f.open .body{display:block}
+  .f .fix{margin-top:8px;padding:9px 11px;background:var(--panel2);
+    border-left:2px solid var(--ok);border-radius:0 7px 7px 0;color:var(--fg)}
+  .f .fix b{color:var(--ok);font-size:11.5px;display:block;margin-bottom:3px}
+  .none{padding:30px;text-align:center;color:var(--ok)}
+  .stats{display:flex;flex-wrap:wrap;gap:0;font-size:12.5px}
+  .stats div{padding:9px 16px;border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line)}
+  .stats b{color:var(--dim);font-weight:500;margin-right:7px}
+  .err{color:var(--err)}
+</style>
+</head>
+<body>
+<header>
+  <h1>기계제도 도면 검사기</h1>
+  <span class="sub">전산응용기계제도기능사 채점기준 자가진단 ·
+    오작 판정 · 치수/공차/표면거칠기/기하공차</span>
+  <span class="sub" id="cap" style="margin-left:auto"></span>
+</header>
+
+<main>
+  <div id="drop">
+    <h2>CAD 파일을 여기에 놓거나 클릭해서 선택</h2>
+    <p id="exts">.ipt · .idw · .iam · .dxf · .dwg · .zip</p>
+    <input type="file" id="file">
+  </div>
+
+  <div class="pathbar">
+    <label for="path">로컬 경로로 분석 <span>도면(.idw)은 이 방법을 쓰세요 —
+      모델 참조가 유지되어 형상 검사까지 됩니다</span></label>
+    <div class="pf">
+      <input type="text" id="path" spellcheck="false"
+             placeholder="C:\Users\...\모델링, 도면\3축.idw">
+      <button class="go" id="pathgo">분석</button>
+    </div>
+  </div>
+  <details class="picker" id="picker">
+    <summary>검사 항목 선택 <span id="pickcount"></span></summary>
+    <div class="pk-tools">
+      <button class="t" data-all="1">전체 켜기</button>
+      <button class="t" data-all="0">전체 끄기</button>
+      <button class="t" data-all="d">기본값</button>
+    </div>
+    <div id="pickbody"></div>
+  </details>
+
+  <div id="status"></div>
+
+  <div id="out">
+    <div class="card scorecard" id="scorecard" style="display:none">
+      <div class="sc-head">
+        <div>
+          <div class="sc-title">전산응용기계제도기능사 채점기준 자가진단</div>
+          <div class="sc-sub" id="scsub"></div>
+        </div>
+        <div class="sc-big" id="scbig"></div>
+      </div>
+      <div id="dqbox" class="dq" style="display:none"></div>
+      <div class="bars" id="bars"></div>
+      <div class="sc-note">공식 채점이 아닙니다. 기호·값의 유무와 규격 적합성만
+        자동으로 확인하며, 배점이 가장 큰 <b>투상도 선택과 배열(30점)</b>은
+        사람이 직접 봐야 판단됩니다.</div>
+    </div>
+
+    <div class="meta">
+      <div class="row1">
+        <span class="fname" id="fname"></span>
+        <span class="badge" id="kind"></span>
+        <span class="badge" id="std" style="display:none"></span>
+        <div class="counts" id="counts"></div>
+      </div>
+      <div class="props" id="props"></div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card" id="viewcard" style="display:none">
+          <h3>도면 <span class="badge" id="mkbadge" style="display:none"></span>
+            <div class="tools">
+              <button class="t" data-z="0.8">축소</button>
+              <button class="t" data-z="1.25">확대</button>
+              <button class="t" data-z="0">맞춤</button>
+            </div>
+          </h3>
+          <div class="note" id="svgnote" style="display:none"></div>
+          <div id="viewwrap"></div>
+        </div>
+
+        <div class="card" id="modelcard" style="display:none">
+          <h3>3D 미리보기
+            <span class="badge">드래그: 회전 · 휠: 확대 · 우클릭드래그: 이동</span>
+            <div class="tools">
+              <button class="t" id="mreset">초기화</button>
+              <button class="t" id="mwire">와이어프레임</button>
+            </div>
+          </h3>
+          <div id="modelwrap"><canvas id="cv"></canvas>
+            <div id="mstatus">불러오는 중…</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>파일 정보</h3>
+          <div class="stats" id="stats"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>검사 결과 <span class="badge" id="fcount"></span>
+          <div class="tools"><button class="t" id="toggleall">전체 펼치기</button></div>
+        </h3>
+        <div id="list"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/static/vendor/three.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const drop = $('#drop'), fileIn = $('#file');
+
+let CHECKS = [], enabled = new Set();
+const LS = 'cadcheck.enabled';
+
+fetch('/api/health').then(r=>r.json()).then(h=>{
+  $('#exts').textContent = h.supported.join(' · ');
+  if (h.inventor === false){
+    const d = $('#drop');
+    d.insertAdjacentHTML('afterend', `<div class="warnbar">이 서버에는 Inventor가
+      없어 <b>DWG / DXF만 분석</b>됩니다. .ipt · .idw · .iam 을 검사하려면
+      Inventor가 설치된 PC에서 서버를 실행하세요.</div>`);
+  }
+  $('#cap').textContent = (h.dwg_converter
+    ? 'DWG 변환기 내장 (LibreDWG)'
+    : 'DWG 변환기 없음 — DXF로 저장해서 올리세요')
+    + (h.exam ? ` · 기준 ${h.exam.sheet} / ${h.exam.third_angle?'제3각법':'제1각법'}` : '');
+  // 경로 입력은 이 PC에서만 동작한다 (원격에서는 서버가 403으로 막음)
+  if (h.local === false){
+    const pb = document.querySelector('.pathbar');
+    if (pb) pb.innerHTML = `<label>원격 접속 중 <span>도면(.idw)은 참조가 끊기지
+      않도록 <b>모델 파일과 함께 .zip으로 압축</b>해서 올리세요. 경로 입력은
+      서버가 설치된 PC에서만 쓸 수 있습니다.</span></label>`;
+  }
+  CHECKS = h.checks || [];
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LS)); } catch(e){}
+  enabled = new Set(Array.isArray(saved) && saved.length
+    ? saved.filter(id => CHECKS.some(c => c.id === id))
+    : CHECKS.filter(c => c.default).map(c => c.id));
+  drawPicker();
+}).catch(()=>{});
+
+function drawPicker(){
+  const groups = [];
+  CHECKS.forEach(c => {
+    let g = groups.find(x => x.key === c.group);
+    if (!g) groups.push(g = {key:c.group, label:c.group_label, items:[]});
+    g.items.push(c);
+  });
+  $('#pickbody').innerHTML = groups.map(g => `
+    <div class="pk-grp ${g.key==='오작'?'dq':''}">
+      <h4>${esc(g.label)}</h4>
+      <div class="pk-items">${g.items.map(c => `
+        <label class="${enabled.has(c.id)?'':'off'}">
+          <input type="checkbox" data-id="${c.id}" ${enabled.has(c.id)?'checked':''}>
+          <span>${esc(c.label)}</span>
+        </label>`).join('')}</div>
+    </div>`).join('');
+  $('#pickbody').querySelectorAll('input[data-id]').forEach(cb => {
+    cb.onchange = () => {
+      cb.checked ? enabled.add(cb.dataset.id) : enabled.delete(cb.dataset.id);
+      cb.closest('label').classList.toggle('off', !cb.checked);
+      persist();
+    };
+  });
+  persist();
+}
+function persist(){
+  localStorage.setItem(LS, JSON.stringify([...enabled]));
+  $('#pickcount').textContent = `${enabled.size} / ${CHECKS.length} 켜짐`;
+}
+document.querySelectorAll('.pk-tools button[data-all]').forEach(b => b.onclick = e => {
+  e.preventDefault();
+  const m = b.dataset.all;
+  enabled = new Set(m === '1' ? CHECKS.map(c=>c.id)
+                  : m === '0' ? []
+                  : CHECKS.filter(c=>c.default).map(c=>c.id));
+  drawPicker();
+});
+
+drop.onclick = () => fileIn.click();
+fileIn.onchange = () => fileIn.files[0] && send(fileIn.files[0]);
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{
+  ev.preventDefault(); drop.classList.add('over');}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{
+  ev.preventDefault(); drop.classList.remove('over');}));
+drop.addEventListener('drop', ev => {
+  const f = ev.dataTransfer.files[0]; if (f) send(f);
+});
+
+function busy(label){
+  $('#status').innerHTML = `<span class="spin"></span>${esc(label)} 분석 중… `
+    + `Inventor에서 파일을 여는 중이라 수십 초 걸릴 수 있습니다.`;
+  $('#out').style.display = 'none';
+}
+const done = r => r.json()
+  .catch(() => ({detail:'서버 응답을 읽을 수 없습니다'}))
+  .then(j => { if (!r.ok) throw new Error(j.detail || r.status); return j; });
+const fail = e => { $('#status').innerHTML =
+  `<span class="err">실패: ${esc(e.message)}</span>`; };
+
+const picked = () => [...enabled];
+
+function send(f){
+  busy(f.name);
+  const fd = new FormData();
+  fd.append('file', f);
+  fd.append('checks', picked().join(','));
+  fetch('/api/analyze', {method:'POST', body:fd}).then(done).then(render).catch(fail);
+}
+
+function sendPath(){
+  const p = $('#path').value.trim();
+  if (!p) { $('#path').focus(); return; }
+  busy(p.split(/[\\/]/).pop());
+  fetch('/api/analyze-path', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({path:p, checks:picked()})})
+    .then(done).then(render).catch(fail);
+}
+$('#pathgo').onclick = sendPath;
+$('#path').addEventListener('keydown', e => { if (e.key === 'Enter') sendPath(); });
+
+const KIND = {part:'부품 (.ipt)', drawing:'도면 (.idw)', assembly:'조립품 (.iam)',
+              dwg:'2D 도면 (.dxf/.dwg)', unsupported:'미지원'};
+const SEVKO = {error:'오류', warn:'경고', info:'정보'};
+const esc = s => String(s??'').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function render(d){
+  $('#status').textContent = '';
+  $('#out').style.display = 'block';
+  $('#fname').textContent = d.file;
+  $('#kind').textContent = KIND[d.kind] || d.kind;
+  if (d.standard){
+    $('#std').style.display='';
+    $('#std').textContent = d.standard +
+      (d.first_angle===null ? '' : ' · ' + (d.first_angle?'제1각법':'제3각법'));
+  } else $('#std').style.display='none';
+
+  const s = d.summary;
+  $('#counts').innerHTML = s.total === 0
+    ? `<span class="cnt k">문제 없음</span>`
+    : [s.fail &&`<span class="cnt f">오작 ${s.fail}</span>`,
+       s.error&&`<span class="cnt e">오류 ${s.error}</span>`,
+       s.warn &&`<span class="cnt w">경고 ${s.warn}</span>`,
+       s.info &&`<span class="cnt i">정보 ${s.info}</span>`]
+      .filter(Boolean).join('');
+
+  renderScorecard(d.scorecard);
+
+  const p = d.props || {};
+  const field = (label, v) => v
+    ? `<span><b>${label}</b>${esc(v)}</span>`
+    : `<span><b>${label}</b><span class="empty">비어있음</span></span>`;
+  $('#props').innerHTML = [
+    field('품번', p.part_number),
+    (d.kind==='part'||d.kind==='assembly') ? field('재질', p.material) : '',
+    field('설계자', p.designer),
+    p.revision ? field('리비전', p.revision) : '',
+    p.description ? field('설명', p.description) : '',
+  ].filter(Boolean).join('');
+
+  // stats
+  const L = {sketches:'스케치', sketches_under:'미구속 스케치', holes:'홀',
+    walls:'얇은벽 후보', interferences:'간섭', sick_features:'오류 피처',
+    sheets:'시트', dims:'치수', undimensioned:'치수없는 원', views:'뷰',
+    title_block:'표제란/양식', mass_kg:'질량(kg)', volume_cm3:'체적(cm³)',
+    feature_count:'피처', occurrence_count:'부품수', interference_error:'간섭분석오류'};
+  $('#stats').innerHTML = Object.entries(d.stats||{})
+    .filter(([k])=>k!=='kind' && L[k])
+    .map(([k,v])=>{
+      if (typeof v === 'number' && !Number.isInteger(v)) v = v.toFixed(3);
+      return `<div><b>${L[k]}</b>${esc(v)}</div>`;
+    }).join('') || '<div style="color:var(--dim)">-</div>';
+
+  // 2D drawing viewer
+  const vc = $('#viewcard');
+  if (d.svg){
+    vc.style.display='';
+    $('#viewwrap').innerHTML = d.svg;
+    zoom(0);
+    const mb = $('#mkbadge');
+    if (d.markers_placed && d.marker_index && d.marker_index.length){
+      mb.style.display='';
+      mb.textContent = `빨간 화살표 ${d.marker_index.length}개 = 치수 없는 원`;
+    } else mb.style.display='none';
+    if (d.svg_note){ $('#svgnote').style.display=''; $('#svgnote').textContent = d.svg_note; }
+    else $('#svgnote').style.display='none';
+  } else vc.style.display='none';
+
+  // 3D preview
+  show3D(d.model_url);
+  if (!d.model_url && d.model_error){
+    $('#modelcard').style.display='';
+    $('#mstatus').textContent = '3D 미리보기 실패: ' + d.model_error;
+  }
+
+  // findings
+  $('#fcount').textContent = `${s.total}건`;
+  const list = $('#list');
+  if (!d.findings.length){
+    list.innerHTML = `<div class="none">검사 항목에서 문제를 찾지 못했습니다.</div>`;
+    return;
+  }
+  // DIM_MISSING findings are emitted in the same order the arrows are drawn,
+  // so the n-th of them is arrow n on the drawing.
+  let arrow = 0;
+  list.innerHTML = d.findings.map(f => {
+    const n = (f.code === 'DIM_MISSING' && d.markers_placed) ? ++arrow : null;
+    return `
+    <div class="f ${f.severity}">
+      <div class="t">
+        <span class="dot"></span>
+        ${n ? `<span class="num">${n}</span>` : ''}
+        <span class="ttl">${esc(f.title)}</span>
+        <span class="code">${esc(f.code)}</span>
+      </div>
+      <div class="body">
+        <div>${esc(f.detail)}</div>
+        <div class="fix"><b>고치는 방법</b>${esc(f.fix)}</div>
+        ${where(f.where)}
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.f').forEach(el =>
+    el.onclick = () => el.classList.toggle('open'));
+}
+
+function renderScorecard(sc){
+  const card = $('#scorecard');
+  if (!sc){ card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  const pct = sc.percent;
+  $('#scbig').innerHTML = sc.disqualified
+    ? `<span style="color:var(--err)">오작</span>`
+    : `${sc.auto_score}<small>/${sc.auto_max}점</small>`;
+  const off = sc.total_checks - sc.enabled_count;
+  $('#scsub').textContent = (sc.disqualified
+    ? '실격 사유가 있어 점수와 무관하게 불합격 처리됩니다.'
+    : `자동 판정 ${pct}% · 사람이 확인해야 하는 배점 ${sc.review_points}점 별도`)
+    + (off ? ` · 검사 ${off}개 꺼둠` : '');
+
+  const dq = $('#dqbox');
+  if (sc.disqualified){
+    dq.style.display = '';
+    dq.innerHTML = `<b>오작(실격) 사유 ${sc.disqualifiers.length}건</b><ul>`
+      + sc.disqualifiers.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+  } else dq.style.display = 'none';
+
+  $('#bars').innerHTML = sc.items.map(it => {
+    if (it.score === null){
+      return `<div class="bar review"><span class="lb">${esc(it.label)}</span>
+        <span class="tr"></span><span class="vl">${it.max}점 확인</span></div>`;
+    }
+    const r = it.max ? it.score / it.max : 0;
+    const cls = r >= 0.8 ? '' : (r >= 0.5 ? 'mid' : 'low');
+    return `<div class="bar"><span class="lb">${esc(it.label)}</span>
+      <span class="tr"><span class="fl ${cls}" style="width:${r*100}%"></span></span>
+      <span class="vl">${it.score}/${it.max}</span></div>`;
+  }).join('');
+}
+
+function where(w){
+  if(!w) return '';
+  const bits = [];
+  if (w.sheet) bits.push(`시트 ${esc(w.sheet)}`);
+  if (w.sketch) bits.push(`스케치 ${esc(w.sketch)}`);
+  if (w.feature) bits.push(`피처 ${esc(w.feature)}`);
+  if (w.view) bits.push(`뷰 ${esc(w.view)}`);
+  if (w.faces) bits.push(`면 ${w.faces.join(' ↔ ')}`);
+  if (w.x_cm != null) bits.push(`위치 (${(+w.x_cm).toFixed(1)}, ${(+w.y_cm).toFixed(1)}) cm`);
+  if (w.count > 1) bits.push(`${w.count}곳`);
+  return bits.length ? `<div style="margin-top:7px;font-size:11.5px;opacity:.75">
+    ${bits.join(' · ')}</div>` : '';
+}
+
+/* ---------------- 3D preview ---------------- */
+/* Own STL parser + orbit: STLLoader and OrbitControls are separate files, and
+   two more vendored downloads to rotate a mesh is not worth it. */
+function parseSTL(buf){
+  const dv = new DataView(buf);
+  // An ASCII STL starts with "solid", but so can a binary one, so trust the
+  // length arithmetic instead: 84 + 50*triangles is exact for binary.
+  const isBin = buf.byteLength >= 84 &&
+                84 + dv.getUint32(80, true) * 50 === buf.byteLength;
+  if (!isBin) return parseAsciiSTL(new TextDecoder().decode(buf));
+  const n = dv.getUint32(80, true);
+  const pos = new Float32Array(n * 9), nor = new Float32Array(n * 9);
+  for (let i = 0, o = 84; i < n; i++, o += 50){
+    const nx = dv.getFloat32(o, true), ny = dv.getFloat32(o+4, true),
+          nz = dv.getFloat32(o+8, true);
+    for (let v = 0; v < 3; v++){
+      const p = o + 12 + v*12, k = i*9 + v*3;
+      pos[k]   = dv.getFloat32(p, true);
+      pos[k+1] = dv.getFloat32(p+4, true);
+      pos[k+2] = dv.getFloat32(p+8, true);
+      nor[k] = nx; nor[k+1] = ny; nor[k+2] = nz;
+    }
+  }
+  return {pos, nor};
+}
+function parseAsciiSTL(txt){
+  const nums = [], re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g;
+  let m; while ((m = re.exec(txt))) nums.push(+m[1], +m[2], +m[3]);
+  return {pos: new Float32Array(nums), nor: null};
+}
+
+let M = null;   // {renderer,scene,camera,mesh,...}
+function show3D(url){
+  const card = $('#modelcard');
+  if (!url){ card.style.display = 'none'; return; }
+  card.style.display = '';
+  $('#mstatus').textContent = '불러오는 중…';
+  if (typeof THREE === 'undefined'){
+    $('#mstatus').textContent = '3D 라이브러리를 불러올 수 없습니다 (static/vendor/three.min.js).';
+    return;
+  }
+  fetch(url).then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(buf => {
+      const {pos, nor} = parseSTL(buf);
+      if (!pos.length) throw new Error('빈 메시');
+      build(pos, nor);
+      $('#mstatus').textContent = '';
+    })
+    .catch(e => { $('#mstatus').textContent = '3D 미리보기 실패: ' + e.message; });
+}
+
+function build(pos, nor){
+  const cv = $('#cv');
+  if (M) { M.renderer.dispose(); M.geo.dispose(); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (nor) geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  else geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  geo.center();
+  const rad = geo.boundingSphere.radius || 1;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x15181e);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({
+    color: 0x9fb4d0, specular: 0x223344, shininess: 22,
+    side: THREE.DoubleSide, flatShading: !nor}));
+  scene.add(mesh);
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo),
+    new THREE.LineBasicMaterial({color: 0x5aa9ff, transparent:true, opacity:.25}));
+  wire.visible = false; scene.add(wire);
+
+  scene.add(new THREE.AmbientLight(0xffffff, .55));
+  const key = new THREE.DirectionalLight(0xffffff, .85); key.position.set(1,1.4,1);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x88aaff, .35); rim.position.set(-1,-.6,-.8);
+  scene.add(rim);
+
+  const cam = new THREE.PerspectiveCamera(45, 1, rad/100, rad*100);
+  const renderer = new THREE.WebGLRenderer({canvas: cv, antialias: true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+  M = {renderer, scene, cam, mesh, wire, geo, rad,
+       yaw: .7, pitch: -.5, dist: rad*3.2, panx: 0, pany: 0};
+  resize3D(); draw3D();
+}
+
+function draw3D(){
+  if (!M) return;
+  const {cam, rad} = M;
+  const cp = Math.cos(M.pitch), sp = Math.sin(M.pitch);
+  cam.position.set(M.dist*cp*Math.sin(M.yaw), M.dist*sp, M.dist*cp*Math.cos(M.yaw));
+  cam.position.x += M.panx; cam.position.y += M.pany;
+  cam.lookAt(M.panx, M.pany, 0);
+  cam.near = Math.max(rad/100, M.dist - rad*3);
+  cam.far = M.dist + rad*4;
+  cam.updateProjectionMatrix();
+  M.renderer.render(M.scene, M.cam);
+}
+
+function resize3D(){
+  if (!M) return;
+  const cv = $('#cv'), w = cv.clientWidth || 600, h = cv.clientHeight || 400;
+  M.renderer.setSize(w, h, false);
+  M.cam.aspect = w / h; M.cam.updateProjectionMatrix();
+  draw3D();
+}
+addEventListener('resize', resize3D);
+
+(function bindOrbit(){
+  const cv = $('#cv');
+  let drag = null;
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  cv.addEventListener('pointerdown', e => {
+    if (!M) return;
+    drag = {x:e.clientX, y:e.clientY, btn:e.button};
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!drag || !M) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (drag.btn === 2){
+      M.panx -= dx * M.dist * 0.0015;
+      M.pany += dy * M.dist * 0.0015;
+    } else {
+      M.yaw += dx * 0.01;
+      M.pitch = Math.max(-1.55, Math.min(1.55, M.pitch + dy * 0.01));
+    }
+    draw3D();
+  });
+  ['pointerup','pointercancel'].forEach(t =>
+    cv.addEventListener(t, () => { drag = null; }));
+  cv.addEventListener('wheel', e => {
+    if (!M) return;
+    e.preventDefault();
+    M.dist = Math.max(M.rad*.4, Math.min(M.rad*40,
+      M.dist * (e.deltaY > 0 ? 1.12 : 1/1.12)));
+    draw3D();
+  }, {passive:false});
+  $('#mreset').onclick = () => {
+    if (!M) return;
+    Object.assign(M, {yaw:.7, pitch:-.5, dist:M.rad*3.2, panx:0, pany:0});
+    draw3D();
+  };
+  $('#mwire').onclick = () => {
+    if (!M) return;
+    M.wire.visible = !M.wire.visible;
+    draw3D();
+  };
+})();
+
+let z = 1;
+function zoom(mult){
+  const svg = $('#viewwrap svg'); if (!svg) return;
+  z = mult ? Math.min(8, Math.max(.2, z*mult)) : 1;
+  svg.style.transform = `scale(${z})`;
+  svg.style.width = (100*z) + '%';
+  svg.style.transform = '';
+}
+document.querySelectorAll('button.t[data-z]').forEach(b =>
+  b.onclick = () => zoom(parseFloat(b.dataset.z)));
+$('#toggleall').onclick = e => {
+  const items = [...document.querySelectorAll('.f')];
+  const open = items.some(i => !i.classList.contains('open'));
+  items.forEach(i => i.classList.toggle('open', open));
+  e.target.textContent = open ? '전체 접기' : '전체 펼치기';
+};
+</script>
+</body>
+</html>
