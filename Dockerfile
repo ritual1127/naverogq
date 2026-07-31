@@ -5,7 +5,7 @@ ARG LIBREDWG_VERSION=0.14
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      build-essential autoconf automake libtool curl ca-certificates \
+      build-essential autoconf automake libtool pkg-config curl ca-certificates \
       fonts-dejavu-core fonts-nanum; \
     curl -fsSL -o /tmp/libredwg.tar.gz \
       "https://github.com/LibreDWG/libredwg/releases/download/${LIBREDWG_VERSION}/libredwg-${LIBREDWG_VERSION}.tar.gz"; \
@@ -19,7 +19,7 @@ RUN set -eux; \
     dwg2dxf --version; \
     rm -rf /tmp/libredwg /tmp/libredwg.tar.gz; \
     apt-get purge -y --auto-remove \
-      build-essential autoconf automake libtool curl; \
+      build-essential autoconf automake libtool pkg-config curl; \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 app
