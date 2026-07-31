@@ -310,7 +310,7 @@ fetch('/api/health').then(r=>r.json()).then(h=>{
       Inventor가 설치된 PC에서 서버를 실행하세요.</div>`);
   }
   $('#cap').textContent = (h.dwg_converter
-    ? 'DWG 변환기 내장 (LibreDWG)'
+    ? `DWG 변환: ${h.dwg_via || '가능'}`
     : 'DWG 변환기 없음 — DXF로 저장해서 올리세요')
     + (h.exam ? ` · 기준 ${h.exam.sheet} / ${h.exam.third_angle?'제3각법':'제1각법'}` : '');
   // 경로 입력은 이 PC에서만 동작한다 (원격에서는 서버가 403으로 막음)

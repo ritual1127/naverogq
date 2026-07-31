@@ -89,14 +89,77 @@ def dwg_via_inventor(dwg_path, out_dxf):
     return os.path.exists(out_dxf) and dxf_has_content(out_dxf)
 
 
-def has_dwg_support():
+CLOUDCONVERT_API = "https://api.cloudconvert.com/v2"
+
+
+def find_cloudconvert():
+    return os.environ.get("CLOUDCONVERT_API_KEY") or None
+
+
+def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
+    key = find_cloudconvert()
+    if not key:
+        return False
+    import time
+
+    import requests
+
+    head = {"Authorization": "Bearer " + key}
+    job = requests.post(f"{CLOUDCONVERT_API}/jobs", headers=head, timeout=60,
+                        json={"tasks": {
+                            "up": {"operation": "import/upload"},
+                            "conv": {"operation": "convert", "input": "up",
+                                     "input_format": "dwg",
+                                     "output_format": "dxf"},
+                            "exp": {"operation": "export/url",
+                                    "input": "conv"}}})
+    job.raise_for_status()
+    data = job.json()["data"]
+    form = next(t for t in data["tasks"] if t["name"] == "up")["result"]["form"]
+
+    with open(dwg_path, "rb") as fh:
+        requests.post(form["url"], data=form["parameters"],
+                      files={"file": fh}, timeout=timeout).raise_for_status()
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        state = requests.get(f"{CLOUDCONVERT_API}/jobs/{data['id']}",
+                             headers=head, timeout=30).json()["data"]
+        if state["status"] == "error":
+            return False
+        if state["status"] == "finished":
+            exp = next(t for t in state["tasks"] if t["name"] == "exp")
+            url = exp["result"]["files"][0]["url"]
+            with requests.get(url, stream=True, timeout=timeout) as resp:
+                resp.raise_for_status()
+                with open(out_dxf, "wb") as out:
+                    for chunk in resp.iter_content(1 << 20):
+                        out.write(chunk)
+            return dxf_has_content(out_dxf)
+        time.sleep(2)
+    return False
+
+
+def dwg_converter_name():
     import inventor
-    return bool(find_libredwg() or find_oda() or inventor.is_available())
+    if find_libredwg():
+        return "LibreDWG"
+    if inventor.is_available():
+        return "Autodesk Inventor"
+    if find_oda():
+        return "ODA File Converter"
+    if find_cloudconvert():
+        return "CloudConvert (외부 API)"
+    return None
+
+
+def has_dwg_support():
+    return dwg_converter_name() is not None
 
 
 def dwg_to_dxf(dwg_path):
     work = tempfile.mkdtemp(prefix="dwg_conv_")
-    for fn in (dwg_via_libredwg, dwg_via_inventor):
+    for fn in (dwg_via_libredwg, dwg_via_inventor, dwg_via_cloudconvert):
         out = os.path.join(work, f"{fn.__name__}.dxf")
         try:
             if fn(dwg_path, out):
