@@ -565,7 +565,7 @@ fetch('/api/health').then(r => r.json()).then(h => {
   const w = [];
   if (!canInv || !canDwg)
     w.push(`이 서버는 <b>${esc(sup.join(' · '))}</b>만 읽습니다.
-      아래 <b>“다른 형식을 갖고 계신가요”</b>에 해결 방법이 있습니다.`);
+      아래 <b>지원 형식 안내</b>에서 호환 범위를 확인할 수 있습니다.`);
   if (h.ai === false)
     w.push('AI 판정이 꺼져 있어 <b>투상도 선택과 배열(30점)</b>은 채점되지 않고 남습니다.');
   if (h.dwg_via && /CloudConvert/.test(h.dwg_via))
