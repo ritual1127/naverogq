@@ -1,26 +1,24 @@
-FROM python:3.13-slim AS libredwg
+FROM python:3.13-slim
 
 ARG LIBREDWG_VERSION=0.14
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-      build-essential curl ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-
-RUN curl -fsSL -o /tmp/libredwg.tar.gz \
-      "https://github.com/LibreDWG/libredwg/releases/download/${LIBREDWG_VERSION}/libredwg-${LIBREDWG_VERSION}.tar.gz" \
- && mkdir -p /tmp/src \
- && tar -xzf /tmp/libredwg.tar.gz -C /tmp/src --strip-components=1 \
- && cd /tmp/src \
- && ./configure --prefix=/opt/libredwg --disable-shared --enable-static \
-      --disable-python --disable-bindings --disable-docs \
- && make -j"$(nproc)" \
- && make install-strip || make install
-
-
-FROM python:3.13-slim
-
-COPY --from=libredwg /opt/libredwg/bin/dwg2dxf /usr/local/bin/dwg2dxf
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends build-essential curl ca-certificates; \
+    ( set -eux; \
+      curl -fsSL -o /tmp/libredwg.tar.gz \
+        "https://github.com/LibreDWG/libredwg/releases/download/${LIBREDWG_VERSION}/libredwg-${LIBREDWG_VERSION}.tar.gz"; \
+      mkdir -p /tmp/libredwg; \
+      tar -xzf /tmp/libredwg.tar.gz -C /tmp/libredwg --strip-components=1; \
+      cd /tmp/libredwg; \
+      ./configure --prefix=/usr/local --disable-shared --disable-python; \
+      make -j"$(nproc)"; \
+      make install; \
+      dwg2dxf --version; \
+    ) || echo "WARNING: LibreDWG build failed. This server will read DXF only."; \
+    rm -rf /tmp/libredwg /tmp/libredwg.tar.gz; \
+    apt-get purge -y --auto-remove build-essential curl; \
+    rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 app
 USER app
