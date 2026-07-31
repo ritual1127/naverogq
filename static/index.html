@@ -1,395 +1,535 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Inventor 도면 검사기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도면 자동 채점 — 전산응용기계제도기능사</title>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --line:#2a2f3a;
-    --fg:#e6e9ef; --dim:#9aa3b2;
-    --err:#ff5d5d; --warn:#ffb84d; --info:#5aa9ff; --ok:#4ade80;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);
-    font:14px/1.55 "Segoe UI","Malgun Gothic",system-ui,sans-serif}
-  header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
-    align-items:baseline;gap:14px;flex-wrap:wrap}
-  h1{font-size:17px;margin:0;font-weight:650}
-  header .sub{color:var(--dim);font-size:12.5px}
-  main{padding:22px;max-width:1600px;margin:0 auto}
+:root{
+  --bg:#0f1419; --panel:#1a1f27; --panel2:#151a22;
+  --line:#2a2f3a; --line2:#3a3f4a;
+  --fg:#d4d4d8; --dim:#888; --dim2:#666;
+  --accent:#ffa500; --green:#90ee90; --ai:#9966ff;
+  --fail:#ff4444; --error:#ff6b35; --warn:#ffaa00; --info:#888;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;min-height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,
+  "Malgun Gothic",sans-serif;background:var(--bg);color:var(--fg);line-height:1.5}
+button{cursor:pointer;border:none;font-family:inherit;color:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hide{display:none !important}
 
-  #drop{border:1.5px dashed var(--line);border-radius:12px;padding:38px 20px;
-    text-align:center;cursor:pointer;transition:.15s;background:var(--panel)}
-  #drop:hover,#drop.over{border-color:var(--info);background:var(--panel2)}
-  #drop h2{margin:0 0 6px;font-size:15px;font-weight:600}
-  #drop p{margin:0;color:var(--dim);font-size:12.5px}
-  input[type=file]{display:none}
+.wrap{display:flex;flex-direction:column;min-height:100vh}
+.hd{padding:32px 40px 20px;border-bottom:1px solid var(--line)}
+.hd-row{display:flex;gap:16px;align-items:center;margin-bottom:10px}
+.hd h1{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.hd p{font-size:14px;color:var(--dim)}
+.hd .sub{font-size:13px;color:var(--dim2);margin-top:10px}
+.body{padding:32px 40px 56px;display:flex;flex-direction:column;gap:32px;flex:1}
 
-  .pathbar{margin-top:12px;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:13px 16px}
-  .pathbar label{display:block;font-size:13px;font-weight:600;margin-bottom:9px}
-  .pathbar label span{font-weight:400;color:var(--dim);font-size:12px;
-    margin-left:8px}
-  .pf{display:flex;gap:8px}
-  .pf input{flex:1;min-width:0;background:var(--bg);color:var(--fg);
-    border:1px solid var(--line);border-radius:8px;padding:8px 11px;
-    font:12.5px/1.4 ui-monospace,Consolas,monospace}
-  .pf input:focus{outline:none;border-color:var(--info)}
-  .pf .go{background:var(--info);color:#0c1017;border:0;border-radius:8px;
-    padding:8px 18px;font-size:13px;font-weight:650;cursor:pointer;flex:none}
-  .pf .go:hover{filter:brightness(1.1)}
+.drop{padding:38px;border:2px dashed var(--accent);border-radius:8px;
+  text-align:center;cursor:pointer;background:var(--panel);display:block;
+  transition:background .15s,border-color .15s}
+.drop:hover,.drop.over{background:#20262f}
+.drop .ico{font-size:26px;margin-bottom:10px}
+.drop .t{font-size:16px;font-weight:700;margin-bottom:4px}
+.drop .s{font-size:13px;color:var(--dim)}
 
-  .warnbar{margin-top:12px;padding:11px 15px;border-radius:10px;font-size:12.5px;
-    background:rgba(255,184,77,.1);border:1px solid rgba(255,184,77,.35);
-    color:var(--fg)}
-  .warnbar b{color:var(--warn)}
+.lab{font-size:11px;color:var(--dim);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:12px}
+.kicker{font-size:10px;color:var(--accent);text-transform:uppercase;
+  letter-spacing:2px;font-weight:700;margin-bottom:14px}
+h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
 
-  .samples{margin-top:12px;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:9px}
-  .samples-h{font-size:13px;font-weight:600}
-  .samples-h span{display:block;font-weight:400;color:var(--dim);
-    font-size:12px;margin-top:3px}
-  .sample{display:grid;grid-template-columns:1fr auto;gap:2px 12px;
-    align-items:baseline;text-align:left;width:100%;cursor:pointer;
-    padding:11px 13px;border-radius:9px;font:inherit;color:var(--fg);
-    background:var(--panel2);border:1px solid var(--line);
-    transition:border-color .12s, background .12s}
-  .sample:hover{border-color:var(--ok);background:#232833}
-  .sample b{font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
-  .sample span{grid-column:1;color:var(--dim);font-size:12px;line-height:1.45}
-  .sample em{grid-row:1;grid-column:2;font-style:normal;color:var(--dim);
-    font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;
-    font-variant-numeric:tabular-nums;white-space:nowrap}
-  @media(max-width:560px){
-    .sample{grid-template-columns:1fr}
-    .sample em{grid-row:auto;grid-column:1}
-  }
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.sample{padding:18px;border:1px solid var(--line2);border-radius:6px;
+  background:var(--panel);text-align:left;transition:border-color .15s,background .15s}
+.sample:hover{border-color:var(--accent);background:#20262f}
+.sample .n{font-size:13px;font-weight:700;margin-bottom:4px;font-family:var(--mono)}
+.sample .m{font-size:12px;color:var(--dim);margin-bottom:6px}
+.sample .d{font-size:12px;color:#aaa;line-height:1.45}
 
-  .picker{margin-top:12px;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;padding:0 16px}
-  .picker summary{cursor:pointer;padding:13px 0;font-size:13px;font-weight:600;
-    list-style:none;display:flex;align-items:center;gap:9px}
-  .picker summary::-webkit-details-marker{display:none}
-  .picker summary::before{content:"▸";color:var(--dim);transition:.15s}
-  .picker[open] summary::before{transform:rotate(90deg)}
-  .picker summary span{color:var(--dim);font-weight:400;font-size:12.5px;
-    margin-left:auto}
-  .pk-tools{display:flex;gap:7px;padding-bottom:11px}
-  .pk-grp{border-top:1px solid var(--line);padding:11px 0}
-  .pk-grp h4{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--dim)}
-  .pk-grp.dq h4{color:var(--err)}
-  .pk-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));
-    gap:5px 16px}
-  .pk-items label{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;
-    cursor:pointer;padding:3px 0}
-  .pk-items input{margin:2px 0 0;accent-color:var(--info);cursor:pointer;flex:none}
-  .pk-items label.off{color:var(--dim);opacity:.6}
+.step{display:flex;gap:18px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.step:last-child{border-bottom:0;padding-bottom:0}
+.step .no{font-size:30px;color:var(--accent);font-weight:700;width:44px;
+  text-align:center;flex-shrink:0}
+.step .t{font-size:15px;font-weight:700;margin-bottom:6px}
+.step .d{font-size:13px;color:var(--dim);line-height:1.6}
 
-  #status{margin-top:14px;color:var(--dim);font-size:13px;min-height:20px}
-  .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);
-    border-top-color:var(--info);border-radius:50%;animation:s .8s linear infinite;
-    vertical-align:-2px;margin-right:7px}
-  @keyframes s{to{transform:rotate(360deg)}}
+.rub{display:flex;justify-content:space-between;align-items:center;
+  padding:11px 12px;border-bottom:1px solid var(--panel)}
+.rub:last-child{border-bottom:0}
+.rub .n{font-size:14px}
+.rub .v{font-size:18px;font-weight:700;color:var(--accent)}
+.rub .ai{font-size:10px;background:var(--ai);color:#fff;padding:2px 6px;
+  border-radius:2px;font-weight:700;margin-left:8px;vertical-align:middle}
 
-  #out{display:none;margin-top:20px}
-  .meta{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    padding:16px 18px;margin-bottom:16px}
-  .meta .row1{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    margin-bottom:12px}
-  .fname{font-size:16px;font-weight:650}
-  .badge{font-size:11.5px;padding:2px 9px;border-radius:20px;
-    border:1px solid var(--line);color:var(--dim);background:var(--panel2)}
-  .counts{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
-  .cnt{font-size:12.5px;padding:3px 11px;border-radius:20px;font-weight:600}
-  .cnt.e{background:rgba(255,93,93,.14);color:var(--err)}
-  .cnt.w{background:rgba(255,184,77,.14);color:var(--warn)}
-  .cnt.i{background:rgba(90,169,255,.14);color:var(--info)}
-  .cnt.k{background:rgba(74,222,128,.14);color:var(--ok)}
-  .props{display:flex;gap:22px;flex-wrap:wrap;font-size:13px}
-  .props span b{color:var(--dim);font-weight:500;margin-right:6px;font-size:12.5px}
-  .props .empty{color:var(--err)}
+.dq{padding:28px;background:rgba(255,68,68,.05);border:1px solid var(--fail);
+  border-radius:8px}
+.dq h3{color:var(--fail)}
+.dq .kicker{color:var(--fail)}
+.dq p{font-size:13px;line-height:1.8;margin-bottom:18px}
+.dq .row{display:flex;gap:14px;margin-bottom:14px}
+.dq .row:last-child{margin-bottom:0}
+.dq .x{font-size:20px;color:var(--fail);font-weight:700;flex-shrink:0;line-height:1.3}
+.dq .t{font-size:14px;font-weight:700}
 
-  .scorecard{margin-bottom:16px;padding:16px 18px}
-  .sc-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  .sc-title{font-size:14.5px;font-weight:650}
-  .sc-sub{color:var(--dim);font-size:12.5px;margin-top:3px}
-  .sc-big{margin-left:auto;font-size:26px;font-weight:700;letter-spacing:-.5px}
-  .sc-big small{font-size:13px;color:var(--dim);font-weight:500}
-  .dq{margin-top:13px;padding:11px 13px;border-radius:9px;
-    background:rgba(255,93,93,.12);border:1px solid rgba(255,93,93,.4)}
-  .dq b{color:var(--err);display:block;margin-bottom:5px;font-size:13px}
-  .dq ul{margin:0;padding-left:19px;font-size:12.5px;color:var(--fg)}
-  .bars{margin-top:15px;display:grid;gap:8px}
-  .bar{display:grid;grid-template-columns:150px 1fr 62px;gap:11px;
-    align-items:center;font-size:12.5px}
-  .bar .lb{color:var(--dim)}
-  .bar .tr{background:var(--panel2);border-radius:5px;height:9px;overflow:hidden}
-  .bar .fl{height:100%;border-radius:5px;background:var(--ok);transition:width .4s}
-  .bar .fl.mid{background:var(--warn)} .bar .fl.low{background:var(--err)}
-  .bar .vl{text-align:right;font-family:ui-monospace,monospace;font-size:12px}
-  .bar.review .tr{background:repeating-linear-gradient(45deg,
-    var(--panel2),var(--panel2) 5px,var(--line) 5px,var(--line) 10px)}
-  .bar.review .vl{color:var(--info)}
-  .sc-note{margin-top:14px;font-size:11.5px;color:var(--dim);line-height:1.6}
-  .sc-note b{color:var(--fg)}
-  .f.fail .dot{background:var(--err);box-shadow:0 0 0 3px rgba(255,93,93,.25)}
-  .f.fail .ttl{color:var(--err)}
-  .cnt.f{background:var(--err);color:#0f1115}
+.picker{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.picker>summary{padding:14px 18px;cursor:pointer;font-size:13px;
+  list-style:none;display:flex;justify-content:space-between;align-items:center}
+.picker>summary::-webkit-details-marker{display:none}
+.picker .in{padding:0 18px 18px}
+.pgrp{margin-top:14px}
+.pgrp .h{font-size:11px;color:var(--accent);text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:8px}
+.pgrp label{display:flex;gap:8px;align-items:flex-start;font-size:13px;
+  padding:5px 0;cursor:pointer;color:#c2c6cf}
+.pbtns{display:flex;gap:8px;margin-top:14px}
+.pbtns button{padding:6px 12px;border:1px solid var(--line2);border-radius:4px;
+  background:var(--panel2);font-size:12px}
+.pbtns button:hover{border-color:var(--accent)}
 
-  .grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);
-    gap:16px;align-items:start}
-  @media(max-width:1080px){.grid{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    overflow:hidden}
-  .card > h3{margin:0;padding:12px 16px;font-size:13px;font-weight:600;
-    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
-  .card > h3 .tools{margin-left:auto;display:flex;gap:6px}
-  button.t{background:var(--panel2);color:var(--fg);border:1px solid var(--line);
-    border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer}
-  button.t:hover{border-color:var(--info)}
+.note{font-size:11px;color:var(--dim2);padding-top:18px;border-top:1px solid var(--line)}
+.warnbar{padding:12px 16px;border-radius:6px;font-size:13px;
+  background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.4)}
+.warnbar b{color:var(--warn)}
 
-  #viewwrap{overflow:auto;max-height:74vh;background:#212830;padding:8px}
-  #viewwrap svg{display:block;width:100%;height:auto;transform-origin:0 0}
-  .note{padding:10px 16px;font-size:12.5px;color:var(--warn);
-    background:rgba(255,184,77,.07);border-bottom:1px solid var(--line)}
+.load{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:70px 20px;text-align:center}
+.load .d{font-size:44px;margin-bottom:18px;animation:pulse 1.4s infinite;color:var(--accent)}
+.load .t{font-size:22px;font-weight:700;margin-bottom:8px}
+.load .s{font-size:13px;color:var(--dim);max-width:420px}
+.err{color:var(--fail);font-size:14px;padding:14px 16px;border-radius:6px;
+  background:rgba(255,68,68,.08);border:1px solid var(--fail);
+  white-space:pre-wrap;word-break:break-word}
 
-  #modelcard{margin-top:16px}
-  #modelwrap{position:relative;background:#15181e;height:min(62vh,540px)}
-  #cv{display:block;width:100%;height:100%;cursor:grab}
-  #cv:active{cursor:grabbing}
-  #mstatus{position:absolute;inset:0;display:flex;align-items:center;
-    justify-content:center;color:var(--dim);font-size:13px;pointer-events:none;
-    text-align:center;padding:20px}
+.rhd{padding:16px 40px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.rhd h2{font-size:19px;font-weight:700;word-break:break-all}
+.rhd .m{font-size:12px;color:var(--dim);margin-top:3px}
+.back{padding:8px 16px;border:1px solid var(--line2);border-radius:4px;
+  background:var(--panel);font-size:13px;flex-shrink:0}
+.back:hover{border-color:var(--accent)}
 
-  #list{max-height:74vh;overflow:auto}
-  .f{padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer}
-  .f:last-child{border-bottom:none}
-  .f:hover{background:var(--panel2)}
-  .f .t{display:flex;gap:9px;align-items:flex-start}
-  .dot{width:7px;height:7px;border-radius:50%;flex:none;margin-top:7px}
-  .f.error .dot{background:var(--err)} .f.warn .dot{background:var(--warn)}
-  .f.info .dot{background:var(--info)}
-  .f .ttl{font-weight:600;font-size:13.5px}
-  .f .num{flex:none;min-width:19px;height:19px;border-radius:50%;
-    background:var(--err);color:#0f1115;font-size:11.5px;font-weight:700;
-    display:grid;place-items:center;margin-top:1px}
-  .f .code{font-size:10.5px;color:var(--dim);font-family:ui-monospace,monospace;
-    border:1px solid var(--line);padding:0 5px;border-radius:4px;margin-left:auto;
-    flex:none}
-  .f .body{display:none;margin:9px 0 0 16px;font-size:12.5px;color:var(--dim)}
-  .f.open .body{display:block}
-  .f .fix{margin-top:8px;padding:9px 11px;background:var(--panel2);
-    border-left:2px solid var(--ok);border-radius:0 7px 7px 0;color:var(--fg)}
-  .f .fix b{color:var(--ok);font-size:11.5px;display:block;margin-bottom:3px}
-  .none{padding:30px;text-align:center;color:var(--ok)}
-  .stats{display:flex;flex-wrap:wrap;gap:0;font-size:12.5px}
-  .stats div{padding:9px 16px;border-right:1px solid var(--line);
-    border-bottom:1px solid var(--line)}
-  .stats b{color:var(--dim);font-weight:500;margin-right:7px}
-  .err{color:var(--err)}
+.cols{flex:1;display:grid;grid-template-columns:1.25fr 1fr;gap:20px;
+  padding:20px 40px 40px;align-items:start}
+.left{display:flex;flex-direction:column;gap:16px;position:sticky;top:20px}
+.right{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+.viewer{display:flex;flex-direction:column;border:1px solid var(--line);
+  border-radius:6px;overflow:hidden;background:var(--panel)}
+.vbar{padding:8px 12px;border-bottom:1px solid var(--line);display:flex;
+  gap:8px;justify-content:space-between;align-items:center;background:var(--panel2)}
+.vbar .g{display:flex;gap:6px;flex-wrap:wrap}
+.vbar button{padding:5px 9px;border:1px solid var(--line2);background:var(--panel);
+  border-radius:3px;font-size:11px}
+.vbar button:hover{border-color:var(--accent)}
+.vbar .z{font-size:12px;color:var(--accent);font-weight:700}
+.vstage{height:62vh;min-height:380px;overflow:hidden;background:#0b0f13;
+  position:relative;cursor:grab;touch-action:none}
+.vstage.drag{cursor:grabbing}
+.vstage .pan{position:absolute;left:0;top:0;transform-origin:0 0}
+.vstage svg{display:block;max-width:none;height:auto}
+.viewer:fullscreen .vstage{height:calc(100vh - 42px)}
+
+.card{padding:22px;border:1px solid var(--line2);border-radius:8px;
+  background:var(--panel);text-align:center;animation:slideIn .4s ease-out}
+.card.f{border-color:var(--fail);background:rgba(255,68,68,.07)}
+.card .big{font-size:46px;font-weight:700;color:var(--accent);letter-spacing:-.03em}
+.card.f .big{font-size:34px;color:var(--fail)}
+.card .ico{font-size:46px;margin-bottom:6px}
+.card .sc{font-size:14px;color:var(--dim);margin-top:6px}
+.card .sc b{color:var(--fg);font-family:var(--mono)}
+.card .dqlist{display:flex;flex-direction:column;gap:7px;text-align:left;
+  background:rgba(255,68,68,.06);padding:12px;border-radius:4px;margin-top:16px}
+.card .dqlist div{font-size:12.5px;color:#ff8f8f}
+.cnts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.cnt{padding:10px;border-radius:4px;text-align:left}
+.cnt .l{font-size:11px;color:var(--dim)}
+.cnt .v{font-size:18px;font-weight:700}
+
+.item{padding:12px;border:1px solid var(--line2);border-radius:4px;background:var(--panel)}
+.item.ai{border-color:var(--ai);background:rgba(153,102,255,.06)}
+.item.rev{border-style:dashed;opacity:.85}
+.item .top{display:flex;justify-content:space-between;align-items:baseline;
+  gap:10px;margin-bottom:8px}
+.item .nm{font-size:13px;font-weight:700}
+.item .val{font-size:13px;font-weight:700;color:var(--accent)}
+.item.rev .val{color:var(--dim)}
+.bar{width:100%;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);
+  transition:width .7s ease-out}
+.item.ai .bar i{background:var(--ai)}
+.badge{font-size:10px;color:#fff;padding:2px 6px;border-radius:2px;
+  font-weight:700;margin-left:7px}
+.badge.ai{background:var(--ai)}
+.badge.rev{background:var(--line2)}
+.verdict{font-size:12.5px;color:#c9b6ff;line-height:1.6;margin-top:10px;
+  padding:10px;background:rgba(153,102,255,.08);border-left:3px solid var(--ai);
+  border-radius:2px}
+
+.find{border:1px solid var(--line2);border-radius:4px;overflow:hidden;
+  background:var(--panel)}
+.find>button{width:100%;padding:12px;text-align:left;background:transparent;
+  display:flex;justify-content:space-between;align-items:center;gap:10px}
+.find .dot{font-size:11px;font-weight:700;margin-top:3px}
+.find .t{font-size:13px;font-weight:700}
+.find .m{font-size:11px;color:var(--dim);margin-top:2px}
+.find .num{display:inline-block;min-width:19px;height:19px;line-height:19px;
+  border-radius:50%;background:var(--fail);color:#fff;font-size:11px;
+  font-weight:700;text-align:center;margin-right:7px;font-family:var(--mono)}
+.find .in{padding:12px;border-top:1px solid rgba(255,255,255,.08);
+  background:rgba(0,0,0,.28)}
+.find .k{font-size:11px;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:4px}
+.find .dt{font-size:12.5px;line-height:1.55;margin-bottom:12px}
+.find .fx{font-size:12.5px;color:var(--green);line-height:1.55;padding:9px;
+  background:rgba(144,238,144,.08);border-left:3px solid var(--green);
+  border-radius:2px;font-weight:500}
+.fbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.fbar button{padding:5px 10px;border:1px solid var(--line2);border-radius:4px;
+  background:var(--panel);font-size:11.5px}
+.fbar button.on{border-color:var(--accent);color:var(--accent)}
+
+.info{border:1px solid var(--line);border-radius:6px;padding:12px;background:var(--panel)}
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px}
+.igrid .l{color:var(--dim)}
+.igrid .v{font-family:var(--mono);word-break:break-all}
+.disc{font-size:11px;color:var(--dim2);padding:12px;
+  background:rgba(120,120,120,.09);border-radius:4px;border-left:3px solid var(--line2)}
+.pathbar{display:flex;gap:8px;flex-wrap:wrap}
+.pathbar input{flex:1;min-width:220px;padding:10px 12px;border-radius:6px;
+  border:1px solid var(--line2);background:var(--panel2);color:var(--fg);
+  font-family:var(--mono);font-size:12.5px}
+.pathbar button{padding:10px 16px;border-radius:6px;border:1px solid var(--line2);
+  background:var(--panel);font-size:13px}
+
+@media(max-width:1020px){
+  .cols{grid-template-columns:1fr;padding:20px}
+  .left{position:static}
+  .hd,.rhd{padding-left:20px;padding-right:20px}
+  .body{padding:24px 20px 40px}
+  .vstage{height:52vh}
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>기계제도 도면 검사기</h1>
-  <span class="sub">전산응용기계제도기능사 채점기준 자가진단 ·
-    오작 판정 · 치수/공차/표면거칠기/기하공차</span>
-  <span class="sub" id="cap" style="margin-left:auto"></span>
-</header>
+<div class="wrap">
 
-<main>
-  <div id="drop">
-    <h2>CAD 파일을 여기에 놓거나 클릭해서 선택</h2>
-    <p id="exts">.ipt · .idw · .iam · .dxf · .dwg · .zip</p>
-    <input type="file" id="file">
+<div id="home">
+  <div class="hd">
+    <div class="hd-row">
+      <svg width="40" height="40" viewBox="0 0 40 40" style="flex-shrink:0">
+        <rect x="4" y="4" width="32" height="32" rx="4" fill="none" stroke="#ffa500" stroke-width="2"/>
+        <line x1="12" y1="12" x2="28" y2="12" stroke="#90ee90" stroke-width="1.5"/>
+        <line x1="12" y1="16" x2="24" y2="16" stroke="#90ee90" stroke-width="1.5"/>
+        <line x1="12" y1="20" x2="20" y2="20" stroke="#90ee90" stroke-width="1.5"/>
+        <circle cx="28" cy="24" r="1.5" fill="#ffa500"/>
+        <circle cx="28" cy="28" r="1.5" fill="#ffa500"/>
+        <line x1="12" y1="28" x2="24" y2="28" stroke="#d4d4d8" stroke-width="1" stroke-dasharray="2,2"/>
+      </svg>
+      <h1>도면 자동 채점</h1>
+    </div>
+    <p>전산응용기계제도기능사 채점기준 자동 분석</p>
+    <p class="sub">파일을 올리거나 예제를 눌러 결과를 확인하세요</p>
   </div>
 
-  <div class="pathbar">
-    <label for="path">로컬 경로로 분석 <span>도면(.idw)은 이 방법을 쓰세요 —
-      모델 참조가 유지되어 형상 검사까지 됩니다</span></label>
-    <div class="pf">
-      <input type="text" id="path" spellcheck="false"
-             placeholder="C:\Users\...\모델링, 도면\3축.idw">
-      <button class="go" id="pathgo">분석</button>
+  <div class="body">
+    <div id="status"></div>
+
+    <div id="work">
+      <label class="drop" id="drop">
+        <div class="ico">📁</div>
+        <div class="t">도면 파일을 여기 드래그하거나 클릭</div>
+        <div class="s">지원: <span id="exts">…</span> (또는 .zip)</div>
+        <input type="file" id="file" style="display:none">
+      </label>
+
+      <div id="warns" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+
+      <div id="pathwrap" class="hide" style="margin-top:14px">
+        <div class="lab">이 PC의 파일 경로로 분석</div>
+        <div class="pathbar">
+          <input id="path" placeholder="C:\경로\도면.idw" spellcheck="false">
+          <button id="pathgo">분석</button>
+        </div>
+      </div>
+
+      <div id="samples" class="hide" style="margin-top:28px">
+        <div class="lab">예제 도면 — CAD 파일이 없어도 바로 볼 수 있습니다</div>
+        <div class="sgrid" id="sgrid"></div>
+      </div>
+
+      <details class="picker" id="picker" style="margin-top:28px">
+        <summary><span>검사 항목 선택</span><span class="mono" id="pcount"></span></summary>
+        <div class="in" id="pbody"></div>
+      </details>
+
+      <section style="margin-top:40px">
+        <div class="kicker">· 단계별 안내</div>
+        <h3 class="sec">3단계로 시작하세요</h3>
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div class="step"><div class="no">①</div><div>
+            <div class="t">파일 올리기</div>
+            <div class="d">도면을 드래그해서 올리거나 위의 예제 버튼을 클릭하세요.</div></div></div>
+          <div class="step"><div class="no">②</div><div>
+            <div class="t">자동 분석</div>
+            <div class="d"><span id="nchecks">24</span>개 검사 항목으로 자동 분석합니다.
+              배점이 가장 큰 투상도 항목은 AI가 도면을 보고 판정합니다.</div></div></div>
+          <div class="step"><div class="no">③</div><div>
+            <div class="t">점수와 고칠 곳</div>
+            <div class="d">항목별 배점, 무엇이 왜 틀렸는지, 어떻게 고치는지를 확인합니다.</div></div></div>
+        </div>
+      </section>
+
+      <section style="margin-top:40px">
+        <div class="kicker">· 채점 기준</div>
+        <h3 class="sec">배점 구성 (총 <span id="rubtotal">—</span>점)</h3>
+        <div id="rubric"></div>
+      </section>
+
+      <section class="dq" id="dqsec" style="margin-top:40px">
+        <div class="kicker">⚠ 필독</div>
+        <h3 class="sec">오작(실격) 조건</h3>
+        <p>아래 조건에 하나라도 해당하면 점수와 무관하게 <strong>불합격</strong>입니다.</p>
+        <div id="dqlist"></div>
+      </section>
+
+      <div class="note" id="foot"></div>
     </div>
   </div>
-  <details class="picker" id="picker">
-    <summary>검사 항목 선택 <span id="pickcount"></span></summary>
-    <div class="pk-tools">
-      <button class="t" data-all="1">전체 켜기</button>
-      <button class="t" data-all="0">전체 끄기</button>
-      <button class="t" data-all="d">기본값</button>
-    </div>
-    <div id="pickbody"></div>
-  </details>
+</div>
 
-  <div id="status"></div>
-
-  <div id="out">
-    <div class="card scorecard" id="scorecard" style="display:none">
-      <div class="sc-head">
-        <div>
-          <div class="sc-title">전산응용기계제도기능사 채점기준 자가진단</div>
-          <div class="sc-sub" id="scsub"></div>
-        </div>
-        <div class="sc-big" id="scbig"></div>
+<div id="res" class="hide">
+  <div class="rhd">
+    <div style="display:flex;gap:12px;align-items:center;min-width:0">
+      <svg width="26" height="26" viewBox="0 0 40 40" style="flex-shrink:0">
+        <rect x="4" y="4" width="32" height="32" rx="4" fill="none" stroke="#ffa500" stroke-width="2"/>
+        <line x1="12" y1="12" x2="28" y2="12" stroke="#90ee90" stroke-width="1.5"/>
+        <line x1="12" y1="16" x2="24" y2="16" stroke="#90ee90" stroke-width="1.5"/>
+        <line x1="12" y1="20" x2="20" y2="20" stroke="#90ee90" stroke-width="1.5"/>
+        <circle cx="28" cy="24" r="1.5" fill="#ffa500"/>
+        <circle cx="28" cy="28" r="1.5" fill="#ffa500"/>
+      </svg>
+      <div style="min-width:0">
+        <h2 id="rfile"></h2>
+        <div class="m" id="rmeta"></div>
       </div>
-      <div id="dqbox" class="dq" style="display:none"></div>
-      <div class="bars" id="bars"></div>
-      <div class="sc-note">공식 채점이 아닙니다. 기호·값의 유무와 규격 적합성만
-        자동으로 확인하며, 배점이 가장 큰 <b>투상도 선택과 배열(30점)</b>은
-        사람이 직접 봐야 판단됩니다.</div>
     </div>
-
-    <div class="meta">
-      <div class="row1">
-        <span class="fname" id="fname"></span>
-        <span class="badge" id="kind"></span>
-        <span class="badge" id="std" style="display:none"></span>
-        <div class="counts" id="counts"></div>
-      </div>
-      <div class="props" id="props"></div>
-    </div>
-
-    <div class="grid">
-      <div>
-        <div class="card" id="viewcard" style="display:none">
-          <h3>도면 <span class="badge" id="mkbadge" style="display:none"></span>
-            <div class="tools">
-              <button class="t" data-z="0.8">축소</button>
-              <button class="t" data-z="1.25">확대</button>
-              <button class="t" data-z="0">맞춤</button>
-            </div>
-          </h3>
-          <div class="note" id="svgnote" style="display:none"></div>
-          <div id="viewwrap"></div>
-        </div>
-
-        <div class="card" id="modelcard" style="display:none">
-          <h3>3D 미리보기
-            <span class="badge">드래그: 회전 · 휠: 확대 · 우클릭드래그: 이동</span>
-            <div class="tools">
-              <button class="t" id="mreset">초기화</button>
-              <button class="t" id="mwire">와이어프레임</button>
-            </div>
-          </h3>
-          <div id="modelwrap"><canvas id="cv"></canvas>
-            <div id="mstatus">불러오는 중…</div>
+    <button class="back" id="back">← 다른 도면 분석</button>
+  </div>
+  <div class="cols">
+    <div class="left">
+      <div class="viewer hide" id="viewer">
+        <div class="vbar">
+          <div class="g">
+            <button data-z="in">확대 +</button>
+            <button data-z="out">축소 −</button>
+            <button data-z="fit">맞추기</button>
+            <button data-z="one">1:1</button>
+            <button data-z="full">전체화면</button>
           </div>
+          <div class="z mono" id="zoomv">100%</div>
         </div>
-        <div class="card" style="margin-top:16px">
-          <h3>파일 정보</h3>
-          <div class="stats" id="stats"></div>
-        </div>
+        <div class="vstage" id="stage"><div class="pan" id="pan"></div></div>
       </div>
-      <div class="card">
-        <h3>검사 결과 <span class="badge" id="fcount"></span>
-          <div class="tools"><button class="t" id="toggleall">전체 펼치기</button></div>
-        </h3>
-        <div id="list"></div>
+      <div class="viewer hide" id="m3d">
+        <div class="vbar">
+          <div class="g">
+            <button id="mreset">초기화</button>
+            <button id="mwire">와이어프레임</button>
+          </div>
+          <div class="z mono">3D</div>
+        </div>
+        <div class="vstage" id="mstage" style="height:44vh;min-height:280px"></div>
+      </div>
+      <div class="info hide" id="info">
+        <div class="lab" style="margin-bottom:8px">파일 정보</div>
+        <div class="igrid" id="igrid"></div>
       </div>
     </div>
+    <div class="right">
+      <div id="rwarn"></div>
+      <div id="score"></div>
+      <div>
+        <div class="lab">채점 항목</div>
+        <div id="items" style="display:flex;flex-direction:column;gap:9px"></div>
+        <div id="verdict"></div>
+      </div>
+      <div>
+        <div class="lab">지적사항</div>
+        <div class="fbar" id="fbar"></div>
+        <div id="finds" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <div class="disc" id="disc"></div>
+    </div>
   </div>
-</main>
+</div>
+
+</div>
 
 <script src="/static/vendor/three.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-const drop = $('#drop'), fileIn = $('#file');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const kb = n => n >= 1048576 ? (n/1048576).toFixed(1)+' MB' : Math.round(n/1024)+' KB';
 
-let CHECKS = [], enabled = new Set();
+const SEV = {fail:'var(--fail)', error:'var(--error)', warn:'var(--warn)', info:'var(--info)'};
+const SEVKO = {fail:'오작', error:'오류', warn:'경고', info:'정보'};
+const KIND = {part:'부품 (.ipt)', drawing:'도면 (.idw)', assembly:'조립품 (.iam)',
+              dwg:'2D 도면 (.dxf/.dwg)'};
+const STAT = {kind:'종류', sheets:'시트', dims:'치수', undimensioned:'미치수 원',
+  views:'투상도', title_block:'표제란', sketches:'스케치', sketches_under:'미구속 스케치',
+  holes:'구멍', walls:'얇은 벽', interferences:'간섭', sick_features:'오류 피처',
+  mass_kg:'질량(kg)', volume_cm3:'부피(cm³)', feature_count:'피처 수',
+  occurrence_count:'부품 수'};
+const PROP = {part_number:'품번', material:'재질', designer:'설계자',
+  description:'설명', revision:'개정', project:'프로젝트', stock_number:'재고번호'};
+
+let CHECKS = [], enabled = new Set(), HEALTH = {}, RES = null, sevFilter = null;
 const LS = 'cadcheck.enabled';
+const picked = () => [...enabled];
 
-fetch('/api/health').then(r=>r.json()).then(h=>{
-  $('#exts').textContent = h.supported.join(' · ');
-  if (h.inventor === false){
-    const d = $('#drop');
-    d.insertAdjacentHTML('afterend', `<div class="warnbar">이 서버에는 Inventor가
-      없어 <b>DWG / DXF만 분석</b>됩니다. .ipt · .idw · .iam 을 검사하려면
-      Inventor가 설치된 PC에서 서버를 실행하세요.</div>`);
-  }
-  $('#cap').textContent = (h.dwg_converter
-    ? `DWG 변환: ${h.dwg_via || '가능'}`
-    : 'DWG 변환기 없음 — DXF로 저장해서 올리세요')
-    + (h.exam ? ` · 기준 ${h.exam.sheet} / ${h.exam.third_angle?'제3각법':'제1각법'}` : '');
-  // 경로 입력은 이 PC에서만 동작한다 (원격에서는 서버가 403으로 막음)
-  if (h.local === false){
-    const pb = document.querySelector('.pathbar');
-    if (pb) pb.innerHTML = `<label>원격 접속 중 <span>도면(.idw)은 참조가 끊기지
-      않도록 <b>모델 파일과 함께 .zip으로 압축</b>해서 올리세요. 경로 입력은
-      서버가 설치된 PC에서만 쓸 수 있습니다.</span></label>`;
-  }
+/* ---------- 초기 로드 ---------- */
+fetch('/api/health').then(r => r.json()).then(h => {
+  HEALTH = h;
+  $('#exts').textContent = (h.supported || []).join(' · ') || '없음';
+  $('#nchecks').textContent = (h.checks || []).length;
+
+  const w = [];
+  if (h.inventor === false)
+    w.push(`이 서버에는 Autodesk Inventor가 없어 <b>${esc((h.supported||[]).join(' / '))}</b>만
+      분석됩니다. .ipt · .idw · .iam 을 검사하려면 Inventor가 설치된 PC에서 서버를 실행하세요.`);
+  if (h.dwg_converter === false)
+    w.push('DWG 변환기가 없습니다. CAD에서 <b>DXF로 저장</b>해서 올리시면 그대로 채점됩니다.');
+  if (h.ai === false)
+    w.push('AI 판정이 꺼져 있어 <b>투상도 선택과 배열(30점)</b>은 채점되지 않고 남습니다.');
+  if (h.dwg_via && /CloudConvert/.test(h.dwg_via))
+    w.push('DWG는 <b>외부 변환 API(CloudConvert)</b>를 경유합니다. 도면 파일이 외부 서버로 전송됩니다.');
+  $('#warns').innerHTML = w.map(t => `<div class="warnbar">${t}</div>`).join('');
+
+  if (h.local === true) $('#pathwrap').classList.remove('hide');
+
   CHECKS = h.checks || [];
   let saved = null;
-  try { saved = JSON.parse(localStorage.getItem(LS)); } catch(e){}
+  try { saved = JSON.parse(localStorage.getItem(LS)); } catch (e) {}
   enabled = new Set(Array.isArray(saved) && saved.length
     ? saved.filter(id => CHECKS.some(c => c.id === id))
     : CHECKS.filter(c => c.default).map(c => c.id));
   drawPicker();
-}).catch(()=>{});
+  drawRubric();
 
+  const bits = [];
+  if (h.exam) bits.push(`기준 ${h.exam.sheet} · ${h.exam.third_angle ? '제3각법' : '제1각법'}`);
+  bits.push(`검사 ${CHECKS.length}개`);
+  bits.push(h.ai ? `AI 판정 ${esc(h.ai_model || '활성')}` : 'AI 판정 꺼짐');
+  if (h.dwg_via) bits.push(`DWG 변환 ${esc(h.dwg_via)}`);
+  $('#foot').textContent = bits.join(' · ');
+}).catch(() => {
+  $('#status').innerHTML = '<div class="err">서버에 연결하지 못했습니다.</div>';
+});
+
+/* ---------- 배점표 / 오작 (실제 API 값으로) ---------- */
+const RUBRIC = [
+  ['PROJECTION_LAYOUT','투상도 선택과 배열',30], ['DIMENSIONS','치수 기입',15],
+  ['TOLERANCE','끼워맞춤 공차·치수공차',10], ['SURFACE','표면거칠기',10],
+  ['GEOMETRIC','형상(기하)공차',10], ['NOTES_TITLE','주서·표제란·부품란',8],
+  ['MATERIAL','재료 선택과 처리',7]];
+
+function drawRubric(){
+  $('#rubtotal').textContent = RUBRIC.reduce((a, r) => a + r[2], 0);
+  $('#rubric').innerHTML = RUBRIC.map(([code, label, max]) => {
+    const ai = code === 'PROJECTION_LAYOUT' && HEALTH.ai
+      ? '<span class="ai">AI</span>' : '';
+    return `<div class="rub"><div class="n">${esc(label)}${ai}</div>
+      <div class="v mono">${max}</div></div>`;
+  }).join('');
+
+  const dq = CHECKS.filter(c => c.group === '오작');
+  $('#dqsec').classList.toggle('hide', !dq.length);
+  $('#dqlist').innerHTML = dq.map(c =>
+    `<div class="row"><div class="x">✕</div><div>
+      <div class="t">${esc(c.label)}</div></div></div>`).join('');
+}
+
+/* ---------- 검사 선택기 ---------- */
 function drawPicker(){
   const groups = [];
   CHECKS.forEach(c => {
     let g = groups.find(x => x.key === c.group);
-    if (!g) groups.push(g = {key:c.group, label:c.group_label, items:[]});
+    if (!g) groups.push(g = {key: c.group, label: c.group_label || c.group, items: []});
     g.items.push(c);
   });
-  $('#pickbody').innerHTML = groups.map(g => `
-    <div class="pk-grp ${g.key==='오작'?'dq':''}">
-      <h4>${esc(g.label)}</h4>
-      <div class="pk-items">${g.items.map(c => `
-        <label class="${enabled.has(c.id)?'':'off'}">
-          <input type="checkbox" data-id="${c.id}" ${enabled.has(c.id)?'checked':''}>
-          <span>${esc(c.label)}</span>
-        </label>`).join('')}</div>
-    </div>`).join('');
-  $('#pickbody').querySelectorAll('input[data-id]').forEach(cb => {
-    cb.onchange = () => {
-      cb.checked ? enabled.add(cb.dataset.id) : enabled.delete(cb.dataset.id);
-      cb.closest('label').classList.toggle('off', !cb.checked);
-      persist();
+  $('#pbody').innerHTML = groups.map(g => `<div class="pgrp">
+      <div class="h">${esc(g.label)}</div>
+      ${g.items.map(c => `<label><input type="checkbox" data-id="${esc(c.id)}"
+        ${enabled.has(c.id) ? 'checked' : ''}><span>${esc(c.label)}</span></label>`).join('')}
+    </div>`).join('') + `<div class="pbtns">
+      <button data-p="all">전체 켜기</button><button data-p="none">전체 끄기</button>
+      <button data-p="def">기본값</button></div>`;
+  $('#pbody').querySelectorAll('input[data-id]').forEach(el => {
+    el.onchange = () => { el.checked ? enabled.add(el.dataset.id) : enabled.delete(el.dataset.id);
+      persist(); };
+  });
+  $('#pbody').querySelectorAll('button[data-p]').forEach(b => {
+    b.onclick = () => {
+      if (b.dataset.p === 'all') enabled = new Set(CHECKS.map(c => c.id));
+      else if (b.dataset.p === 'none') enabled = new Set();
+      else enabled = new Set(CHECKS.filter(c => c.default).map(c => c.id));
+      drawPicker(); persist();
     };
   });
   persist();
 }
 function persist(){
-  localStorage.setItem(LS, JSON.stringify([...enabled]));
-  $('#pickcount').textContent = `${enabled.size} / ${CHECKS.length} 켜짐`;
+  try { localStorage.setItem(LS, JSON.stringify([...enabled])); } catch (e) {}
+  $('#pcount').textContent = `${enabled.size} / ${CHECKS.length}`;
 }
-document.querySelectorAll('.pk-tools button[data-all]').forEach(b => b.onclick = e => {
-  e.preventDefault();
-  const m = b.dataset.all;
-  enabled = new Set(m === '1' ? CHECKS.map(c=>c.id)
-                  : m === '0' ? []
-                  : CHECKS.filter(c=>c.default).map(c=>c.id));
-  drawPicker();
-});
 
-drop.onclick = () => fileIn.click();
-fileIn.onchange = () => fileIn.files[0] && send(fileIn.files[0]);
-['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{
-  ev.preventDefault(); drop.classList.add('over');}));
-['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{
-  ev.preventDefault(); drop.classList.remove('over');}));
-drop.addEventListener('drop', ev => {
-  const f = ev.dataTransfer.files[0]; if (f) send(f);
-});
+/* ---------- 예제 ---------- */
+fetch('/api/samples').then(r => r.json()).then(d => {
+  const list = (d && d.samples) || [];
+  if (!list.length) return;
+  $('#samples').classList.remove('hide');
+  $('#sgrid').innerHTML = list.map(s => `<button class="sample" data-n="${esc(s.name)}">
+      <div class="n">${esc(s.name)}</div>
+      <div class="m mono">${esc(s.ext)} · ${kb(s.size)}</div>
+      <div class="d">${esc(s.note || '')}</div></button>`).join('');
+  $('#sgrid').querySelectorAll('.sample').forEach(b => {
+    b.onclick = () => sendSample(b.dataset.n);
+  });
+}).catch(() => {});
 
+/* ---------- 분석 요청 ---------- */
 function busy(label){
-  $('#status').innerHTML = `<span class="spin"></span>${esc(label)} 분석 중… `
-    + `Inventor에서 파일을 여는 중이라 수십 초 걸릴 수 있습니다.`;
-  $('#out').style.display = 'none';
+  $('#work').classList.add('hide');
+  $('#status').innerHTML = `<div class="load"><div class="d">◆</div>
+    <div class="t">분석 중…</div>
+    <div class="s">${esc(label)} — 도면을 열고 검사하는 중입니다.
+      서버에 따라 10~60초 걸릴 수 있습니다.</div></div>`;
 }
-const done = r => r.json()
-  .catch(() => ({detail:'서버 응답을 읽을 수 없습니다'}))
+const done = r => r.json().catch(() => ({detail:'서버 응답을 읽을 수 없습니다'}))
   .then(j => { if (!r.ok) throw new Error(j.detail || r.status); return j; });
-const fail = e => { $('#status').innerHTML =
-  `<span class="err">실패: ${esc(e.message)}</span>`; };
-
-const picked = () => [...enabled];
-
+function fail(e){
+  $('#status').innerHTML = `<div class="err">실패: ${esc(e.message)}</div>`;
+  $('#work').classList.remove('hide');
+}
+function post(url, body, label){
+  busy(label);
+  fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)}).then(done).then(render).catch(fail);
+}
+const sendSample = n => post('/api/analyze-sample', {name:n, checks:picked()}, n);
+const sendPath = () => {
+  const p = $('#path').value.trim();
+  if (!p) return $('#path').focus();
+  post('/api/analyze-path', {path:p, checks:picked()}, p.split(/[\\/]/).pop());
+};
 function send(f){
   busy(f.name);
   const fd = new FormData();
@@ -397,370 +537,308 @@ function send(f){
   fd.append('checks', picked().join(','));
   fetch('/api/analyze', {method:'POST', body:fd}).then(done).then(render).catch(fail);
 }
-
-function sendPath(){
-  const p = $('#path').value.trim();
-  if (!p) { $('#path').focus(); return; }
-  busy(p.split(/[\\/]/).pop());
-  fetch('/api/analyze-path', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({path:p, checks:picked()})})
-    .then(done).then(render).catch(fail);
-}
+$('#file').onchange = e => { if (e.target.files[0]) send(e.target.files[0]); };
 $('#pathgo').onclick = sendPath;
 $('#path').addEventListener('keydown', e => { if (e.key === 'Enter') sendPath(); });
+const drop = $('#drop');
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => {
+  e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => {
+  e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0]; if (f) send(f); });
+$('#back').onclick = () => {
+  $('#res').classList.add('hide'); $('#home').classList.remove('hide');
+  $('#status').innerHTML = ''; $('#work').classList.remove('hide');
+  window.scrollTo(0, 0);
+};
 
-function sendSample(name){
-  busy(name);
-  fetch('/api/analyze-sample', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({name:name, checks:picked()})})
-    .then(done).then(render).catch(fail);
+/* ---------- 결과 ---------- */
+function render(d){
+  RES = d; sevFilter = null;
+  $('#status').innerHTML = '';
+  $('#home').classList.add('hide');
+  $('#res').classList.remove('hide');
+  window.scrollTo(0, 0);
+
+  $('#rfile').textContent = d.file || '';
+  const meta = [KIND[d.kind] || d.kind];
+  if (d.standard) meta.push(d.standard);
+  if (d.first_angle !== null && d.first_angle !== undefined)
+    meta.push(d.first_angle ? '제1각법' : '제3각법');
+  meta.push('Job ' + d.job);
+  $('#rmeta').textContent = meta.join(' · ');
+
+  const warn = [];
+  if (d.refs_ok === false)
+    warn.push(`<b>모델 참조가 끊겼습니다.</b> 도면만 올려서 부품 파일을 찾지 못했습니다.
+      형상 관련 검사가 빠졌으므로 "문제 없음"을 그대로 믿으면 안 됩니다.
+      모델 파일과 함께 <b>.zip으로 압축</b>해서 다시 올리세요.`);
+  if (d.model_error) warn.push('3D 미리보기를 만들지 못했습니다: ' + esc(d.model_error));
+  $('#rwarn').innerHTML = warn.map(t => `<div class="warnbar">${t}</div>`).join('');
+
+  drawScore(d.scorecard || {}, d.summary || {});
+  drawItems(d.scorecard || {});
+  drawFindings(d);
+  drawInfo(d);
+  drawSvg(d);
+  draw3D(d);
+
+  const sc = d.scorecard || {};
+  let disc = '<strong>면책:</strong> 공식 채점이 아닙니다. 기호·값의 유무와 규격 ' +
+    '적합성을 자동으로 확인하는 학습 보조 도구입니다.';
+  if (sc.ai_model) disc += ` 투상도 선택과 배열(30점)은 ${esc(sc.ai_model)} 판정입니다.`;
+  if (sc.review_points > 0) disc += ` ${sc.review_points}점은 사람이 직접 확인해야 합니다.`;
+  $('#disc').innerHTML = disc;
 }
 
-fetch('/api/samples').then(r=>r.json()).then(d => {
-  const list = (d && d.samples) || [];
-  if (!list.length) return;
-  const kb = n => n >= 1048576 ? (n/1048576).toFixed(1)+' MB' : Math.round(n/1024)+' KB';
-  const box = document.createElement('div');
-  box.className = 'samples';
-  box.innerHTML = `<div class="samples-h">CAD 파일이 없으신가요?
-    <span>아래 예제 도면을 눌러 바로 채점 결과를 보세요.</span></div>`;
-  list.forEach(s => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'sample';
-    b.innerHTML = `<b>${esc(s.name)}</b><span>${esc(s.note || '')}</span>`
-      + `<em>${esc(s.ext)} · ${kb(s.size)}</em>`;
-    b.onclick = () => sendSample(s.name);
-    box.appendChild(b);
-  });
-  $('#drop').insertAdjacentElement('afterend', box);
-}).catch(()=>{});
-
-const KIND = {part:'부품 (.ipt)', drawing:'도면 (.idw)', assembly:'조립품 (.iam)',
-              dwg:'2D 도면 (.dxf/.dwg)', unsupported:'미지원'};
-const SEVKO = {error:'오류', warn:'경고', info:'정보'};
-const esc = s => String(s??'').replace(/[&<>"]/g, c =>
-  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-function render(d){
-  $('#status').textContent = '';
-  $('#out').style.display = 'block';
-  $('#fname').textContent = d.file;
-  $('#kind').textContent = KIND[d.kind] || d.kind;
-  if (d.standard){
-    $('#std').style.display='';
-    $('#std').textContent = d.standard +
-      (d.first_angle===null ? '' : ' · ' + (d.first_angle?'제1각법':'제3각법'));
-  } else $('#std').style.display='none';
-
-  const s = d.summary;
-  $('#counts').innerHTML = s.total === 0
-    ? `<span class="cnt k">문제 없음</span>`
-    : [s.fail &&`<span class="cnt f">오작 ${s.fail}</span>`,
-       s.error&&`<span class="cnt e">오류 ${s.error}</span>`,
-       s.warn &&`<span class="cnt w">경고 ${s.warn}</span>`,
-       s.info &&`<span class="cnt i">정보 ${s.info}</span>`]
-      .filter(Boolean).join('');
-
-  renderScorecard(d.scorecard);
-
-  const p = d.props || {};
-  const field = (label, v) => v
-    ? `<span><b>${label}</b>${esc(v)}</span>`
-    : `<span><b>${label}</b><span class="empty">비어있음</span></span>`;
-  $('#props').innerHTML = [
-    field('품번', p.part_number),
-    (d.kind==='part'||d.kind==='assembly') ? field('재질', p.material) : '',
-    field('설계자', p.designer),
-    p.revision ? field('리비전', p.revision) : '',
-    p.description ? field('설명', p.description) : '',
-  ].filter(Boolean).join('');
-
-  // stats
-  const L = {sketches:'스케치', sketches_under:'미구속 스케치', holes:'홀',
-    walls:'얇은벽 후보', interferences:'간섭', sick_features:'오류 피처',
-    sheets:'시트', dims:'치수', undimensioned:'치수없는 원', views:'뷰',
-    title_block:'표제란/양식', mass_kg:'질량(kg)', volume_cm3:'체적(cm³)',
-    feature_count:'피처', occurrence_count:'부품수', interference_error:'간섭분석오류'};
-  $('#stats').innerHTML = Object.entries(d.stats||{})
-    .filter(([k])=>k!=='kind' && L[k])
-    .map(([k,v])=>{
-      if (typeof v === 'number' && !Number.isInteger(v)) v = v.toFixed(3);
-      return `<div><b>${L[k]}</b>${esc(v)}</div>`;
-    }).join('') || '<div style="color:var(--dim)">-</div>';
-
-  // 2D drawing viewer
-  const vc = $('#viewcard');
-  if (d.svg){
-    vc.style.display='';
-    $('#viewwrap').innerHTML = d.svg;
-    zoom(0);
-    const mb = $('#mkbadge');
-    if (d.markers_placed && d.marker_index && d.marker_index.length){
-      mb.style.display='';
-      mb.textContent = `빨간 화살표 ${d.marker_index.length}개 = 치수 없는 원`;
-    } else mb.style.display='none';
-    if (d.svg_note){ $('#svgnote').style.display=''; $('#svgnote').textContent = d.svg_note; }
-    else $('#svgnote').style.display='none';
-  } else vc.style.display='none';
-
-  // 3D preview
-  show3D(d.model_url);
-  if (!d.model_url && d.model_error){
-    $('#modelcard').style.display='';
-    $('#mstatus').textContent = '3D 미리보기 실패: ' + d.model_error;
-  }
-
-  // findings
-  $('#fcount').textContent = `${s.total}건`;
-  const list = $('#list');
-  if (!d.findings.length){
-    list.innerHTML = `<div class="none">검사 항목에서 문제를 찾지 못했습니다.</div>`;
+function drawScore(sc, sum){
+  if (sc.disqualified){
+    $('#score').innerHTML = `<div class="card f">
+      <div class="ico">❌</div><div class="big">오작 (실격)</div>
+      <div class="sc">점수와 무관하게 불합격 처리되는 조건입니다</div>
+      <div class="dqlist">${(sc.disqualifiers||[]).map(r =>
+        `<div>· ${esc(r)}</div>`).join('')}</div></div>`;
     return;
   }
-  // DIM_MISSING findings are emitted in the same order the arrows are drawn,
-  // so the n-th of them is arrow n on the drawing.
-  let arrow = 0;
-  list.innerHTML = d.findings.map(f => {
-    const n = (f.code === 'DIM_MISSING' && d.markers_placed) ? ++arrow : null;
-    return `
-    <div class="f ${f.severity}">
-      <div class="t">
-        <span class="dot"></span>
-        ${n ? `<span class="num">${n}</span>` : ''}
-        <span class="ttl">${esc(f.title)}</span>
-        <span class="code">${esc(f.code)}</span>
-      </div>
-      <div class="body">
-        <div>${esc(f.detail)}</div>
-        <div class="fix"><b>고치는 방법</b>${esc(f.fix)}</div>
-        ${where(f.where)}
-      </div>
-    </div>`;
+  const pct = sc.percent != null ? Math.round(sc.percent) : 0;
+  const c = [['error','오류',SEV.error],['warn','경고',SEV.warn],['info','참고',SEV.info]];
+  $('#score').innerHTML = `<div class="card">
+    <div class="ico">✓</div><div class="big mono">${pct}%</div>
+    <div class="sc">자동 채점 <b>${sc.auto_score} / ${sc.auto_max}</b></div>
+    <div class="cnts">${c.map(([k,l,col]) => `<div class="cnt" style="background:${col}1a;
+      border-left:3px solid ${col}"><div class="l">${l}</div>
+      <div class="v" style="color:${col}">${sum[k]||0}</div></div>`).join('')}</div>
+    ${sc.enabled_count < sc.total_checks
+      ? `<div class="sc" style="margin-top:14px">검사 ${sc.total_checks - sc.enabled_count}개를
+         꺼둔 상태입니다 (${sc.enabled_count}/${sc.total_checks})</div>` : ''}</div>`;
+}
+
+function drawItems(sc){
+  $('#items').innerHTML = (sc.items || []).map(it => {
+    const rev = it.mode === 'review';
+    const cls = 'item' + (it.mode === 'ai' ? ' ai' : rev ? ' rev' : '');
+    const badge = it.mode === 'ai' ? '<span class="badge ai">AI</span>'
+      : rev ? '<span class="badge rev">사람 확인</span>' : '';
+    const val = rev ? '— / ' + it.max : `${it.score} / ${it.max}`;
+    const w = rev || !it.max ? 0 : (it.score / it.max) * 100;
+    return `<div class="${cls}"><div class="top">
+        <div class="nm">${esc(it.label)}${badge}</div>
+        <div class="val mono">${val}</div></div>
+      <div class="bar"><i style="width:${w}%"></i></div></div>`;
   }).join('');
-  list.querySelectorAll('.f').forEach(el =>
-    el.onclick = () => el.classList.toggle('open'));
+  $('#verdict').innerHTML = sc.ai_verdict
+    ? `<div class="verdict"><b>AI 총평</b> — ${esc(sc.ai_verdict)}</div>` : '';
 }
 
-function renderScorecard(sc){
-  const card = $('#scorecard');
-  if (!sc){ card.style.display = 'none'; return; }
-  card.style.display = '';
+function drawFindings(d){
+  const all = d.findings || [];
+  const counts = {};
+  all.forEach(f => counts[f.severity] = (counts[f.severity] || 0) + 1);
+  $('#fbar').innerHTML = [['','전체',all.length]]
+    .concat(Object.keys(SEVKO).filter(k => counts[k])
+      .map(k => [k, SEVKO[k], counts[k]]))
+    .map(([k,l,n]) => `<button data-s="${k}" class="${sevFilter===(k||null)?'on':''}">
+      ${l} ${n}</button>`).join('');
+  $('#fbar').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { sevFilter = b.dataset.s || null; drawFindings(d); };
+  });
 
-  const pct = sc.percent;
-  $('#scbig').innerHTML = sc.disqualified
-    ? `<span style="color:var(--err)">오작</span>`
-    : `${sc.auto_score}<small>/${sc.auto_max}점</small>`;
-  const off = sc.total_checks - sc.enabled_count;
-  $('#scsub').textContent = (sc.disqualified
-    ? '실격 사유가 있어 점수와 무관하게 불합격 처리됩니다.'
-    : `자동 판정 ${pct}% · 사람이 확인해야 하는 배점 ${sc.review_points}점 별도`)
-    + (off ? ` · 검사 ${off}개 꺼둠` : '');
-
-  const dq = $('#dqbox');
-  if (sc.disqualified){
-    dq.style.display = '';
-    dq.innerHTML = `<b>오작(실격) 사유 ${sc.disqualifiers.length}건</b><ul>`
-      + sc.disqualifiers.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
-  } else dq.style.display = 'none';
-
-  $('#bars').innerHTML = sc.items.map(it => {
-    if (it.score === null){
-      return `<div class="bar review"><span class="lb">${esc(it.label)}</span>
-        <span class="tr"></span><span class="vl">${it.max}점 확인</span></div>`;
-    }
-    const r = it.max ? it.score / it.max : 0;
-    const cls = r >= 0.8 ? '' : (r >= 0.5 ? 'mid' : 'low');
-    return `<div class="bar"><span class="lb">${esc(it.label)}</span>
-      <span class="tr"><span class="fl ${cls}" style="width:${r*100}%"></span></span>
-      <span class="vl">${it.score}/${it.max}</span></div>`;
+  const idx = d.markers_placed ? (d.marker_index || []) : [];
+  let mk = 0;
+  const rows = all.filter(f => !sevFilter || f.severity === sevFilter).map(f => {
+    const col = SEV[f.severity] || SEV.info;
+    const isMarked = d.markers_placed &&
+      (f.code === 'DIM_MISSING' || f.code === 'EX_DIM_MISSING');
+    const num = isMarked && mk < idx.length
+      ? `<span class="num">${++mk}</span>` : '';
+    const bits = [];
+    if (f.item) bits.push(esc(f.item));
+    if (f.deduct) bits.push(`${f.deduct}점 차감`);
+    const w = f.where || {};
+    const where = ['sheet','view','sketch','feature'].filter(k => w[k])
+      .map(k => esc(w[k])).join(' · ');
+    return `<div class="find" style="border-color:${col};background:${col}12">
+      <button data-t="1">
+        <div style="display:flex;gap:8px;align-items:flex-start;flex:1;min-width:0">
+          <div class="dot" style="color:${col}">●</div>
+          <div style="flex:1;min-width:0">
+            <div class="t">${num}${esc(f.title)}</div>
+            <div class="m">${bits.join(' · ')}</div></div></div>
+        <div style="color:var(--dim)">▶</div></button>
+      <div class="in hide">
+        ${f.detail ? `<div class="k">상세</div><div class="dt">${esc(f.detail)}</div>` : ''}
+        ${f.fix ? `<div class="k">💡 고치는 방법</div><div class="fx">${esc(f.fix)}</div>` : ''}
+        ${where ? `<div class="m" style="margin-top:10px">위치 — ${where}</div>` : ''}
+      </div></div>`;
   }).join('');
+  $('#finds').innerHTML = rows || '<div class="disc">해당하는 지적사항이 없습니다.</div>';
+  $('#finds').querySelectorAll('button[data-t]').forEach(b => {
+    b.onclick = () => {
+      const in_ = b.nextElementSibling;
+      in_.classList.toggle('hide');
+      b.lastElementChild.textContent = in_.classList.contains('hide') ? '▶' : '▼';
+    };
+  });
 }
 
-function where(w){
-  if(!w) return '';
-  const bits = [];
-  if (w.sheet) bits.push(`시트 ${esc(w.sheet)}`);
-  if (w.sketch) bits.push(`스케치 ${esc(w.sketch)}`);
-  if (w.feature) bits.push(`피처 ${esc(w.feature)}`);
-  if (w.view) bits.push(`뷰 ${esc(w.view)}`);
-  if (w.faces) bits.push(`면 ${w.faces.join(' ↔ ')}`);
-  if (w.x_cm != null) bits.push(`위치 (${(+w.x_cm).toFixed(1)}, ${(+w.y_cm).toFixed(1)}) cm`);
-  if (w.count > 1) bits.push(`${w.count}곳`);
-  return bits.length ? `<div style="margin-top:7px;font-size:11.5px;opacity:.75">
-    ${bits.join(' · ')}</div>` : '';
+function drawInfo(d){
+  const rows = [];
+  Object.entries(d.props || {}).forEach(([k, v]) => {
+    if (v) rows.push([PROP[k] || k, v]); });
+  Object.entries(d.stats || {}).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== '' && k !== 'kind')
+      rows.push([STAT[k] || k, typeof v === 'boolean' ? (v ? '있음' : '없음') : v]); });
+  $('#info').classList.toggle('hide', !rows.length);
+  $('#igrid').innerHTML = rows.map(([l, v]) =>
+    `<div><div class="l">${esc(l)}</div><div class="v">${esc(v)}</div></div>`).join('');
 }
 
-/* ---------------- 3D preview ---------------- */
-/* Own STL parser + orbit: STLLoader and OrbitControls are separate files, and
-   two more vendored downloads to rotate a mesh is not worth it. */
+/* ---------- 2D 뷰어 ---------- */
+let zoom = 1, ox = 0, oy = 0;
+const pan = $('#pan'), stage = $('#stage');
+function apply(){
+  pan.style.transform = `translate(${ox}px,${oy}px) scale(${zoom})`;
+  $('#zoomv').textContent = Math.round(zoom * 100) + '%';
+}
+function fit(){
+  const svg = pan.querySelector('svg');
+  if (!svg) return;
+  const r = stage.getBoundingClientRect();
+  const w = svg.viewBox.baseVal.width || svg.clientWidth || 1;
+  const h = svg.viewBox.baseVal.height || svg.clientHeight || 1;
+  zoom = Math.min(r.width / w, r.height / h) * 0.94;
+  ox = (r.width - w * zoom) / 2; oy = (r.height - h * zoom) / 2;
+  apply();
+}
+function drawSvg(d){
+  const has = !!d.svg;
+  $('#viewer').classList.toggle('hide', !has);
+  if (!has) return;
+  pan.innerHTML = d.svg;
+  const svg = pan.querySelector('svg');
+  if (svg && svg.viewBox.baseVal.width){
+    svg.setAttribute('width', svg.viewBox.baseVal.width);
+    svg.setAttribute('height', svg.viewBox.baseVal.height);
+  }
+  requestAnimationFrame(fit);
+}
+$('.vbar').addEventListener('click', e => {
+  const a = e.target.dataset.z;
+  if (!a) return;
+  if (a === 'in') zoom = Math.min(40, zoom * 1.25);
+  else if (a === 'out') zoom = Math.max(.02, zoom / 1.25);
+  else if (a === 'fit') return fit();
+  else if (a === 'one') zoom = 1;
+  else if (a === 'full'){
+    const v = $('#viewer');
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (v.requestFullscreen) v.requestFullscreen().then(() => setTimeout(fit, 120));
+    return;
+  }
+  apply();
+});
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = stage.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const k = e.deltaY < 0 ? 1.12 : 1/1.12;
+  const nz = Math.max(.02, Math.min(40, zoom * k));
+  ox = mx - (mx - ox) * (nz / zoom); oy = my - (my - oy) * (nz / zoom);
+  zoom = nz; apply();
+}, {passive:false});
+let dragging = false, px = 0, py = 0;
+stage.addEventListener('pointerdown', e => {
+  dragging = true; px = e.clientX; py = e.clientY;
+  stage.classList.add('drag'); stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  ox += e.clientX - px; oy += e.clientY - py; px = e.clientX; py = e.clientY; apply();
+});
+['pointerup','pointercancel'].forEach(t => stage.addEventListener(t, () => {
+  dragging = false; stage.classList.remove('drag'); }));
+stage.addEventListener('dblclick', () => { zoom = Math.min(40, zoom * 1.6); apply(); });
+
+/* ---------- 3D 뷰어 ---------- */
+let renderer, scene, camera, mesh, wire = false, raf = 0;
 function parseSTL(buf){
   const dv = new DataView(buf);
-  // An ASCII STL starts with "solid", but so can a binary one, so trust the
-  // length arithmetic instead: 84 + 50*triangles is exact for binary.
-  const isBin = buf.byteLength >= 84 &&
-                84 + dv.getUint32(80, true) * 50 === buf.byteLength;
-  if (!isBin) return parseAsciiSTL(new TextDecoder().decode(buf));
-  const n = dv.getUint32(80, true);
-  const pos = new Float32Array(n * 9), nor = new Float32Array(n * 9);
-  for (let i = 0, o = 84; i < n; i++, o += 50){
-    const nx = dv.getFloat32(o, true), ny = dv.getFloat32(o+4, true),
-          nz = dv.getFloat32(o+8, true);
-    for (let v = 0; v < 3; v++){
-      const p = o + 12 + v*12, k = i*9 + v*3;
-      pos[k]   = dv.getFloat32(p, true);
-      pos[k+1] = dv.getFloat32(p+4, true);
-      pos[k+2] = dv.getFloat32(p+8, true);
-      nor[k] = nx; nor[k+1] = ny; nor[k+2] = nz;
+  if (buf.byteLength >= 84 && 84 + dv.getUint32(80, true) * 50 === buf.byteLength){
+    const n = dv.getUint32(80, true);
+    const pos = new Float32Array(n * 9), nor = new Float32Array(n * 9);
+    for (let i = 0; i < n; i++){
+      const o = 84 + i * 50;
+      const nx = dv.getFloat32(o, true), ny = dv.getFloat32(o+4, true), nz = dv.getFloat32(o+8, true);
+      for (let v = 0; v < 3; v++){
+        const p = o + 12 + v * 12, j = i * 9 + v * 3;
+        pos[j] = dv.getFloat32(p, true);
+        pos[j+1] = dv.getFloat32(p+4, true);
+        pos[j+2] = dv.getFloat32(p+8, true);
+        nor[j] = nx; nor[j+1] = ny; nor[j+2] = nz;
+      }
     }
+    return {pos, nor};
   }
-  return {pos, nor};
+  const txt = new TextDecoder().decode(buf), out = [];
+  const re = /vertex\s+([-\d.eE+]+)\s+([-\d.eE+]+)\s+([-\d.eE+]+)/g;
+  let m; while ((m = re.exec(txt))) out.push(+m[1], +m[2], +m[3]);
+  return {pos: new Float32Array(out), nor: null};
 }
-function parseAsciiSTL(txt){
-  const nums = [], re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g;
-  let m; while ((m = re.exec(txt))) nums.push(+m[1], +m[2], +m[3]);
-  return {pos: new Float32Array(nums), nor: null};
-}
-
-let M = null;   // {renderer,scene,camera,mesh,...}
-function show3D(url){
-  const card = $('#modelcard');
-  if (!url){ card.style.display = 'none'; return; }
-  card.style.display = '';
-  $('#mstatus').textContent = '불러오는 중…';
-  if (typeof THREE === 'undefined'){
-    $('#mstatus').textContent = '3D 라이브러리를 불러올 수 없습니다 (static/vendor/three.min.js).';
-    return;
-  }
-  fetch(url).then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+function draw3D(d){
+  const box = $('#m3d'), host = $('#mstage');
+  cancelAnimationFrame(raf);
+  box.classList.toggle('hide', !d.model_url);
+  if (!d.model_url || !window.THREE) return;
+  fetch(d.model_url).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
     .then(buf => {
       const {pos, nor} = parseSTL(buf);
-      if (!pos.length) throw new Error('빈 메시');
-      build(pos, nor);
-      $('#mstatus').textContent = '';
-    })
-    .catch(e => { $('#mstatus').textContent = '3D 미리보기 실패: ' + e.message; });
+      host.innerHTML = '';
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0f13);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      if (nor) g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+      else g.computeVertexNormals();
+      g.computeBoundingSphere();
+      const s = g.boundingSphere;
+      g.translate(-s.center.x, -s.center.y, -s.center.z);
+      mesh = new THREE.Mesh(g, new THREE.MeshPhongMaterial(
+        {color:0x8fa3b8, shininess:35, flatShading:!nor}));
+      scene.add(mesh);
+      scene.add(new THREE.AmbientLight(0xffffff, .55));
+      const l1 = new THREE.DirectionalLight(0xffffff, .8); l1.position.set(1,1,1);
+      const l2 = new THREE.DirectionalLight(0xffffff, .35); l2.position.set(-1,-.6,-1);
+      scene.add(l1, l2);
+      const w = host.clientWidth || 500, h = host.clientHeight || 320;
+      camera = new THREE.PerspectiveCamera(45, w/h, s.radius/100, s.radius*100);
+      camera.position.set(0, 0, s.radius * 3);
+      renderer = new THREE.WebGLRenderer({antialias:true});
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+      host.appendChild(renderer.domElement);
+      let rx = .5, ry = .6, dist = s.radius * 3, dg = false, lx = 0, ly = 0;
+      const el = renderer.domElement;
+      el.addEventListener('pointerdown', e => { dg = true; lx = e.clientX; ly = e.clientY;
+        el.setPointerCapture(e.pointerId); });
+      el.addEventListener('pointermove', e => { if (!dg) return;
+        ry += (e.clientX - lx) * .01; rx += (e.clientY - ly) * .01;
+        lx = e.clientX; ly = e.clientY; });
+      ['pointerup','pointercancel'].forEach(t => el.addEventListener(t, () => dg = false));
+      el.addEventListener('wheel', e => { e.preventDefault();
+        dist = Math.max(s.radius*1.2, Math.min(s.radius*20,
+          dist * (e.deltaY < 0 ? .9 : 1.1))); }, {passive:false});
+      $('#mreset').onclick = () => { rx = .5; ry = .6; dist = s.radius * 3; };
+      $('#mwire').onclick = () => { wire = !wire; mesh.material.wireframe = wire; };
+      (function loop(){
+        raf = requestAnimationFrame(loop);
+        camera.position.set(Math.cos(rx)*Math.sin(ry)*dist,
+          Math.sin(rx)*dist, Math.cos(rx)*Math.cos(ry)*dist);
+        camera.lookAt(0, 0, 0);
+        renderer.render(scene, camera);
+      })();
+    }).catch(() => box.classList.add('hide'));
 }
-
-function build(pos, nor){
-  const cv = $('#cv');
-  if (M) { M.renderer.dispose(); M.geo.dispose(); }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  if (nor) geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
-  else geo.computeVertexNormals();
-  geo.computeBoundingSphere();
-  geo.center();
-  const rad = geo.boundingSphere.radius || 1;
-
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x15181e);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({
-    color: 0x9fb4d0, specular: 0x223344, shininess: 22,
-    side: THREE.DoubleSide, flatShading: !nor}));
-  scene.add(mesh);
-  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(geo),
-    new THREE.LineBasicMaterial({color: 0x5aa9ff, transparent:true, opacity:.25}));
-  wire.visible = false; scene.add(wire);
-
-  scene.add(new THREE.AmbientLight(0xffffff, .55));
-  const key = new THREE.DirectionalLight(0xffffff, .85); key.position.set(1,1.4,1);
-  scene.add(key);
-  const rim = new THREE.DirectionalLight(0x88aaff, .35); rim.position.set(-1,-.6,-.8);
-  scene.add(rim);
-
-  const cam = new THREE.PerspectiveCamera(45, 1, rad/100, rad*100);
-  const renderer = new THREE.WebGLRenderer({canvas: cv, antialias: true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-
-  M = {renderer, scene, cam, mesh, wire, geo, rad,
-       yaw: .7, pitch: -.5, dist: rad*3.2, panx: 0, pany: 0};
-  resize3D(); draw3D();
-}
-
-function draw3D(){
-  if (!M) return;
-  const {cam, rad} = M;
-  const cp = Math.cos(M.pitch), sp = Math.sin(M.pitch);
-  cam.position.set(M.dist*cp*Math.sin(M.yaw), M.dist*sp, M.dist*cp*Math.cos(M.yaw));
-  cam.position.x += M.panx; cam.position.y += M.pany;
-  cam.lookAt(M.panx, M.pany, 0);
-  cam.near = Math.max(rad/100, M.dist - rad*3);
-  cam.far = M.dist + rad*4;
-  cam.updateProjectionMatrix();
-  M.renderer.render(M.scene, M.cam);
-}
-
-function resize3D(){
-  if (!M) return;
-  const cv = $('#cv'), w = cv.clientWidth || 600, h = cv.clientHeight || 400;
-  M.renderer.setSize(w, h, false);
-  M.cam.aspect = w / h; M.cam.updateProjectionMatrix();
-  draw3D();
-}
-addEventListener('resize', resize3D);
-
-(function bindOrbit(){
-  const cv = $('#cv');
-  let drag = null;
-  cv.addEventListener('contextmenu', e => e.preventDefault());
-  cv.addEventListener('pointerdown', e => {
-    if (!M) return;
-    drag = {x:e.clientX, y:e.clientY, btn:e.button};
-    cv.setPointerCapture(e.pointerId);
-  });
-  cv.addEventListener('pointermove', e => {
-    if (!drag || !M) return;
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    drag.x = e.clientX; drag.y = e.clientY;
-    if (drag.btn === 2){
-      M.panx -= dx * M.dist * 0.0015;
-      M.pany += dy * M.dist * 0.0015;
-    } else {
-      M.yaw += dx * 0.01;
-      M.pitch = Math.max(-1.55, Math.min(1.55, M.pitch + dy * 0.01));
-    }
-    draw3D();
-  });
-  ['pointerup','pointercancel'].forEach(t =>
-    cv.addEventListener(t, () => { drag = null; }));
-  cv.addEventListener('wheel', e => {
-    if (!M) return;
-    e.preventDefault();
-    M.dist = Math.max(M.rad*.4, Math.min(M.rad*40,
-      M.dist * (e.deltaY > 0 ? 1.12 : 1/1.12)));
-    draw3D();
-  }, {passive:false});
-  $('#mreset').onclick = () => {
-    if (!M) return;
-    Object.assign(M, {yaw:.7, pitch:-.5, dist:M.rad*3.2, panx:0, pany:0});
-    draw3D();
-  };
-  $('#mwire').onclick = () => {
-    if (!M) return;
-    M.wire.visible = !M.wire.visible;
-    draw3D();
-  };
-})();
-
-let z = 1;
-function zoom(mult){
-  const svg = $('#viewwrap svg'); if (!svg) return;
-  z = mult ? Math.min(8, Math.max(.2, z*mult)) : 1;
-  svg.style.transform = `scale(${z})`;
-  svg.style.width = (100*z) + '%';
-  svg.style.transform = '';
-}
-document.querySelectorAll('button.t[data-z]').forEach(b =>
-  b.onclick = () => zoom(parseFloat(b.dataset.z)));
-$('#toggleall').onclick = e => {
-  const items = [...document.querySelectorAll('.f')];
-  const open = items.some(i => !i.classList.contains('open'));
-  items.forEach(i => i.classList.toggle('open', open));
-  e.target.textContent = open ? '전체 접기' : '전체 펼치기';
-};
 </script>
 </body>
 </html>

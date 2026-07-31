@@ -1,5 +1,6 @@
 import base64
 import copy
+import hashlib
 import json
 import os
 
@@ -191,6 +192,48 @@ def _ask_gemini(png, prompt, timeout):
     return response.text
 
 
+SHIPPED_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aicache")
+CACHE_DIR = os.path.join(
+    os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"),
+    "cad-checker", "aicache")
+
+
+def _cache_key(png, model):
+    h = hashlib.sha256()
+    h.update(model.encode())
+    h.update(b"\0")
+    h.update(SYSTEM.encode())
+    h.update(b"\0")
+    h.update(png)
+    return h.hexdigest()[:32] + ".json"
+
+
+def _cache_path(png, model):
+    return os.path.join(CACHE_DIR, _cache_key(png, model))
+
+
+def _cache_get(path):
+    name = os.path.basename(path)
+    for d in (SHIPPED_CACHE, CACHE_DIR):
+        try:
+            with open(os.path.join(d, name), encoding="utf-8") as fh:
+                return json.load(fh)
+        except Exception:
+            continue
+    return None
+
+
+def _cache_put(path, data):
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False)
+        os.replace(tmp, path)
+    except Exception:
+        pass
+
+
 def judge(facts, timeout=120.0):
     name = provider()
     dxf = facts.get("dxf")
@@ -202,11 +245,19 @@ def judge(facts, timeout=120.0):
     except Exception:
         return None
 
+    model = active_model()
+    cached = _cache_path(png, model)
+    hit = _cache_get(cached)
+    if hit is not None:
+        print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
+        return _to_findings(hit, model)
+
     prompt = PROMPT + _context(facts)
     ask = {"claude": _ask_claude, "gemini": _ask_gemini}[name]
     try:
         text = ask(png, prompt, timeout)
-    except Exception:
+    except Exception as e:
+        print(f"[ai] {type(e).__name__}: {str(e)[:300]}", flush=True)
         return None
     if not text:
         return None
@@ -218,7 +269,8 @@ def judge(facts, timeout=120.0):
     if not isinstance(data, dict):
         return None
 
-    return _to_findings(data, active_model())
+    _cache_put(cached, data)
+    return _to_findings(data, model)
 
 
 def _to_findings(data, model):
