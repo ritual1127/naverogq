@@ -11,4 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build production image
-        run: docker build --progress=plain -t cad-checker:test .
+        shell: bash
+        run: |
+          set +e
+          docker build --progress=plain -t cad-checker:test . 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            detail=$(tail -80 build.log)
+            detail=${detail//'%'/'%25'}
+            detail=${detail//$'\r'/'%0D'}
+            detail=${detail//$'\n'/'%0A'}
+            echo "::error title=Docker build failed::$detail"
+          fi
+          exit "$status"
