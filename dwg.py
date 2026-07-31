@@ -12,6 +12,7 @@ from ezdxf import bbox
 from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing import layout as dlayout
 from ezdxf.addons.drawing import svg as dsvg
+from ezdxf.addons.drawing.config import Configuration, LineweightPolicy
 
 MARGIN_MM = 5.0
 CENTER_TOL = 0.5
@@ -518,20 +519,49 @@ def _arrow(msp, x, y, ring, span, label):
 
 
 def _finish(doc, msp):
+    bb = bbox.extents(msp)
+    margin = _drawing_margin(bb)
+    _prepare_preview_colors(doc)
     back = dsvg.SVGBackend()
-    Frontend(RenderContext(doc), back).draw_layout(msp)
+    config = Configuration(lineweight_policy=LineweightPolicy.RELATIVE)
+    Frontend(RenderContext(doc), back, config=config).draw_layout(
+        msp, filter_func=lambda entity: entity.dxftype() != "POINT")
     s = back.get_string(dlayout.Page(0, 0, dlayout.Units.mm,
-                                    dlayout.Margins.all(MARGIN_MM)))
-    return s, _transform(s, bbox.extents(msp))
+                                    dlayout.Margins.all(margin)))
+    return s, _transform(s, bb, margin)
 
 
-def _transform(svg_text, bb):
+def _drawing_margin(bb):
+    if not bb.has_data:
+        return MARGIN_MM
+    span = max(bb.size.x, bb.size.y)
+    return min(MARGIN_MM, max(span * 0.05, 1e-6))
+
+
+def _prepare_preview_colors(doc):
+    for layer in doc.layers:
+        if layer.dxf.name == ERR_LAYER:
+            continue
+        layer.dxf.color = 7
+        layer.dxf.discard("true_color")
+    for entity in doc.entitydb.values():
+        try:
+            if entity.dxf.get("layer", "0") == ERR_LAYER:
+                continue
+            if entity.dxf.hasattr("color"):
+                entity.dxf.color = 7
+            entity.dxf.discard("true_color")
+        except (AttributeError, TypeError):
+            continue
+
+
+def _transform(svg_text, bb, margin=MARGIN_MM):
     try:
         vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', svg_text).group(1).split()]
         w_mm = float(re.search(r'width="([\d.]+)mm"', svg_text).group(1))
         upm = vb[2] / w_mm
-        return {"scale": upm, "off_x": (-bb.extmin.x + MARGIN_MM) * upm,
-                "off_y": (bb.extmax.y + MARGIN_MM) * upm,
+        return {"scale": upm, "off_x": (-bb.extmin.x + margin) * upm,
+                "off_y": (bb.extmax.y + margin) * upm,
                 "view_w": vb[2], "view_h": vb[3]}
     except Exception:
         return None
@@ -550,4 +580,3 @@ if __name__ == "__main__":
     import sys
     f = analyze(sys.argv[1])
     print(json.dumps(f, ensure_ascii=False, indent=2, default=str))
-

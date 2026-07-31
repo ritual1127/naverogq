@@ -1,3 +1,5 @@
+import re
+
 import rules as R
 
 
@@ -189,10 +191,42 @@ def test_unit_detection():
     assert dwg.detect_mm_per_unit(d, d.modelspace())[0] == 25.4
 
 
+def test_render_margin_scales_for_meter_drawings():
+    import ezdxf
+    import dwg
+    from ezdxf import bbox
+
+    def margin_for(size):
+        doc = ezdxf.new("R2010")
+        doc.modelspace().add_line((0, 0), (size, size * 0.6))
+        return dwg._drawing_margin(bbox.extents(doc.modelspace()))
+
+    assert abs(margin_for(0.12) - 0.006) < 1e-9
+    assert margin_for(210) == dwg.MARGIN_MM
+
+    doc = ezdxf.new("R2010")
+    doc.layers.add("SOURCE_RED", color=1)
+    doc.layers.add(dwg.ERR_LAYER, color=1)
+    source = doc.modelspace().add_line((0, 0), (1, 1),
+                                       dxfattribs={"layer": "SOURCE_RED",
+                                                   "color": 1})
+    marker = doc.modelspace().add_circle((0, 0), 1,
+                                         dxfattribs={"layer": dwg.ERR_LAYER,
+                                                     "color": 1})
+    dwg._prepare_preview_colors(doc)
+    assert source.dxf.color == 7
+    assert doc.layers.get("SOURCE_RED").color == 7
+    assert marker.dxf.color == 1
+    assert doc.layers.get(dwg.ERR_LAYER).color == 1
+
+    svg, _ = dwg._finish(doc, doc.modelspace())
+    widths = [int(value) for value in re.findall(r"stroke-width: (\d+)", svg)]
+    assert widths and max(widths) < 5000, widths
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
         t()
         print(f"  ok  {t.__name__}")
     print(f"\n{len(tests)} checks passed")
-

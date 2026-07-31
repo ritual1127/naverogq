@@ -37,9 +37,9 @@ COPY --chown=app *.py ./
 COPY --chown=app static/ ./static/
 COPY --chown=app samples/ ./samples/
 
-# A successful image must be able to convert and parse a real DWG, not merely
+# A successful image must convert, parse, and render a real DWG, not merely
 # contain a binary named dwg2dxf.
-RUN python -c "import os, tempfile; import dwg; src='samples/sample_075em07z.dwg'; out=os.path.join(tempfile.mkdtemp(), 'sample.dxf'); assert dwg.dwg_via_libredwg(src, out), 'LibreDWG could not convert the bundled DWG sample'; print('DWG conversion smoke test passed')"
+RUN python -c "import os, tempfile; import dwg; src='samples/sample_075em07z.dwg'; out=os.path.join(tempfile.mkdtemp(), 'sample.dxf'); assert dwg.dwg_via_libredwg(src, out), 'LibreDWG could not convert the bundled DWG sample'; svg, _, _ = dwg.render_svg(out); assert len(svg) > 1000, 'DWG preview SVG is empty'; print('DWG conversion and preview smoke test passed')"
 
 EXPOSE 7860
 
