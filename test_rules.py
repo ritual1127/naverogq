@@ -1,4 +1,6 @@
 import re
+import os
+import tempfile
 
 import rules as R
 
@@ -250,6 +252,50 @@ def test_marker_labels_use_distinct_rail_positions():
     assert leaders and all(line.dxf.lineweight == 100 for line in leaders)
     badges = list(space.query(f'CIRCLE[layer=="{dwg.ERR_LAYER}"]'))
     assert len(badges) == len(markers) * 2
+
+
+def test_recovers_orphaned_inventor_paper_views():
+    import ezdxf
+    import dwg
+
+    doc = ezdxf.new("R2013")
+    layout = doc.layouts.new("시트")
+    layout.add_viewport(center=(100, 80), size=(60, 40),
+                        view_center_point=(0, 0), view_height=20,
+                        dxfattribs={"id": 2})
+    block = doc.blocks.new("부품_시트_뷰1")
+    block.add_circle((0, 0), 8)
+    block.add_line((-10, 0), (10, 0))
+
+    path = os.path.join(tempfile.mkdtemp(), "orphaned.dxf")
+    doc.saveas(path)
+    assert not dwg.dxf_has_content(path)
+    assert dwg.recover_orphaned_paper_views(path)
+    restored = ezdxf.readfile(path)
+    inserts = list(restored.modelspace().query("INSERT"))
+    assert len(inserts) == 1
+    assert inserts[0].dxf.name == "부품_시트_뷰1"
+
+
+def test_marker_index_targets_the_actual_dimension_finding():
+    import ezdxf
+    import main
+
+    doc = ezdxf.new("R2013")
+    doc.modelspace().add_circle((10, 10), 2)
+    path = os.path.join(tempfile.mkdtemp(), "markers.dxf")
+    doc.saveas(path)
+    circle = {"diameter_mm": 4.0, "count": 1,
+              "dxf_x": 10.0, "dxf_y": 10.0, "dxf_r": 2.0}
+
+    facts = {"dxf": path, "sheets": [
+        {"name": "Model", "dims": [], "undimensioned": [circle]}]}
+    _, _, index, _ = main._render(facts)
+    assert index[0]["finding_code"] == "EX_NO_DIMS"
+
+    facts["sheets"][0]["dims"] = [{"value_mm": 10.0}]
+    _, _, index, _ = main._render(facts)
+    assert index[0]["finding_code"] == "EX_DIM_MISSING"
 
 
 if __name__ == "__main__":

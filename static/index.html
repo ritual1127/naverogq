@@ -204,6 +204,12 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
 .find .num{display:inline-block;min-width:19px;height:19px;line-height:19px;
   border-radius:50%;background:var(--fail);color:#fff;font-size:11px;
   font-weight:700;text-align:center;margin-right:7px;font-family:var(--mono)}
+.marker-summary{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.marker-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;
+  border:1px solid rgba(255,68,68,.34);border-radius:3px;
+  background:rgba(255,68,68,.08);color:#ffb0b0;font:10.5px var(--mono)}
+.marker-chip b{display:inline-grid;place-items:center;width:18px;height:18px;
+  border-radius:50%;background:var(--fail);color:#fff;font-size:10px}
 .find .in{padding:12px;border-top:1px solid rgba(255,255,255,.08);
   background:rgba(0,0,0,.28)}
 .find .k{font-size:11px;color:var(--dim);text-transform:uppercase;
@@ -237,6 +243,76 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
   .body{padding:24px 20px 40px}
   .vstage{height:52vh}
 }
+
+/* Product workspace */
+:root{
+  --bg:#0b1014;--panel:#151b21;--panel2:#10161b;
+  --line:#27313a;--line2:#394650;--fg:#edf2f4;--dim:#97a3aa;--dim2:#66737b;
+  --accent:#2dd4bf;--green:#a3e635;--ai:#60a5fa;
+  --fail:#fb5563;--error:#ff8066;--warn:#fbbf24;--info:#94a3b8;
+}
+*{letter-spacing:0!important}
+body{background:var(--bg);color:var(--fg)}
+.hd{padding:18px 28px;border-color:var(--line);background:#0d1318}
+.hd-row{margin:0;gap:11px}.hd h1{font-size:21px}.hd p{display:inline;color:var(--dim)}
+.hd .sub{display:inline;margin-left:8px;color:var(--dim2)}
+.body{width:min(1220px,100%);margin:0 auto;padding:24px 28px 48px;gap:20px}
+#work{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px}
+#work>.drop{grid-column:1/9}
+#warns,#pathwrap{grid-column:1/9;margin-top:0!important}
+#samples{grid-column:1/-1;margin-top:0!important}
+#picker{grid-column:9/-1;grid-row:1/span 3;margin-top:0!important;align-self:start}
+#rubsec{grid-column:1/8;margin-top:0!important}
+#dqsec{grid-column:8/-1;margin-top:0!important}
+#gsec{grid-column:1/-1;margin-top:0!important}
+.quickstart{display:none}
+.drop{min-height:190px;padding:34px;border:1px solid #3f786f;border-radius:6px;
+  background:#111a1e;display:grid;place-content:center}
+.drop:hover,.drop.over{background:#142126;border-color:var(--accent)}
+.drop .ico{font:700 11px var(--mono);color:var(--accent);margin:0 auto 13px;
+  border:1px solid #35796f;border-radius:3px;padding:5px 8px}
+.drop .t{font-size:17px}.drop .s{color:var(--dim)}
+.picker,.sample,.gcard{border-radius:6px;background:var(--panel)}
+.picker>summary{min-height:54px}.sample:hover{background:#182229}
+.lab,.kicker{color:var(--dim);text-transform:none;font-size:11px}
+h3.sec{font-size:19px;margin-bottom:14px}
+.rub{background:var(--panel2);border-color:var(--line);padding:9px 12px}
+.rub .v{font-size:15px;color:var(--accent)}
+.dq{padding:20px;border-color:#7a3440;background:#1a1418}.dq h3{font-size:19px}
+.dq p{margin-bottom:12px}.dq .row{margin-bottom:8px}.dq .x{font-size:15px}
+
+#res{min-height:100vh;background:var(--bg)}
+.rhd{position:sticky;top:0;z-index:20;padding:12px 24px;background:#0d1318;
+  border-color:var(--line)}
+.rhd h2{font-size:16px}.back{background:var(--panel2);border-radius:4px}
+.cols{grid-template-columns:minmax(0,1.62fr) minmax(370px,.88fr);gap:16px;
+  padding:16px 24px 24px}
+.left{top:76px;gap:12px}.right{gap:14px;max-height:calc(100vh - 88px);
+  overflow-y:auto;padding-right:5px;scrollbar-color:var(--line2) transparent}
+.viewer{border-radius:5px;background:var(--panel2)}
+.vbar{min-height:42px;background:#11181e;padding:7px 10px}
+.vbar button{width:30px;height:28px;padding:0;border-radius:3px;font:600 14px var(--mono)}
+.vbar button[data-z="one"]{width:42px;font-size:11px}
+.vstage{height:calc(100vh - 150px);min-height:560px;background:#090d10}
+.info{border-radius:5px;background:#11181e}
+.card{padding:16px;border-radius:5px;text-align:left;background:var(--panel)}
+.card .ico{display:none}.card .big{font-size:34px;color:var(--accent)}
+.card.f .big{font-size:27px}.card .sc{margin-top:2px}.cnts{margin-top:12px}
+.item{border-radius:4px;background:#12191f;padding:10px 12px}.bar{height:4px}
+.find{border-radius:4px;background:#12191f}.find>button{padding:11px}
+.marker-chip{background:#21171b;border-color:#74313a;color:#ffc1c6}
+.fbar{position:sticky;top:0;z-index:2;padding:4px 0;background:var(--bg)}
+.fbar button{background:#11181e}.fbar button.on{background:#122521}
+.warnbar{border-radius:4px}.disc{border-radius:3px}
+
+@media(max-width:1020px){
+  .hd p,.hd .sub{display:block;margin:3px 0 0}
+  .body{padding:20px}
+  #work{display:flex;flex-direction:column}
+  #picker{order:3}.quickstart{display:none}
+  .cols{grid-template-columns:1fr;padding:12px}.left{position:static}
+  .right{max-height:none;overflow:visible}.vstage{height:58vh;min-height:380px}
+}
 </style>
 </head>
 <body>
@@ -246,12 +322,12 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
   <div class="hd">
     <div class="hd-row">
       <svg width="40" height="40" viewBox="0 0 40 40" style="flex-shrink:0">
-        <rect x="4" y="4" width="32" height="32" rx="4" fill="none" stroke="#ffa500" stroke-width="2"/>
+        <rect x="4" y="4" width="32" height="32" rx="4" fill="none" stroke="#2dd4bf" stroke-width="2"/>
         <line x1="12" y1="12" x2="28" y2="12" stroke="#90ee90" stroke-width="1.5"/>
         <line x1="12" y1="16" x2="24" y2="16" stroke="#90ee90" stroke-width="1.5"/>
         <line x1="12" y1="20" x2="20" y2="20" stroke="#90ee90" stroke-width="1.5"/>
-        <circle cx="28" cy="24" r="1.5" fill="#ffa500"/>
-        <circle cx="28" cy="28" r="1.5" fill="#ffa500"/>
+        <circle cx="28" cy="24" r="1.5" fill="#2dd4bf"/>
+        <circle cx="28" cy="28" r="1.5" fill="#2dd4bf"/>
         <line x1="12" y1="28" x2="24" y2="28" stroke="#d4d4d8" stroke-width="1" stroke-dasharray="2,2"/>
       </svg>
       <h1>도면 자동 채점</h1>
@@ -291,7 +367,7 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
         <div class="in" id="pbody"></div>
       </details>
 
-      <section style="margin-top:40px">
+      <section class="quickstart" style="margin-top:40px">
         <div class="kicker">· 단계별 안내</div>
         <h3 class="sec">3단계로 시작하세요</h3>
         <div style="display:flex;flex-direction:column;gap:18px">
@@ -308,7 +384,7 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
         </div>
       </section>
 
-      <section style="margin-top:40px">
+      <section id="rubsec" style="margin-top:40px">
         <div class="kicker">· 채점 기준</div>
         <h3 class="sec">배점 구성 (총 <span id="rubtotal">—</span>점)</h3>
         <div id="rubric"></div>
@@ -391,12 +467,12 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
   <div class="rhd">
     <div style="display:flex;gap:12px;align-items:center;min-width:0">
       <svg width="26" height="26" viewBox="0 0 40 40" style="flex-shrink:0">
-        <rect x="4" y="4" width="32" height="32" rx="4" fill="none" stroke="#ffa500" stroke-width="2"/>
+        <rect x="4" y="4" width="32" height="32" rx="4" fill="none" stroke="#2dd4bf" stroke-width="2"/>
         <line x1="12" y1="12" x2="28" y2="12" stroke="#90ee90" stroke-width="1.5"/>
         <line x1="12" y1="16" x2="24" y2="16" stroke="#90ee90" stroke-width="1.5"/>
         <line x1="12" y1="20" x2="20" y2="20" stroke="#90ee90" stroke-width="1.5"/>
-        <circle cx="28" cy="24" r="1.5" fill="#ffa500"/>
-        <circle cx="28" cy="28" r="1.5" fill="#ffa500"/>
+        <circle cx="28" cy="24" r="1.5" fill="#2dd4bf"/>
+        <circle cx="28" cy="28" r="1.5" fill="#2dd4bf"/>
       </svg>
       <div style="min-width:0">
         <h2 id="rfile"></h2>
@@ -410,11 +486,11 @@ h3.sec{font-size:26px;font-weight:700;margin-bottom:22px;letter-spacing:-.02em}
       <div class="viewer hide" id="viewer">
         <div class="vbar">
           <div class="g">
-            <button data-z="in">확대 +</button>
-            <button data-z="out">축소 −</button>
-            <button data-z="fit">맞추기</button>
-            <button data-z="one">1:1</button>
-            <button data-z="full">전체화면</button>
+            <button data-z="in" title="확대" aria-label="확대">＋</button>
+            <button data-z="out" title="축소" aria-label="축소">−</button>
+            <button data-z="fit" title="화면 맞춤" aria-label="화면 맞춤">⌖</button>
+            <button data-z="one" title="원본 배율" aria-label="원본 배율">1:1</button>
+            <button data-z="full" title="전체 화면" aria-label="전체 화면">⛶</button>
           </div>
           <div class="z mono" id="zoomv">100%</div>
         </div>
@@ -735,13 +811,17 @@ function drawFindings(d){
   });
 
   const idx = d.markers_placed ? (d.marker_index || []) : [];
-  let mk = 0;
   const rows = all.filter(f => !sevFilter || f.severity === sevFilter).map(f => {
     const col = SEV[f.severity] || SEV.info;
     const isMarked = d.markers_placed &&
-      (f.code === 'DIM_MISSING' || f.code === 'EX_DIM_MISSING');
-    const num = isMarked && mk < idx.length
-      ? `<span class="num">${++mk}</span>` : '';
+      (f.code === 'DIM_MISSING' || f.code === 'EX_DIM_MISSING' || f.code === 'EX_NO_DIMS');
+    const markerItems = isMarked ? idx.filter(m =>
+      !m.finding_code || m.finding_code === f.code ||
+      (f.code === 'DIM_MISSING' && m.finding_code === 'EX_DIM_MISSING')) : [];
+    const markerSummary = markerItems.length ? `<div class="marker-summary">
+      ${markerItems.map(m => `<span class="marker-chip"><b>${m.n}</b>
+        Ø${Number(m.diameter_mm).toFixed(1)} · ${m.count || 1}곳</span>`).join('')}
+      </div>` : '';
     const bits = [];
     if (f.item) bits.push(esc(f.item));
     if (f.deduct) bits.push(`${f.deduct}점 차감`);
@@ -753,8 +833,8 @@ function drawFindings(d){
         <div style="display:flex;gap:8px;align-items:flex-start;flex:1;min-width:0">
           <div class="dot" style="color:${col}">●</div>
           <div style="flex:1;min-width:0">
-            <div class="t">${num}${esc(f.title)}</div>
-            <div class="m">${bits.join(' · ')}</div></div></div>
+            <div class="t">${esc(f.title)}</div>
+            <div class="m">${bits.join(' · ')}</div>${markerSummary}</div></div>
         <div style="color:var(--dim)">▶</div></button>
       <div class="in hide">
         ${f.detail ? `<div class="k">상세</div><div class="dt">${esc(f.detail)}</div>` : ''}

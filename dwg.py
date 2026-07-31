@@ -9,6 +9,7 @@ import traceback
 
 import ezdxf
 from ezdxf import bbox
+from ezdxf.addons import Importer
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing import layout as dlayout
@@ -52,7 +53,9 @@ def dwg_via_libredwg(dwg_path, out_dxf):
                        cwd=os.path.dirname(exe))
     if r.returncode != 0 or not os.path.exists(out_dxf):
         return False
-    return dxf_has_content(out_dxf)
+    if dxf_has_content(out_dxf):
+        return True
+    return recover_orphaned_paper_views(out_dxf)
 
 
 REAL_ENTITIES = {"LINE", "CIRCLE", "ARC", "DIMENSION", "POLYLINE", "LWPOLYLINE",
@@ -72,6 +75,84 @@ def dxf_has_content(path):
         except Exception:
             continue
     return False
+
+
+_VIEW_BLOCK_RE = re.compile(r"(?:뷰|view)\s*(\d+)$", re.IGNORECASE)
+_ANON_BLOCK_RE = re.compile(r"^\*I\d+$", re.IGNORECASE)
+
+
+def recover_orphaned_paper_views(path):
+    """Restore Inventor drawing views that LibreDWG leaves as orphan blocks."""
+    try:
+        doc = ezdxf.readfile(path)
+    except Exception:
+        return False
+
+    viewports = []
+    for name in doc.layout_names():
+        if name.lower() == "model":
+            continue
+        try:
+            viewports.extend(v for v in doc.layouts.get(name).query("VIEWPORT")
+                             if v.dxf.get("id", 0) > 1)
+        except Exception:
+            continue
+    viewports.sort(key=lambda v: v.dxf.get("id", 0))
+
+    view_blocks = []
+    annotation_blocks = []
+    for block in doc.blocks:
+        match = _VIEW_BLOCK_RE.search(block.name)
+        if match and any(e.dxftype() in REAL_ENTITIES for e in block):
+            view_blocks.append((int(match.group(1)), block))
+            continue
+        if _ANON_BLOCK_RE.match(block.name) and not list(block.query("INSERT")):
+            if any(e.dxftype() in REAL_ENTITIES for e in block):
+                annotation_blocks.append(block)
+
+    view_blocks.sort(key=lambda item: item[0])
+    if not viewports or not view_blocks:
+        return False
+
+    target = ezdxf.new("R2013")
+    importer = Importer(doc, target)
+    try:
+        for _, block in view_blocks:
+            importer.import_block(block.name, rename=False)
+        for block in annotation_blocks:
+            importer.import_block(block.name, rename=False)
+        importer.finalize()
+    except Exception:
+        return False
+
+    model = target.modelspace()
+    restored = 0
+    for viewport, (_, block) in zip(viewports, view_blocks):
+        center = viewport.dxf.center
+        view_height = float(viewport.dxf.get("view_height", 0.0) or 0.0)
+        scale = float(viewport.dxf.height) / view_height if view_height > 0 else 1.0
+        model.add_blockref(block.name, (center.x, center.y), dxfattribs={
+            "xscale": scale, "yscale": scale, "zscale": scale})
+        restored += 1
+    for block in annotation_blocks:
+        model.add_blockref(block.name, (0, 0))
+
+    fd, recovered = tempfile.mkstemp(suffix=".dxf", prefix="dwg_recovered_")
+    os.close(fd)
+    try:
+        target.saveas(recovered)
+        if not dxf_has_content(recovered):
+            return False
+        os.replace(recovered, path)
+    except Exception:
+        return False
+    finally:
+        if os.path.exists(recovered):
+            os.unlink(recovered)
+    ok = dxf_has_content(path)
+    if ok:
+        print(f"[dwg] LibreDWG 종이공간 뷰 {restored}개 복원", flush=True)
+    return ok
 
 
 def dwg_via_inventor(dwg_path, out_dxf):
@@ -330,7 +411,7 @@ def facts_from_dxf(path, source_name=None):
     layouts = [msp] + [doc.layouts.get(n) for n in doc.layout_names()
                        if n.lower() != "model"]
     K, unit_why = detect_mm_per_unit(doc, msp)
-    dims, circles, dim_centers, titles = [], [], [], {}
+    dims, circles, dim_centers, titles, texts = [], [], [], {}, []
 
     for lay in layouts:
         try:
@@ -374,6 +455,13 @@ def facts_from_dxf(path, source_name=None):
                                     "layer": e.dxf.layer})
                 except Exception:
                     continue
+            elif t in ("TEXT", "MTEXT"):
+                try:
+                    value = e.plain_text() if t == "MTEXT" else e.dxf.text
+                    if value and value.strip():
+                        texts.append(value.strip())
+                except Exception:
+                    continue
         for ins in lay.query("INSERT"):
             try:
                 attrs = {a.dxf.tag.upper(): (a.dxf.text or "").strip()
@@ -405,14 +493,25 @@ def facts_from_dxf(path, source_name=None):
     undimensioned = sorted(groups.values(), key=lambda c: -c["diameter_mm"])
 
     props = _props_from_titles(titles)
+    view_names = []
+    border = None
+    for ins in msp.query("INSERT"):
+        name = ins.dxf.name
+        if _VIEW_BLOCK_RE.search(name):
+            view_names.append(name)
+        elif border is None and _ANON_BLOCK_RE.match(name):
+            border = name
     sheet = {"name": "Model", "title_block": (list(titles) or [None])[0],
-             "views": [], "dims": dims, "undimensioned": undimensioned,
+             "border": border,
+             "views": [{"name": name, "scale": None} for name in view_names],
+             "dims": dims, "undimensioned": undimensioned,
              "counts": {"circles": len(circles), "title_blocks": len(titles)}}
     return {
         "kind": "dwg", "file": source_name or os.path.basename(path),
         "props": props, "sheets": [sheet], "sketches": [], "holes": [],
         "walls": [], "interferences": [], "sick_features": [],
         "first_angle": None, "dxf": path,
+        "notes_text": texts,
         "title_attributes": titles,
         "unit_mm_per_drawing_unit": K, "unit_source": unit_why,
     }

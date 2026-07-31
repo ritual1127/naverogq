@@ -238,12 +238,15 @@ def _render(facts):
     import dwg
     markers, index = [], []
     for sh in facts.get("sheets", []):
+        finding_code = "EX_DIM_MISSING" if sh.get("dims") else "EX_NO_DIMS"
         for c in sh.get("undimensioned", []):
             if c.get("dxf_x") is None:
                 continue
             markers.append(c)
             index.append({"n": len(markers), "diameter_mm": c["diameter_mm"],
-                          "sheet": sh.get("name")})
+                          "count": c.get("count", 1),
+                          "sheet": sh.get("name"),
+                          "finding_code": finding_code})
     try:
         svg, _, placed = dwg.render_svg(dxf, markers)
         return svg, bool(placed), index[:placed], None
@@ -291,4 +294,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("CADCHECK_PORT", "8000"))
     print(f"\n  http://127.0.0.1:{port}  <- 브라우저에서 열기\n")
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
-
