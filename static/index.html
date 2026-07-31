@@ -398,42 +398,35 @@ h3.sec{font-size:19px;margin-bottom:14px}
       </section>
 
       <section style="margin-top:40px" id="gsec">
-        <div class="kicker">· 다른 형식을 갖고 계신가요</div>
-        <h3 class="sec">이 서버는 <span class="mono" id="onlyext">.dxf</span>만 읽습니다</h3>
+        <div class="kicker">· 지원 형식</div>
+        <h3 class="sec"><span class="mono" id="onlyext">.dwg · .dxf</span>는 바로 분석할 수 있습니다</h3>
         <p style="font-size:13px;color:var(--dim);line-height:1.7;margin-bottom:22px;
           max-width:760px">
-          공개 서버는 리눅스에서 돌아갑니다. DWG 변환기와 Autodesk Inventor는
-          리눅스에서 동작하지 않아, 지금은 DXF만 지원합니다.
-          <b style="color:var(--fg)">아래 두 방법으로 지금 바로 해결할 수 있습니다.</b>
+          공개 서버가 DWG를 자동 변환해 도면과 주서를 분석합니다.
+          Autodesk Inventor 원본 형식인 <code>.ipt · .idw · .iam</code>은
+          Inventor가 설치된 Windows 환경에서 분석할 수 있습니다.
         </p>
         <div class="guide">
 
           <div class="gcard" id="gdwg">
-            <span class="tag">DWG를 갖고 있다면</span>
-            <h4>DXF로 저장해서 올리기</h4>
-            <div class="lead">DXF는 DWG와 같은 도면을 담는 공개 형식입니다.
-              변환해도 치수·공차·기호가 그대로 남아 <b style="color:var(--fg)">채점 결과가
-              동일</b>합니다. 30초면 됩니다.</div>
+            <span class="tag">.dwg · .dxf</span>
+            <h4>DWG 그대로 올리면 됩니다</h4>
+            <div class="lead">서버에 내장된 LibreDWG 변환기가 DWG를 읽습니다.
+              Inventor에서 내보낸 DWG도 종이공간의 투상도와 주서를 찾아
+              <b style="color:var(--fg)">미리보기와 번호 지적</b>을 복원합니다.</div>
             <ol>
-              <li><b>AutoCAD</b> — 파일 &gt; 다른 이름으로 저장 &gt;
-                파일 형식에서 <code>AutoCAD DXF (*.dxf)</code> 선택 &gt; 저장</li>
-              <li><b>Autodesk Inventor</b> — 파일 &gt; 내보내기 &gt; DWG/DXF &gt;
-                <code>DXF 파일</code> 선택 &gt; 저장</li>
-              <li><b>무료 프로그램</b> — LibreCAD·QCAD·NanoCAD에서 도면을 연 뒤
-                같은 방식으로 DXF로 저장</li>
-              <li><b>설치 없이</b> —
-                <a href="https://cloudconvert.com/dwg-to-dxf" target="_blank"
-                   rel="noopener">CloudConvert</a>나
-                <a href="https://www.autodwg.com/dwg-to-dxf/" target="_blank"
-                   rel="noopener">AutoDWG</a> 같은 웹 변환기에 올려 DXF로 받기</li>
+              <li><b>DWG</b> — 파일을 선택하면 서버에서 자동 변환 후 분석</li>
+              <li><b>DXF</b> — 변환 과정 없이 바로 분석</li>
+              <li><b>호환되지 않는 DWG</b> — AutoCAD 또는 Inventor에서 DXF로
+                내보낸 뒤 다시 분석</li>
             </ol>
-            <div class="why">웹 변환기는 도면 파일이 외부 서버로 올라갑니다.
-              표제란에 이름·학번이 있다면 지우고 올리시거나, 위의 프로그램 방식을 쓰세요.</div>
+            <div class="why">DWG는 작성 프로그램과 버전에 따라 내부 구조가 다릅니다.
+              미리보기가 비어 보일 때만 DXF로 내보내 다시 올리면 됩니다.</div>
           </div>
 
           <div class="gcard" id="glocal">
             <span class="tag soon">.ipt · .idw · .iam</span>
-            <h4>내 PC에 설치하면 전부 분석됩니다</h4>
+            <h4>Inventor 원본까지 분석하려면</h4>
             <div class="lead">Inventor 파일의 치수·공차·스케치 정보는
               <b style="color:var(--fg)">Inventor를 통해서만</b> 읽을 수 있습니다.
               Inventor가 설치된 Windows PC에서 서버를 띄우면 3D 미리보기와
@@ -453,8 +446,8 @@ h3.sec{font-size:19px;margin-bottom:14px}
 
         </div>
         <div class="warnbar" style="margin-top:18px">
-          <b>차후 수정 예정</b> — DWG 서버 변환과 클라우드에서의 Inventor 파일 분석은
-          다음 버전에서 다룰 계획입니다. 현재는 DXF를 기준 형식으로 삼고 있습니다.
+          <b>현재 지원 범위</b> — 공개 서버는 DWG와 DXF를 분석합니다.
+          <code>.ipt · .idw · .iam</code>은 Inventor가 설치된 Windows 로컬 환경에서 지원합니다.
         </div>
       </section>
 
@@ -565,7 +558,7 @@ fetch('/api/health').then(r => r.json()).then(h => {
   const canDwg = sup.includes('.dwg');
   const canInv = h.inventor === true;
   $('#onlyext').textContent = sup.join(' · ') || '없음';
-  $('#gdwg').classList.toggle('hide', canDwg);
+  $('#gdwg').classList.toggle('hide', !canDwg);
   $('#glocal').classList.toggle('hide', canInv);
   $('#gsec').classList.toggle('hide', canDwg && canInv);
 
