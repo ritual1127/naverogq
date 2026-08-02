@@ -2,7 +2,7 @@ name: Keep Render service awake
 
 on:
   schedule:
-    - cron: "3-59/8 0-14,18-23 * * *"
+    - cron: "*/5 0-14,18-23 * * *"
   workflow_dispatch:
 
 permissions:
