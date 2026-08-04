@@ -123,6 +123,7 @@ CADLens는 수험생의 최종 확인을 돕는 보조 도구입니다. 도면�
 - GPT-5.6 Sol
 - Claude Opus 5
 - Gemini API
+- claude sonnet 5 / sonnet 4.8
 
 ### 사용한 오픈소스 패키지
 
