@@ -45,6 +45,12 @@ def index():
         return fh.read()
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return FileResponse(os.path.join(HERE, "static", "favicon.ico"),
+                        media_type="image/x-icon")
+
+
 @app.get("/api/health")
 def health(request: Request):
     import ai_review
@@ -210,7 +216,7 @@ def _run(job, path, name, enabled=None):
         traceback.print_exc()
         raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}")
 
-    svg, marked, marker_index, svg_note = _render(facts)
+    svg, marked, marker_index, svg_note, svg_tf = _render(facts)
     payload = {
         "job": job, "file": name, "kind": facts.get("kind"),
         "props": facts.get("props", {}),
@@ -221,6 +227,7 @@ def _run(job, path, name, enabled=None):
         "notes_text": facts.get("notes_text") or [],
         "stats": _stats(facts),
         "svg": svg, "markers_placed": marked, "marker_index": marker_index,
+        "svg_tf": svg_tf,
         "model_url": f"/api/model/{job}" if facts.get("stl") else None,
         "model_error": facts.get("stl_error"),
         "refs_ok": facts.get("refs_ok", True),
@@ -233,7 +240,7 @@ def _run(job, path, name, enabled=None):
 def _render(facts):
     dxf = facts.get("dxf")
     if not dxf or not os.path.exists(dxf):
-        return None, False, [], "이 형식은 2D 도면 미리보기를 만들지 않습니다."
+        return None, False, [], "이 형식은 2D 도면 미리보기를 만들지 않습니다.", None
     import dwg
     markers, index = [], []
     for sh in facts.get("sheets", []):
@@ -245,14 +252,16 @@ def _render(facts):
             index.append({"n": len(markers), "diameter_mm": c["diameter_mm"],
                           "count": c.get("count", 1),
                           "sheet": sh.get("name"),
-                          "finding_code": finding_code})
+                          "finding_code": finding_code,
+                          "dxf_x": c["dxf_x"], "dxf_y": c["dxf_y"],
+                          "dxf_r": c.get("dxf_r")})
     try:
-        svg, _, placed = dwg.render_svg(dxf, markers)
-        return svg, bool(placed), index[:placed], None
+        svg, tf, placed = dwg.render_svg(dxf, markers)
+        return svg, bool(placed), index[:placed], None, tf
     except Exception as e:
         traceback.print_exc()
         print(f"[svg] 렌더 실패: {type(e).__name__}: {e}", flush=True)
-        return None, False, [], f"도면 미리보기를 만들지 못했습니다 — {type(e).__name__}: {e}"
+        return None, False, [], f"도면 미리보기를 만들지 못했습니다 — {type(e).__name__}: {e}", None
 
 
 @app.get("/api/model/{job}")

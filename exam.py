@@ -305,7 +305,7 @@ def _projection(facts):
     sh = _sheet_of(facts)
     counts, views = sh.get("counts", {}), sh.get("views", [])
     out = []
-    if len(views) < 2:
+    if len(views) < 2 and sh.get("views_known", True):
         out.append(_f(
             "EX_FEW_VIEWS", SEV_ERROR, f"투상도가 {len(views)}개뿐",
             "부품 형상을 표현하기에 투상도가 부족해 보입니다.",

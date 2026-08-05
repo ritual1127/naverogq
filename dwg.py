@@ -384,6 +384,150 @@ def _dim_center(dim):
     return None
 
 
+_SURFACE_VALUE_RE = re.compile(r"\b(?:Ra|Rz|Ry|Rmax)\s*[:=]?\s*([\d.]+)", re.I)
+_SURFACE_MARK_RE = re.compile(r"[√∇]")
+_FINISH_LETTER_RE = re.compile(r"^(?:[√∇]\s*([wxyzWXYZ])|([wxyz]))\s*$")
+_NO_MACHINING_RE = re.compile(r"주조|흑피|비가공|제거\s*가공\s*안", re.I)
+_GDT_CHARS = "⊥∥◎⌭⌖⌒∠⟂⌰⊙⏥⌓↗⌭"
+_GDT_TEXT_RE = re.compile(rf"[{_GDT_CHARS}]|\\Fgdt|%%v")
+_DATUM_RE = re.compile(r"^[A-Z](?:\s*\(?[MLP]\)?)?$")
+_CENTER_RE = re.compile(r"cent|중심|dashdot|1점\s*쇄선|일점\s*쇄선", re.I)
+_TITLE_TEXT_RE = re.compile(r"품\s*명|도\s*명|품\s*번|도\s*번|재\s*질|척\s*도|투상법|각법|"
+                            r"수\s*량|작성자|설계자|검도|\bSCALE\b|\bMATERIAL\b|"
+                            r"\bPART\s*N|\bDRAWN\b", re.I)
+MIN_TITLE_TEXT_HITS = 2
+_NOTE_KEYWORD_RE = re.compile(r"주서|일반\s*공차|2768|열처리|담금질|침탄|질화|도금|도장|"
+                              r"모[떼따]기|라운드|필렛|거칠기|다듬질|HRC|주기", re.I)
+MIN_NOTE_LEN = 12
+
+
+def _is_note(text):
+    t = (text or "").strip()
+    return bool(t) and ("\n" in t or len(t) >= MIN_NOTE_LEN
+                        or _NOTE_KEYWORD_RE.search(t))
+
+
+def _is_border(entity):
+    try:
+        if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
+            return False
+        pts = entity.get_points("xy")
+    except Exception:
+        return False
+    if len(pts) != 4:
+        return False
+    xs = {round(p[0], 3) for p in pts}
+    ys = {round(p[1], 3) for p in pts}
+    return len(xs) == 2 and len(ys) == 2
+
+
+def _surface_symbol(text):
+    t = (text or "").strip()
+    if not t or len(t) > 40:
+        return None
+    if _is_note(t):
+        return None
+    value = _SURFACE_VALUE_RE.search(t)
+    letter = _FINISH_LETTER_RE.match(t)
+    if not value and not letter and not _SURFACE_MARK_RE.search(t):
+        return None
+    mark = (letter.group(1) or letter.group(2)).lower() if letter else None
+    return {"max": value.group(1) if value else mark,
+            "min": None, "method": None,
+            "no_machining": bool(_NO_MACHINING_RE.search(t)), "text": t}
+
+
+def _geometric_tol(text):
+    t = (text or "").strip()
+    if not t or not _GDT_TEXT_RE.search(t):
+        return None
+    body = re.sub(r"\{?\\[A-Za-z][^;}]*;?", "", t).replace("}", "")
+    parts = [p.strip() for p in re.split(r"%%v|\|", body) if p.strip()]
+    tol = next((p for p in parts if re.search(r"\d", p)), None)
+    datums = [p for p in parts if _DATUM_RE.match(p)]
+    return {"tolerance": tol, "datums": datums, "text": t}
+
+
+SYMBOL_ZONE_FACTOR = 4.0
+MIN_HOLE_DIA_MM = 1.0
+
+
+def _zone(entity, kind, lines=1):
+    try:
+        p = entity.dxf.insert
+        h = float(entity.dxf.char_height if kind == "MTEXT" else entity.dxf.height)
+    except Exception:
+        return None
+    if not h:
+        return None
+    return (p.x, p.y, h * SYMBOL_ZONE_FACTOR, h * lines)
+
+
+def _in_symbol_zone(cx, cy, zones):
+    for z in zones:
+        if not z:
+            continue
+        zx, zy, reach, drop = z
+        if abs(cx - zx) <= reach and -(reach + drop) <= cy - zy <= reach:
+            return True
+    return False
+
+
+TANGENT_TOL = 0.24
+MAX_SYMBOL_LEG_MM = 40.0
+INSCRIBED_MIN_LINES = 2
+
+
+def _line_gap(seg, cx, cy):
+    x1, y1, x2, y2 = seg
+    dx, dy = x2 - x1, y2 - y1
+    length2 = dx * dx + dy * dy
+    if length2 <= 0:
+        return None
+    t = ((cx - x1) * dx + (cy - y1) * dy) / length2
+    if not -0.25 <= t <= 1.25:
+        return None
+    return abs((cx - x1) * dy - (cy - y1) * dx) / math.sqrt(length2)
+
+
+def _is_inscribed(cx, cy, r, grid, cell):
+    if r <= 0:
+        return False
+    seen, hits = set(), 0
+    span = int(r * 2 / cell) + 1
+    gx, gy = int(cx // cell), int(cy // cell)
+    for ix in range(gx - span, gx + span + 1):
+        for iy in range(gy - span, gy + span + 1):
+            for idx, seg in grid.get((ix, iy), ()):
+                if idx in seen:
+                    continue
+                seen.add(idx)
+                gap = _line_gap(seg, cx, cy)
+                if gap is not None and abs(gap - r) <= TANGENT_TOL * r:
+                    hits += 1
+                    if hits >= INSCRIBED_MIN_LINES:
+                        return True
+    return False
+
+
+def _short_line_grid(segments, cell):
+    grid = {}
+    for idx, seg in enumerate(segments):
+        x1, y1, x2, y2 = seg
+        for px, py in ((x1, y1), (x2, y2), ((x1 + x2) / 2, (y1 + y2) / 2)):
+            grid.setdefault((int(px // cell), int(py // cell)), []).append((idx, seg))
+    return grid
+
+
+def _is_centerline(entity):
+    try:
+        if _CENTER_RE.search(entity.dxf.get("layer", "") or ""):
+            return True
+        return _CENTER_RE.search(entity.dxf.get("linetype", "") or "") is not None
+    except Exception:
+        return False
+
+
 _UNIT_MM = {1: 25.4, 2: 304.8, 4: 1.0, 5: 10.0, 6: 1000.0, 8: 2.54e-5,
             9: 0.0254, 10: 914.4, 11: 1e-7, 12: 1e-6, 13: 1e-3, 14: 100.0}
 PLAUSIBLE_MM = (5.0, 20000.0)
@@ -412,6 +556,8 @@ def facts_from_dxf(path, source_name=None):
                        if n.lower() != "model"]
     K, unit_why = detect_mm_per_unit(doc, msp)
     dims, circles, dim_centers, titles, texts = [], [], [], {}, []
+    surfaces, geo_tols, rects, centerlines, symbol_zones = [], [], [], 0, []
+    short_lines = []
 
     for lay in layouts:
         try:
@@ -420,6 +566,22 @@ def facts_from_dxf(path, source_name=None):
             continue
         for e in flat:
             t = e.dxftype()
+            if _is_centerline(e):
+                centerlines += 1
+            if _is_border(e):
+                rects.append(e)
+            if t == "LINE":
+                try:
+                    s, o = e.dxf.start, e.dxf.end
+                    if math.hypot(o.x - s.x, o.y - s.y) * K <= MAX_SYMBOL_LEG_MM:
+                        short_lines.append((s.x, s.y, o.x, o.y))
+                except Exception:
+                    pass
+            if t == "TOLERANCE":
+                g = _geometric_tol(e.dxf.get("content", "") or "")
+                if g:
+                    geo_tols.append(g)
+                continue
             if t == "DIMENSION":
                 try:
                     meas = e.get_measurement()
@@ -458,8 +620,23 @@ def facts_from_dxf(path, source_name=None):
             elif t in ("TEXT", "MTEXT"):
                 try:
                     value = e.plain_text() if t == "MTEXT" else e.dxf.text
-                    if value and value.strip():
-                        texts.append(value.strip())
+                    if not value or not value.strip():
+                        continue
+                    value = value.strip()
+                    raw = e.text if t == "MTEXT" else value
+                    g = _geometric_tol(raw)
+                    if g:
+                        geo_tols.append(g)
+                        symbol_zones.append(_zone(e, t))
+                        continue
+                    s = _surface_symbol(value)
+                    if s:
+                        surfaces.append(s)
+                        symbol_zones.append(_zone(e, t))
+                        continue
+                    texts.append(value)
+                    if _is_note(value):
+                        symbol_zones.append(_zone(e, t, value.count("\n") + 1))
                 except Exception:
                     continue
         for ins in lay.query("INSERT"):
@@ -471,6 +648,8 @@ def facts_from_dxf(path, source_name=None):
             if attrs:
                 titles.setdefault(ins.dxf.name, {}).update(attrs)
 
+    grid_cell = max(10.0 / K, 1e-9)
+    line_grid = _short_line_grid(short_lines, grid_cell)
     dimmed_dia = {round(abs(d["value_mm"]), 2) for d in dims}
     tol_units = CENTER_TOL / K if K else CENTER_TOL
     groups = {}
@@ -479,6 +658,12 @@ def facts_from_dxf(path, source_name=None):
             continue
         if any(abs(c["x"] - dx) <= tol_units and abs(c["y"] - dy) <= tol_units
                for dx, dy in dim_centers):
+            continue
+        if c["r"] * 2 * K < MIN_HOLE_DIA_MM:
+            continue
+        if _in_symbol_zone(c["x"], c["y"], symbol_zones):
+            continue
+        if _is_inscribed(c["x"], c["y"], c["r"], line_grid, grid_cell):
             continue
         dia = round(c["r"] * 2 * K, 2)
         if dia in dimmed_dia or round(c["r"] * K, 2) in dimmed_dia:
@@ -501,17 +686,31 @@ def facts_from_dxf(path, source_name=None):
             view_names.append(name)
         elif border is None and _ANON_BLOCK_RE.match(name):
             border = name
-    sheet = {"name": "Model", "title_block": (list(titles) or [None])[0],
+    if border is None and rects:
+        border = "윤곽선"
+
+    title_block = (list(titles) or [None])[0]
+    if not title_block:
+        hits = sum(1 for t in texts if _TITLE_TEXT_RE.search(t))
+        if hits >= MIN_TITLE_TEXT_HITS:
+            title_block = "표제란(문자)"
+
+    sheet = {"name": "Model", "title_block": title_block,
              "border": border,
              "views": [{"name": name, "scale": None} for name in view_names],
+             "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned,
-             "counts": {"circles": len(circles), "title_blocks": len(titles)}}
+             "surface_symbols": surfaces, "geometric_tols": geo_tols,
+             "counts": {"circles": len(circles), "title_blocks": len(titles),
+                        "SurfaceTextureSymbols": len(surfaces),
+                        "FeatureControlFrames": len(geo_tols),
+                        "Centerlines": centerlines, "Centermarks": 0}}
     return {
         "kind": "dwg", "file": source_name or os.path.basename(path),
         "props": props, "sheets": [sheet], "sketches": [], "holes": [],
         "walls": [], "interferences": [], "sick_features": [],
         "first_angle": None, "dxf": path,
-        "notes_text": texts,
+        "notes_text": [t for t in texts if _is_note(t)],
         "title_attributes": titles,
         "unit_mm_per_drawing_unit": K, "unit_source": unit_why,
     }

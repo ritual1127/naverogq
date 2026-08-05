@@ -290,12 +290,54 @@ def test_marker_index_targets_the_actual_dimension_finding():
 
     facts = {"dxf": path, "sheets": [
         {"name": "Model", "dims": [], "undimensioned": [circle]}]}
-    _, _, index, _ = main._render(facts)
+    _, _, index, _, _ = main._render(facts)
     assert index[0]["finding_code"] == "EX_NO_DIMS"
 
     facts["sheets"][0]["dims"] = [{"value_mm": 10.0}]
-    _, _, index, _ = main._render(facts)
+    _, _, index, _, _ = main._render(facts)
     assert index[0]["finding_code"] == "EX_DIM_MISSING"
+
+
+def test_surface_and_geometric_text_detection():
+    import dwg
+
+    assert dwg._surface_symbol("√y")["max"] == "y"
+    assert dwg._surface_symbol("Ra 1.6")["max"] == "1.6"
+    assert dwg._surface_symbol("√")["max"] is None, "빈 기호는 값 없음으로 잡혀야 한다"
+    assert dwg._surface_symbol("주조 흑피 √")["no_machining"] is True
+    assert dwg._surface_symbol("160") is None
+    assert dwg._surface_symbol("1. 일반공차 KS B ISO 2768-m") is None
+    for axis in ("X", "Y", "Z"):
+        assert dwg._surface_symbol(axis) is None, "축·뷰 문자는 거칠기 기호가 아니다"
+    assert dwg._surface_symbol("√Y")["max"] == "y", "기호가 붙으면 대문자도 인정"
+    assert dwg._surface_symbol("표면거칠기 √") is None, "주서 문구는 면의 기호가 아니다"
+
+    g = dwg._geometric_tol("⊥%%v0.011%%vA")
+    assert g["tolerance"] == "0.011" and g["datums"] == ["A"]
+    assert dwg._geometric_tol("◎%%v0.02")["datums"] == []
+    assert dwg._geometric_tol("{\\Fgdt;j}%%v0.011%%vA")["tolerance"] == "0.011"
+    assert dwg._geometric_tol("Ø17js5") is None
+
+
+def test_note_text_is_not_every_string_on_the_sheet():
+    import dwg
+
+    assert dwg._is_note("1. 일반공차 - 가) 가공부: KS B ISO 2768-m")
+    assert dwg._is_note("열처리 HRC50")
+    assert not dwg._is_note("√y")
+    assert not dwg._is_note("160")
+
+
+def test_bench_fixtures_are_graded_exactly():
+    import tempfile
+
+    import bench
+
+    with tempfile.TemporaryDirectory() as tmp:
+        rows, m = bench.run(bench.fixtures(tmp))
+    bad = [r for r in rows if r["miss"] or r["extra"] or r["error"]]
+    assert not bad, bad
+    assert m["recall"] == 1.0 and m["precision"] == 1.0
 
 
 if __name__ == "__main__":
