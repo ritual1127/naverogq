@@ -1,8 +1,4 @@
 # CADLens
-
-[![Tests](https://github.com/ritual1127/naverogq/actions/workflows/tests.yml/badge.svg)](https://github.com/ritual1127/naverogq/actions/workflows/tests.yml)
-[![Docker smoke test](https://github.com/ritual1127/naverogq/actions/workflows/docker-smoke.yml/badge.svg)](https://github.com/ritual1127/naverogq/actions/workflows/docker-smoke.yml)
-
 CADLens는 전산응용기계제도기능사 실기 도면을 스스로 점검할 수 있는 서비스입니다.
 
 수험생이 DWG 또는 DXF 도면을 올리면 빠진 항목과 잘못된 부분을 찾고, 문제 위치를 도면 위에 번호로 표시합니다. 각 지적사항에는 잘못된 이유와 고치는 방법을 함께 보여줍니다.
