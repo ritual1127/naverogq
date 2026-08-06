@@ -83,40 +83,61 @@ def test_render_margin_scales_for_meter_drawings():
     assert widths and max(widths) < 5000, widths
 
 
-def test_marker_badges_track_their_targets_without_overlapping():
+def test_badges_sit_next_to_their_target():
+    import math
+
     import dwg
 
-    class BB:
-        extmin = type("P", (), {"y": 0.0})()
-        extmax = type("P", (), {"x": 100.0, "y": 100.0})()
+    span = 1000.0
+    badge_r = span * 0.016
+    targets = [(100, 100), (500, 400), (900, 150)]
+    rings = [span * 0.01] * 3
+    spots = dwg._badge_positions(span, targets, rings)
 
-    span = 100.0
-    targets = [(50, 90), (50, 20), (50, 88), (50, 55)]
-    rail_x, ys = dwg._rail_positions(BB, span, targets)
-
-    assert rail_x > BB.extmax.x, "rail sits clear of the drawing"
-    assert rail_x - BB.extmax.x < span * 0.1, "but not far enough out to add whitespace"
-
-    gap = max(span * 0.016 * 2.6, span * 0.04)
-    ordered = sorted(ys, reverse=True)
-    assert all(a - b >= gap - 1e-9 for a, b in zip(ordered, ordered[1:])),         "badges never overlap"
-    # a badge stays at its own target's height unless a neighbour crowds it
-    assert ys[1] == 20, "an isolated target keeps its exact height"
-    assert ys[3] == 55
-    assert abs(ys[0] - 90) < gap and abs(ys[2] - 88) < gap,         "crowded badges move only as far as they must"
-    # taller target -> higher badge, so leader lines cannot cross
-    assert [i for i, _ in sorted(enumerate(ys), key=lambda p: -p[1])] ==            [i for i, _ in sorted(enumerate(targets), key=lambda p: -p[1][1])]
+    for (tx, ty), ring, (bx, by) in zip(targets, rings, spots):
+        d = math.hypot(bx - tx, by - ty)
+        assert d >= ring + badge_r, "badge clears the ring it points at"
+        assert d <= ring + badge_r * 4, f"badge stays beside its target, not {d:.0f} away"
 
 
-def test_marker_badges_stay_inside_the_sheet():
+def test_badges_never_cover_each_other():
+    import math
+
     import dwg
 
-    class BB:
-        extmin = type("P", (), {"y": 0.0})()
-        extmax = type("P", (), {"x": 100.0, "y": 100.0})()
+    span = 1000.0
+    # eight findings on the same circle: they cannot all take the first spot
+    targets = [(500, 500)] * 8
+    rings = [span * 0.008] * 8
+    spots = dwg._badge_positions(span, targets, rings)
 
-    _, ys = dwg._rail_positions(BB, 100.0, [(0, 3), (0, 2), (0, 1)])
-    assert min(ys) >= BB.extmin.y - 1e-9, "stack is lifted rather than run off the bottom"
+    clear = span * 0.016 * 2.15
+    for i, (ax, ay) in enumerate(spots):
+        for bx, by in spots[i + 1:]:
+            assert math.hypot(ax - bx, ay - by) >= clear - 1e-9, "badges overlap"
+
+
+def test_badges_do_not_grow_the_drawing():
+    import ezdxf
+    from ezdxf import bbox
+
+    import dwg
+
+    doc = ezdxf.new("R2010")
+    space = doc.modelspace()
+    space.add_lwpolyline([(0, 0), (400, 0), (400, 300), (0, 300)], close=True)
+    space.add_circle((200, 150), 6)
+    before = bbox.extents(space)
+
+    doc.layers.add(dwg.ERR_LAYER, color=1)
+    span = max(before.size.x, before.size.y)
+    ring = span * 0.01
+    (bx, by), = dwg._badge_positions(span, [(200, 150)], [ring])
+    dwg._arrow(space, 200, 150, ring, span, "1", bx, by)
+
+    after = bbox.extents(space)
+    assert after.size.x <= before.size.x + 1e-6
+    assert after.size.y <= before.size.y + 1e-6,         "markers must not inflate the preview canvas"
 
 
 def test_arrow_draws_a_ring_leader_and_badge():
@@ -139,6 +160,8 @@ def test_arrow_draws_a_ring_leader_and_badge():
     assert leaders and all(line.dxf.lineweight == 100 for line in leaders)
     badges = list(space.query(f'CIRCLE[layer=="{dwg.ERR_LAYER}"]'))
     assert len(badges) == 8, "one ring on the target plus one badge per marker"
+    discs = list(space.query(f'HATCH[layer=="{dwg.ERR_LAYER}"]'))
+    assert len(discs) == 4, "each badge is backed by a filled disc"
 
 
 def test_recovers_orphaned_inventor_paper_views():

@@ -760,56 +760,67 @@ def render_svg(dxf_path, markers=()):
         usable = [(i, m) for i, m in enumerate(markers, 1)
                   if m.get("dxf_x") is not None and m.get("dxf_y") is not None]
         if usable:
-            rail_x, label_ys = _rail_positions(
-                bb0, span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable])
-            for (i, m), label_y in zip(usable, label_ys):
-                source_r = m.get("dxf_r") or 0.0
-                ring = min(max(source_r * 1.12, span * 0.006), span * 0.018)
-                _arrow(space, m["dxf_x"], m["dxf_y"], ring, span,
-                       str(i), rail_x, label_y)
+            rings = [min(max((m.get("dxf_r") or 0.0) * 1.12, span * 0.006),
+                         span * 0.018) for _, m in usable]
+            spots = _badge_positions(
+                span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable], rings)
+            for (i, m), ring, (bx, by) in zip(usable, rings, spots):
+                _arrow(space, m["dxf_x"], m["dxf_y"], ring, span, str(i), bx, by)
                 placed += 1
     svg, tf = _finish(doc, space)
     return svg, tf, placed
 
 
-def _rail_positions(bb, span, targets):
-    """Vertical slot for each numbered badge, on a rail just right of the drawing.
+BADGE_ANGLES = (45, 0, 90, -45, 135, -90, 180, 20, 70, 110, 160, 200, 250, 290, 340)
 
-    Each badge sits at its own target's height so the leader runs almost
-    straight across, and badges are only pushed apart where they would overlap.
-    Spreading them evenly over the sheet instead — as this used to do — sent two
-    markers to opposite corners with leaders cutting across the whole drawing.
+
+def _badge_positions(span, targets, rings):
+    """Put each numbered badge next to the circle it points at, inside the drawing.
+
+    Badges are allowed to sit on top of drawing content -- they are drawn as a
+    filled disc so they stay readable -- but never on top of each other, so the
+    first free spot on a widening ring of candidate angles wins. Keeping them
+    inside means the preview's bounding box is the drawing's own, with none of
+    the empty margin an outside rail used to add.
     """
     badge_r = span * 0.016
-    gap = max(badge_r * 2.6, span * 0.04)
-    rail_x = bb.extmax.x + span * 0.05
-
-    ys = [0.0] * len(targets)
-    prev = None
-    for k in sorted(range(len(targets)), key=lambda k: targets[k][1], reverse=True):
-        y = targets[k][1]
-        if prev is not None and y > prev - gap:
-            y = prev - gap
-        ys[k] = prev = y
-
-    drop = bb.extmin.y - min(ys)
-    if drop > 0:
-        ys = [y + drop for y in ys]
-    return rail_x, ys
+    clear = badge_r * 2.15
+    placed = []
+    for (x, y), ring in zip(targets, rings):
+        gap = ring + badge_r * 1.9
+        spot = None
+        for step in range(5):
+            radius = gap + badge_r * 2.0 * step
+            for angle in BADGE_ANGLES:
+                a = math.radians(angle)
+                cx, cy = x + radius * math.cos(a), y + radius * math.sin(a)
+                if all(math.hypot(cx - px, cy - py) >= clear for px, py in placed):
+                    spot = (cx, cy)
+                    break
+            if spot:
+                break
+        placed.append(spot or (x + gap, y))
+    return placed
 
 
 def _arrow(msp, x, y, ring, span, label, label_x, label_y):
     a = {"layer": ERR_LAYER, "lineweight": 100}
     msp.add_circle((x, y), ring, dxfattribs=a)
 
-    dx, dy = label_x - x, label_y - y
-    length = math.hypot(dx, dy) or 1.0
-    start = (x + ring * dx / length, y + ring * dy / length)
-    elbow = (label_x - span * 0.025, label_y)
     badge_r = span * 0.016
-    end = (label_x - badge_r, label_y)
-    msp.add_line(start, elbow, dxfattribs=a)
-    msp.add_line(elbow, end, dxfattribs=a)
+    dx, dy = label_x - x, label_y - y
+    length = math.hypot(dx, dy)
+    if length > ring + badge_r:
+        ux, uy = dx / length, dy / length
+        msp.add_line((x + ring * ux, y + ring * uy),
+                     (label_x - badge_r * ux, label_y - badge_r * uy),
+                     dxfattribs=a)
+
+    # filled disc so the number stays readable over drawing content
+    disc = msp.add_hatch(color=1, dxfattribs={"layer": ERR_LAYER})
+    disc.paths.add_polyline_path(
+        [(label_x + badge_r * math.cos(t), label_y + badge_r * math.sin(t))
+         for t in (i * math.tau / 24 for i in range(24))], is_closed=True)
     msp.add_circle((label_x, label_y), badge_r, dxfattribs=a)
 
     text_h = span * (0.019 if len(label) > 1 else 0.022)
