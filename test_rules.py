@@ -83,24 +83,54 @@ def test_render_margin_scales_for_meter_drawings():
     assert widths and max(widths) < 5000, widths
 
 
-def test_marker_labels_use_distinct_rail_positions():
+def test_marker_badges_track_their_targets_without_overlapping():
+    import dwg
+
+    class BB:
+        extmin = type("P", (), {"y": 0.0})()
+        extmax = type("P", (), {"x": 100.0, "y": 100.0})()
+
+    span = 100.0
+    targets = [(50, 90), (50, 20), (50, 88), (50, 55)]
+    rail_x, ys = dwg._rail_positions(BB, span, targets)
+
+    assert rail_x > BB.extmax.x, "rail sits clear of the drawing"
+    assert rail_x - BB.extmax.x < span * 0.1, "but not far enough out to add whitespace"
+
+    gap = max(span * 0.016 * 2.6, span * 0.04)
+    ordered = sorted(ys, reverse=True)
+    assert all(a - b >= gap - 1e-9 for a, b in zip(ordered, ordered[1:])),         "badges never overlap"
+    # a badge stays at its own target's height unless a neighbour crowds it
+    assert ys[1] == 20, "an isolated target keeps its exact height"
+    assert ys[3] == 55
+    assert abs(ys[0] - 90) < gap and abs(ys[2] - 88) < gap,         "crowded badges move only as far as they must"
+    # taller target -> higher badge, so leader lines cannot cross
+    assert [i for i, _ in sorted(enumerate(ys), key=lambda p: -p[1])] ==            [i for i, _ in sorted(enumerate(targets), key=lambda p: -p[1][1])]
+
+
+def test_marker_badges_stay_inside_the_sheet():
+    import dwg
+
+    class BB:
+        extmin = type("P", (), {"y": 0.0})()
+        extmax = type("P", (), {"x": 100.0, "y": 100.0})()
+
+    _, ys = dwg._rail_positions(BB, 100.0, [(0, 3), (0, 2), (0, 1)])
+    assert min(ys) >= BB.extmin.y - 1e-9, "stack is lifted rather than run off the bottom"
+
+
+def test_arrow_draws_a_ring_leader_and_badge():
     import ezdxf
     import dwg
 
     doc = ezdxf.new("R2010")
     space = doc.modelspace()
     space.add_line((0, 0), (100, 100))
-    markers = [{"dxf_x": 50, "dxf_y": 50, "dxf_r": radius}
-               for radius in (2, 4, 8, 16)]
-    bb = dwg.bbox.extents(space)
-    span = max(bb.size.x, bb.size.y)
-    rail_x = bb.extmax.x + span * 0.16
-    rail_top = bb.center.y + span * 0.46
-    gap = span * 0.92 / (len(markers) - 1)
-    for i, marker in enumerate(markers, 1):
-        ring = min(max(marker["dxf_r"] * 1.12, span * 0.006), span * 0.018)
-        dwg._arrow(space, marker["dxf_x"], marker["dxf_y"], ring, span,
-                   str(i), rail_x, rail_top - (i - 1) * gap)
+    span = 100.0
+    for i, radius in enumerate((2, 4, 8, 16), 1):
+        ring = min(max(radius * 1.12, span * 0.006), span * 0.018)
+        dwg._arrow(space, 50, 50, ring, span, str(i), 120.0, 90.0 - i * 5)
+
     labels = list(space.query(f'TEXT[layer=="{dwg.ERR_LAYER}"]'))
     assert len(labels) == 4
     assert len({round(label.dxf.insert.y, 6) for label in labels}) == 4
@@ -108,7 +138,7 @@ def test_marker_labels_use_distinct_rail_positions():
     leaders = list(space.query(f'LINE[layer=="{dwg.ERR_LAYER}"]'))
     assert leaders and all(line.dxf.lineweight == 100 for line in leaders)
     badges = list(space.query(f'CIRCLE[layer=="{dwg.ERR_LAYER}"]'))
-    assert len(badges) == len(markers) * 2
+    assert len(badges) == 8, "one ring on the target plus one badge per marker"
 
 
 def test_recovers_orphaned_inventor_paper_views():

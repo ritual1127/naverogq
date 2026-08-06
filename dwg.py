@@ -757,21 +757,45 @@ def render_svg(dxf_path, markers=()):
     if is_model:
         bb0 = bbox.extents(space)
         span = max(bb0.size.x, bb0.size.y) if bb0.has_data else 100.0
-        count = len(markers)
-        rail_x = bb0.extmax.x + span * 0.16
-        rail_top = bb0.center.y + span * 0.46
-        rail_gap = span * 0.92 / max(count - 1, 1)
-        for i, m in enumerate(markers, 1):
-            x, y = m.get("dxf_x"), m.get("dxf_y")
-            if x is None or y is None:
-                continue
-            source_r = m.get("dxf_r") or 0.0
-            ring = min(max(source_r * 1.12, span * 0.006), span * 0.018)
-            label_y = rail_top - (i - 1) * rail_gap
-            _arrow(space, x, y, ring, span, str(i), rail_x, label_y)
-            placed += 1
+        usable = [(i, m) for i, m in enumerate(markers, 1)
+                  if m.get("dxf_x") is not None and m.get("dxf_y") is not None]
+        if usable:
+            rail_x, label_ys = _rail_positions(
+                bb0, span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable])
+            for (i, m), label_y in zip(usable, label_ys):
+                source_r = m.get("dxf_r") or 0.0
+                ring = min(max(source_r * 1.12, span * 0.006), span * 0.018)
+                _arrow(space, m["dxf_x"], m["dxf_y"], ring, span,
+                       str(i), rail_x, label_y)
+                placed += 1
     svg, tf = _finish(doc, space)
     return svg, tf, placed
+
+
+def _rail_positions(bb, span, targets):
+    """Vertical slot for each numbered badge, on a rail just right of the drawing.
+
+    Each badge sits at its own target's height so the leader runs almost
+    straight across, and badges are only pushed apart where they would overlap.
+    Spreading them evenly over the sheet instead — as this used to do — sent two
+    markers to opposite corners with leaders cutting across the whole drawing.
+    """
+    badge_r = span * 0.016
+    gap = max(badge_r * 2.6, span * 0.04)
+    rail_x = bb.extmax.x + span * 0.05
+
+    ys = [0.0] * len(targets)
+    prev = None
+    for k in sorted(range(len(targets)), key=lambda k: targets[k][1], reverse=True):
+        y = targets[k][1]
+        if prev is not None and y > prev - gap:
+            y = prev - gap
+        ys[k] = prev = y
+
+    drop = bb.extmin.y - min(ys)
+    if drop > 0:
+        ys = [y + drop for y in ys]
+    return rail_x, ys
 
 
 def _arrow(msp, x, y, ring, span, label, label_x, label_y):
