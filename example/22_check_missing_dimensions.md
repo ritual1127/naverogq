@@ -1,4 +1,4 @@
-# 치공구설계산업기사 — 검사함수 분석 — check_missing_dimensions
+# 일반기계기사 — 검사함수 분석 — check_missing_dimensions
 
 ## 함수: `rules.py::check_missing_dimensions`
 
