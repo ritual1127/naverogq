@@ -98,7 +98,7 @@ def test_badges_sit_next_to_their_target():
     import dwg
 
     span = 1000.0
-    badge_r = span * 0.016
+    badge_r = span * dwg.BADGE_R
     targets = [(100, 100), (500, 400), (900, 150)]
     rings = [span * 0.01] * 3
     spots = dwg._badge_positions(_BB(0, 0, 1000, 1000), span, targets, rings)
@@ -120,7 +120,7 @@ def test_badges_never_cover_each_other():
     rings = [span * 0.008] * 8
     spots = dwg._badge_positions(_BB(0, 0, 1000, 1000), span, targets, rings)
 
-    clear = span * 0.016 * 2.15
+    clear = span * dwg.BADGE_R * 2.15
     for i, (ax, ay) in enumerate(spots):
         for bx, by in spots[i + 1:]:
             assert math.hypot(ax - bx, ay - by) >= clear - 1e-9, "badges overlap"
@@ -132,7 +132,7 @@ def test_badges_stay_inside_even_when_targets_hug_the_border():
     import dwg
 
     span = 400.0
-    badge_r = span * 0.016
+    badge_r = span * dwg.BADGE_R
     bb = _BB(0, 0, 400, 300)
     corners = [(0, 0), (400, 0), (0, 300), (400, 300), (200, 300), (400, 150)]
     for targets in (corners, [(400, 300)] * 8):
@@ -180,7 +180,8 @@ def test_arrow_draws_a_ring_leader_and_badge():
     labels = list(space.query(f'TEXT[layer=="{dwg.ERR_LAYER}"]'))
     assert len(labels) == 4
     assert len({round(label.dxf.insert.y, 6) for label in labels}) == 4
-    assert max(label.dxf.height for label in labels) == span * 0.022
+    assert max(label.dxf.height for label in labels) == span * dwg.BADGE_R * 1.35, \
+        "the number is sized from the badge, not the sheet"
     leaders = list(space.query(f'LINE[layer=="{dwg.ERR_LAYER}"]'))
     assert leaders and all(line.dxf.lineweight == 100 for line in leaders)
     badges = list(space.query(f'CIRCLE[layer=="{dwg.ERR_LAYER}"]'))

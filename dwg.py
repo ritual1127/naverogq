@@ -772,6 +772,9 @@ def render_svg(dxf_path, markers=()):
 
 
 BADGE_ANGLES = (45, 0, 90, -45, 135, -90, 180, 20, 70, 110, 160, 200, 250, 290, 340)
+# Badge radius as a fraction of the drawing's longer side. Big enough to read the
+# number, small enough not to bury the feature it points at.
+BADGE_R = 0.011
 
 
 def _badge_positions(bb, span, targets, rings):
@@ -784,7 +787,7 @@ def _badge_positions(bb, span, targets, rings):
     anything outside enlarges the preview canvas and reintroduces the empty
     margin this placement exists to remove.
     """
-    badge_r = span * 0.016
+    badge_r = span * BADGE_R
     clear = badge_r * 2.15
     fits = _fits_inside(bb, badge_r)
     placed = []
@@ -819,7 +822,7 @@ def _arrow(msp, x, y, ring, span, label, label_x, label_y):
     a = {"layer": ERR_LAYER, "lineweight": 100}
     msp.add_circle((x, y), ring, dxfattribs=a)
 
-    badge_r = span * 0.016
+    badge_r = span * BADGE_R
     dx, dy = label_x - x, label_y - y
     length = math.hypot(dx, dy)
     if length > ring + badge_r:
@@ -835,7 +838,7 @@ def _arrow(msp, x, y, ring, span, label, label_x, label_y):
          for t in (i * math.tau / 24 for i in range(24))], is_closed=True)
     msp.add_circle((label_x, label_y), badge_r, dxfattribs=a)
 
-    text_h = span * (0.019 if len(label) > 1 else 0.022)
+    text_h = badge_r * (1.15 if len(label) > 1 else 1.35)
     text_style = {**a, "color": 7}
     msp.add_text(label, height=text_h, dxfattribs=text_style).set_placement(
         (label_x, label_y), align=TextEntityAlignment.MIDDLE_CENTER)
