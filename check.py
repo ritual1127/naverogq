@@ -1,41 +1,22 @@
 import os
 
-import rules
-
-INVENTOR_EXT = {".ipt", ".idw", ".iam", ".idv", ".ipn"}
 DXF_EXT = {".dxf", ".dwg"}
-SUPPORTED = sorted(INVENTOR_EXT | DXF_EXT)
+SUPPORTED = sorted(DXF_EXT)
 
 
-def analyze(path, dxf_out=None, stl_out=None, mode="exam", enabled=None,
-            use_ai=True):
+def analyze(path, enabled=None, use_ai=True):
     ext = os.path.splitext(path)[1].lower()
-    if ext in INVENTOR_EXT:
-        import inventor
-        if not inventor.is_available():
-            raise RuntimeError(
-                f"{ext} 파일을 분석하려면 이 서버가 설치된 컴퓨터에 Autodesk Inventor가 "
-                "있어야 합니다. Inventor 파일의 치수·공차·스케치 정보는 Inventor를 통해서만 "
-                "읽을 수 있기 때문입니다. "
-                "DWG와 DXF 파일은 Inventor 없이도 그대로 분석됩니다.")
-        facts = inventor.analyze(path, dxf_out=dxf_out, stl_out=stl_out)
-    elif ext in DXF_EXT:
-        import dwg
-        facts = dwg.analyze(path)
-    else:
+    if ext not in DXF_EXT:
         raise ValueError(f"지원하지 않는 확장자: {ext or '(없음)'}. "
                          f"지원 형식: {', '.join(SUPPORTED)}")
-
-    if mode == "exam" and facts.get("kind") in ("drawing", "dwg"):
-        import ai_review
-        import exam
-        projection = ai_review.judge(facts) if use_ai else None
-        findings, scorecard = exam.grade(facts, enabled, projection)
-        facts["scorecard"] = scorecard
-        return facts, findings, scorecard["summary"]
-
-    findings, summary = rules.run(facts)
-    return facts, findings, summary
+    import ai_review
+    import dwg
+    import exam
+    facts = dwg.analyze(path)
+    projection = ai_review.judge(facts) if use_ai else None
+    findings, scorecard = exam.grade(facts, enabled, projection)
+    facts["scorecard"] = scorecard
+    return facts, findings, scorecard["summary"]
 
 
 def _report(path):
@@ -60,14 +41,6 @@ def _report(path):
     for sh in facts.get("sheets", []):
         print(f"  [{sh['name']}] 표제란={sh['title_block']} 뷰={len(sh['views'])} "
               f"치수={len(sh['dims'])} 미치수원={len(sh['undimensioned'])}")
-    if facts.get("sketches"):
-        print(f"  스케치 {len(facts['sketches'])}개, "
-              f"미구속 {sum(1 for s in facts['sketches'] if s['status'] == 'under')}개")
-    if facts.get("occurrence_count"):
-        print(f"  부품 {facts['occurrence_count']}개, 간섭 {len(facts['interferences'])}건")
-    if facts.get("interference_error"):
-        print("  간섭 분석 오류:", facts["interference_error"])
-
     bits = [f"총 {summary['total']}건"]
     for key, label in (("fail", "오작"), ("error", "오류"),
                        ("warn", "경고"), ("info", "정보")):

@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 import traceback
 import uuid
 import zipfile
@@ -24,9 +25,32 @@ SAMPLE_NOTES = {
     "sample_075em07z.dwg": "위 도면의 DWG 원본 — LibreDWG가 있어야 열립니다",
 }
 
-app = FastAPI(title="Inventor 도면 검사기")
+app = FastAPI(title="CADLens 도면 검사기")
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
-_RESULTS = {}
+
+JOB_TTL_SEC = 60 * 60
+JOB_KEEP = 20
+
+
+def _prune_uploads():
+    """Uploads and their converted DXF stay on disk after the response.
+    Bound them by age and count so the disk cannot fill up."""
+    try:
+        jobs = [os.path.join(UPLOADS, d) for d in os.listdir(UPLOADS)]
+        jobs = [j for j in jobs if os.path.isdir(j)]
+    except OSError:
+        return
+    def mtime(j):
+        try:
+            return os.path.getmtime(j)
+        except OSError:
+            return 0.0
+
+    jobs.sort(key=mtime, reverse=True)
+    cutoff = time.time() - JOB_TTL_SEC
+    for i, job in enumerate(jobs):
+        if i >= JOB_KEEP or mtime(job) < cutoff:
+            shutil.rmtree(job, ignore_errors=True)
 
 
 LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
@@ -56,11 +80,8 @@ def health(request: Request):
     import ai_review
     import dwg
     import exam
-    import inventor
-    inv = inventor.is_available()
     return {"ok": True,
             "supported": sorted(_openable()),
-            "inventor": inv,
             "ai": ai_review.is_available(),
             "ai_provider": ai_review.provider(),
             "ai_model": ai_review.active_model(),
@@ -75,8 +96,7 @@ def health(request: Request):
 
 def _openable():
     import dwg
-    import inventor
-    exts = set(check.SUPPORTED) if inventor.is_available() else set(check.DXF_EXT)
+    exts = set(check.SUPPORTED)
     if not dwg.has_dwg_support():
         exts.discard(".dwg")
     return exts
@@ -118,8 +138,7 @@ def analyze_path(body: dict, request: Request):
     if not _is_local(request):
         raise HTTPException(
             403, "경로 분석은 이 컴퓨터에서만 사용할 수 있습니다. "
-                 "원격에서는 파일을 업로드하세요. 도면(.idw)은 참조가 유지되도록 "
-                 "모델 파일과 함께 .zip으로 압축해서 올리면 됩니다.")
+                 "원격에서는 파일을 업로드하세요.")
     raw = (body or {}).get("path", "").strip().strip('"')
     if not raw:
         raise HTTPException(400, "경로를 입력하세요.")
@@ -176,9 +195,15 @@ def analyze(file: UploadFile = File(...), checks: str = Form(None)):
     return _run(job, path, name, _enabled({"checks": checks}))
 
 
-def _unzip(zpath, workdir):
-    root = os.path.join(workdir, "z")
-    os.makedirs(root, exist_ok=True)
+class _TooBig(Exception):
+    pass
+
+
+def _extract(zpath, root):
+    """Extract into root, skipping entries that escape it. Counts bytes actually
+    written -- a zip header can understate the real size, so file_size is not a
+    safe limit on its own."""
+    written = 0
     with zipfile.ZipFile(zpath) as zf:
         for info in zf.infolist():
             if info.is_dir():
@@ -188,7 +213,21 @@ def _unzip(zpath, workdir):
                 continue
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with zf.open(info) as src, open(dest, "wb") as out:
-                shutil.copyfileobj(src, out)
+                while chunk := src.read(1 << 20):
+                    written += len(chunk)
+                    if written > MAX_BYTES:
+                        raise _TooBig
+                    out.write(chunk)
+
+
+def _unzip(zpath, workdir):
+    root = os.path.join(workdir, "z")
+    os.makedirs(root, exist_ok=True)
+    try:
+        _extract(zpath, root)
+    except _TooBig:
+        shutil.rmtree(workdir, ignore_errors=True)
+        raise HTTPException(413, "압축을 풀면 너무 커집니다 (최대 200MB).")
     found = []
     for dirpath, _, files in os.walk(root):
         if "oldversions" in dirpath.lower():
@@ -199,19 +238,14 @@ def _unzip(zpath, workdir):
     if not found:
         raise HTTPException(400, "압축 파일 안에 분석할 CAD 파일이 없습니다. "
                                  f"지원: {', '.join(check.SUPPORTED)}")
-    order = {".idw": 0, ".dwg": 1, ".dxf": 1, ".iam": 2, ".ipt": 3}
-    found.sort(key=lambda p: (order.get(os.path.splitext(p)[1].lower(), 9), p))
+    found.sort()
     return found[0], os.path.basename(found[0])
 
 
 def _run(job, path, name, enabled=None):
-    workdir = os.path.join(UPLOADS, job)
-    ext = os.path.splitext(path)[1].lower()
-    dxf_out = os.path.join(workdir, "view.dxf") if ext == ".idw" else None
-    stl_out = os.path.join(workdir, "model.stl") if ext in (".ipt", ".iam") else None
+    _prune_uploads()
     try:
-        facts, findings, summary = check.analyze(path, dxf_out=dxf_out,
-                                                stl_out=stl_out, enabled=enabled)
+        facts, findings, summary = check.analyze(path, enabled=enabled)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}")
@@ -228,12 +262,8 @@ def _run(job, path, name, enabled=None):
         "stats": _stats(facts),
         "svg": svg, "markers_placed": marked, "marker_index": marker_index,
         "svg_tf": svg_tf,
-        "model_url": f"/api/model/{job}" if facts.get("stl") else None,
-        "model_error": facts.get("stl_error"),
-        "refs_ok": facts.get("refs_ok", True),
         "svg_note": svg_note,
     }
-    _RESULTS[job] = payload
     return JSONResponse(payload)
 
 
@@ -264,27 +294,8 @@ def _render(facts):
         return None, False, [], f"도면 미리보기를 만들지 못했습니다 — {type(e).__name__}: {e}", None
 
 
-@app.get("/api/model/{job}")
-def model(job):
-    if not job.isalnum():
-        raise HTTPException(400, "bad job id")
-    path = os.path.join(UPLOADS, job, "model.stl")
-    if not os.path.exists(path):
-        raise HTTPException(404, "3D 모델이 없습니다.")
-    return FileResponse(path, media_type="model/stl", filename="model.stl")
-
-
 def _stats(facts):
     s = {"kind": facts.get("kind")}
-    if facts.get("sketches"):
-        s["sketches"] = len(facts["sketches"])
-        s["sketches_under"] = sum(1 for x in facts["sketches"] if x["status"] == "under")
-    for k in ("holes", "walls", "interferences", "sick_features"):
-        if facts.get(k):
-            s[k] = len(facts[k])
-    for k in ("mass_kg", "volume_cm3", "feature_count", "occurrence_count"):
-        if facts.get(k) is not None:
-            s[k] = facts[k]
     sheets = facts.get("sheets") or []
     if sheets:
         s["sheets"] = len(sheets)
@@ -292,8 +303,6 @@ def _stats(facts):
         s["undimensioned"] = sum(len(x.get("undimensioned", [])) for x in sheets)
         s["title_block"] = sheets[0].get("title_block") or sheets[0].get("border")
         s["views"] = sum(len(x.get("views", [])) for x in sheets)
-    if facts.get("interference_error"):
-        s["interference_error"] = facts["interference_error"]
     return s
 
 

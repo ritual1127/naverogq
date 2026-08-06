@@ -1,5 +1,26 @@
 import re
 
+_ISO_FIT = re.compile(r"\d\s*[A-Za-z]{1,2}\d{1,2}(?![\d.])")
+_EXPLICIT_TOL = re.compile(r"±|\^|[+\-]\s*\d*\.\d+|\bmin\b|\bmax\b", re.I)
+_NO_TOL_NEEDED = re.compile(r"^\s*[(\[]|^\s*R[\d.]|^\s*M\s*\d|×|\bTYP\b|\bREF\b", re.I)
+
+
+def text_tolerance_state(text):
+    """Classify a dimension's text: does it already carry a tolerance?
+    "fit" = ISO fit symbol (H7), "explicit" = ±0.1 and friends,
+    "not_applicable" = radius/thread/reference dims that need none."""
+    t = (text or "").strip()
+    if not t:
+        return "plain"
+    if _NO_TOL_NEEDED.search(t):
+        return "not_applicable"
+    if _EXPLICIT_TOL.search(t):
+        return "explicit"
+    if _ISO_FIT.search(t):
+        return "fit"
+    return "plain"
+
+
 REQUIRED_SHEET = ("A3", 420.0, 297.0)
 SHEET_TOL_MM = 3.0
 REQUIRED_THIRD_ANGLE = True
@@ -169,8 +190,7 @@ def _tolerance(facts):
     dims = sh.get("dims", [])
     if not dims:
         return []
-    import rules
-    states = [rules.text_tolerance_state(d.get("text")) for d in dims]
+    states = [text_tolerance_state(d.get("text")) for d in dims]
     fits = sum(1 for s in states if s == "fit")
     toleranced = sum(1 for d, s in zip(dims, states)
                      if d.get("tol_type") not in (None, "none") or s in ("explicit", "fit"))

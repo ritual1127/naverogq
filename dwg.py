@@ -155,29 +155,6 @@ def recover_orphaned_paper_views(path):
     return ok
 
 
-def dwg_via_inventor(dwg_path, out_dxf):
-    import inventor as inv
-    if not inv.is_available():
-        return False
-    import win32com.client as w32
-    with inv._LOCK:
-        inv._com_init()
-        app = inv._get_app()
-        doc = w32.CastTo(app.Documents.Open(os.path.abspath(dwg_path), False),
-                         "DrawingDocument")
-        try:
-            doc.SaveAs(out_dxf, True)
-        finally:
-            try:
-                doc.Close(True)
-            except Exception:
-                pass
-    return os.path.exists(out_dxf) and dxf_has_content(out_dxf)
-
-
-CLOUDCONVERT_API = "https://api.cloudconvert.com/v2"
-
-
 def find_cloudconvert():
     return os.environ.get("CLOUDCONVERT_API_KEY") or None
 
@@ -274,11 +251,8 @@ def dwg_via_cloudconvert(dwg_path, out_dxf, timeout=300):
 
 
 def dwg_converter_name():
-    import inventor
     if find_libredwg():
         return "LibreDWG"
-    if inventor.is_available():
-        return "Autodesk Inventor"
     if find_oda():
         return "ODA File Converter"
     if find_cloudconvert():
@@ -291,14 +265,13 @@ def has_dwg_support():
 
 
 SHORT_NAME = {"dwg_via_libredwg": "LibreDWG",
-              "dwg_via_inventor": "Inventor",
               "dwg_via_cloudconvert": "CloudConvert"}
 
 
 def dwg_to_dxf(dwg_path):
     work = tempfile.mkdtemp(prefix="dwg_conv_")
     tried = []
-    for fn in (dwg_via_libredwg, dwg_via_inventor, dwg_via_cloudconvert):
+    for fn in (dwg_via_libredwg, dwg_via_cloudconvert):
         label = SHORT_NAME.get(fn.__name__, fn.__name__)
         out = os.path.join(work, f"{fn.__name__}.dxf")
         try:
@@ -707,8 +680,7 @@ def facts_from_dxf(path, source_name=None):
                         "Centerlines": centerlines, "Centermarks": 0}}
     return {
         "kind": "dwg", "file": source_name or os.path.basename(path),
-        "props": props, "sheets": [sheet], "sketches": [], "holes": [],
-        "walls": [], "interferences": [], "sick_features": [],
+        "props": props, "sheets": [sheet],
         "first_angle": None, "dxf": path,
         "notes_text": [t for t in texts if _is_note(t)],
         "title_attributes": titles,
