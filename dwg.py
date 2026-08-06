@@ -763,7 +763,7 @@ def render_svg(dxf_path, markers=()):
             rings = [min(max((m.get("dxf_r") or 0.0) * 1.12, span * 0.006),
                          span * 0.018) for _, m in usable]
             spots = _badge_positions(
-                span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable], rings)
+                bb0, span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable], rings)
             for (i, m), ring, (bx, by) in zip(usable, rings, spots):
                 _arrow(space, m["dxf_x"], m["dxf_y"], ring, span, str(i), bx, by)
                 placed += 1
@@ -774,33 +774,45 @@ def render_svg(dxf_path, markers=()):
 BADGE_ANGLES = (45, 0, 90, -45, 135, -90, 180, 20, 70, 110, 160, 200, 250, 290, 340)
 
 
-def _badge_positions(span, targets, rings):
+def _badge_positions(bb, span, targets, rings):
     """Put each numbered badge next to the circle it points at, inside the drawing.
 
-    Badges are allowed to sit on top of drawing content -- they are drawn as a
-    filled disc so they stay readable -- but never on top of each other, so the
-    first free spot on a widening ring of candidate angles wins. Keeping them
-    inside means the preview's bounding box is the drawing's own, with none of
-    the empty margin an outside rail used to add.
+    Badges may sit on top of drawing content -- they are drawn as a filled disc
+    so they stay readable -- but never on top of each other. Candidates are
+    tried nearest-first around the target, and one that fits within the
+    drawing's own extents wins over a closer one that would hang off the edge:
+    anything outside enlarges the preview canvas and reintroduces the empty
+    margin this placement exists to remove.
     """
     badge_r = span * 0.016
     clear = badge_r * 2.15
+    fits = _fits_inside(bb, badge_r)
     placed = []
     for (x, y), ring in zip(targets, rings):
         gap = ring + badge_r * 1.9
-        spot = None
-        for step in range(5):
-            radius = gap + badge_r * 2.0 * step
-            for angle in BADGE_ANGLES:
-                a = math.radians(angle)
-                cx, cy = x + radius * math.cos(a), y + radius * math.sin(a)
-                if all(math.hypot(cx - px, cy - py) >= clear for px, py in placed):
-                    spot = (cx, cy)
-                    break
-            if spot:
-                break
-        placed.append(spot or (x + gap, y))
+        candidates = [
+            (x + radius * math.cos(a), y + radius * math.sin(a))
+            for radius in (gap + badge_r * 2.0 * step for step in range(8))
+            for a in (math.radians(angle) for angle in BADGE_ANGLES)]
+
+        def room(spot):
+            return min((math.hypot(spot[0] - px, spot[1] - py)
+                        for px, py in placed), default=math.inf)
+
+        free = [c for c in candidates if room(c) >= clear]
+        inside = [c for c in free if fits(c)]
+        # nearest free spot inside the drawing; failing that the nearest free one
+        # at all; and if everything is taken, whichever leaves the most room
+        placed.append(next(iter(inside or free), None) or max(candidates, key=room))
     return placed
+
+
+def _fits_inside(bb, badge_r):
+    if not getattr(bb, "has_data", False):
+        return lambda spot: True
+    x0, y0 = bb.extmin.x + badge_r, bb.extmin.y + badge_r
+    x1, y1 = bb.extmax.x - badge_r, bb.extmax.y - badge_r
+    return lambda spot: x0 <= spot[0] <= x1 and y0 <= spot[1] <= y1
 
 
 def _arrow(msp, x, y, ring, span, label, label_x, label_y):

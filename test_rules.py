@@ -83,6 +83,15 @@ def test_render_margin_scales_for_meter_drawings():
     assert widths and max(widths) < 5000, widths
 
 
+class _BB:
+    """Minimal stand-in for ezdxf's BoundingBox."""
+
+    def __init__(self, x0, y0, x1, y1):
+        self.has_data = True
+        self.extmin = type("P", (), {"x": x0, "y": y0})()
+        self.extmax = type("P", (), {"x": x1, "y": y1})()
+
+
 def test_badges_sit_next_to_their_target():
     import math
 
@@ -92,7 +101,7 @@ def test_badges_sit_next_to_their_target():
     badge_r = span * 0.016
     targets = [(100, 100), (500, 400), (900, 150)]
     rings = [span * 0.01] * 3
-    spots = dwg._badge_positions(span, targets, rings)
+    spots = dwg._badge_positions(_BB(0, 0, 1000, 1000), span, targets, rings)
 
     for (tx, ty), ring, (bx, by) in zip(targets, rings, spots):
         d = math.hypot(bx - tx, by - ty)
@@ -109,12 +118,28 @@ def test_badges_never_cover_each_other():
     # eight findings on the same circle: they cannot all take the first spot
     targets = [(500, 500)] * 8
     rings = [span * 0.008] * 8
-    spots = dwg._badge_positions(span, targets, rings)
+    spots = dwg._badge_positions(_BB(0, 0, 1000, 1000), span, targets, rings)
 
     clear = span * 0.016 * 2.15
     for i, (ax, ay) in enumerate(spots):
         for bx, by in spots[i + 1:]:
             assert math.hypot(ax - bx, ay - by) >= clear - 1e-9, "badges overlap"
+
+
+def test_badges_stay_inside_even_when_targets_hug_the_border():
+    """A badge that hangs off the edge enlarges the preview canvas, which is the
+    empty margin this placement exists to avoid."""
+    import dwg
+
+    span = 400.0
+    badge_r = span * 0.016
+    bb = _BB(0, 0, 400, 300)
+    corners = [(0, 0), (400, 0), (0, 300), (400, 300), (200, 300), (400, 150)]
+    for targets in (corners, [(400, 300)] * 8):
+        spots = dwg._badge_positions(bb, span, targets, [span * 0.01] * len(targets))
+        for bx, by in spots:
+            assert badge_r <= bx <= 400 - badge_r, f"badge escaped sideways at {bx:.1f}"
+            assert badge_r <= by <= 300 - badge_r, f"badge escaped vertically at {by:.1f}"
 
 
 def test_badges_do_not_grow_the_drawing():
@@ -132,7 +157,7 @@ def test_badges_do_not_grow_the_drawing():
     doc.layers.add(dwg.ERR_LAYER, color=1)
     span = max(before.size.x, before.size.y)
     ring = span * 0.01
-    (bx, by), = dwg._badge_positions(span, [(200, 150)], [ring])
+    (bx, by), = dwg._badge_positions(before, span, [(200, 150)], [ring])
     dwg._arrow(space, 200, 150, ring, span, "1", bx, by)
 
     after = bbox.extents(space)
