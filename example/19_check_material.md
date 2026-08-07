@@ -1,4 +1,4 @@
-# 일반기계기사 — 검사함수 분석 — check_material
+# 기계설계산업기사 — 검사함수 분석 — check_material
 
 ## 함수: `rules.py::check_material`
 
