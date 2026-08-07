@@ -1,4 +1,4 @@
-# CADLens
+# <img src="static/logo.png" alt="CADLens 로고" height="28"> CADLens
 
 전산응용기계제도기능사 실기 도면을 제출 전에 스스로 점검하는 서비스입니다.
 
