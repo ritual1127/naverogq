@@ -25,13 +25,48 @@ LibreDWG는 별도 프로세스(`dwg2dxf.exe`)로 실행하고 파일만 주고�
 
 ## 파이썬 의존성
 
-| 패키지 | 라이선스 |
-|---|---|
-| ezdxf | MIT |
-| FastAPI | MIT |
-| Uvicorn | BSD-3-Clause |
-| python-multipart | Apache-2.0 |
-| pywin32 (Windows 전용) | PSF |
+`requirements.txt` 전체 목록입니다.
+
+| 패키지 | 버전 | 라이선스 |
+|---|---|---|
+| ezdxf | 1.4.4 | MIT |
+| Pillow | 12.3.0 | MIT-CMU |
+| FastAPI | 0.141.1 | MIT |
+| Uvicorn | 0.52.0 | BSD-3-Clause |
+| python-multipart | 0.0.32 | Apache-2.0 |
+| Requests | 2.34.2 | Apache-2.0 |
+| PyMuPDF | 1.28.0 | **AGPL-3.0-or-later** 또는 상용 |
+| google-genai | 2.16.0 | Apache-2.0 |
+| anthropic | 0.120.2 | MIT |
+
+개발 전용(런타임 미포함): pytest (MIT, 회귀 테스트), fontTools (MIT, `tools_wordmark.py`에서
+3D 워드마크 좌표를 오프라인 생성).
+
+### PyMuPDF의 AGPL에 대해
+
+PyMuPDF는 AGPL-3.0입니다. AGPL은 **네트워크로 제공되는 서비스에도** 소스 공개 의무를
+지웁니다. 이 프로젝트는 저장소 전체를 공개하고 있으므로 그 의무를 충족합니다.
+**비공개 상용 배포로 전환한다면 Artifex의 상용 라이선스를 구매해야 합니다.**
+
+PyMuPDF는 AI 검토용으로 DXF를 PNG로 렌더할 때만 씁니다(`ai_review.py`의 `render_png`).
+설치돼 있지 않으면 AI 검토가 자동으로 꺼지고, 나머지 기능은 그대로 동작합니다.
+
+## 폰트
+
+홈 화면의 3D 워드마크는 Segoe UI Black(`C:\Windows\Fonts\seguibl.ttf`, Microsoft 독점 폰트)의
+글자 외곽선을 오프라인에서 좌표로 변환한 값입니다. **폰트 파일은 저장소에 포함하지 않습니다.**
+Docker 이미지에는 도면 텍스트 렌더용으로 `fonts-dejavu-core`(Bitstream Vera / 공개 라이선스)와
+`fonts-nanum`(SIL Open Font License 1.1)만 설치합니다.
+
+## 상표
+
+`AutoCAD`, `Inventor`는 Autodesk의 상표이고, `Q-Net`은 한국산업인력공단의 서비스입니다.
+호환성과 출처를 설명하기 위한 지시적 표시로만 사용했으며, 각 권리자와 제휴 관계가 없습니다.
+
+## 사용자가 올린 도면
+
+도면의 저작권은 그린 사람에게 있습니다. 검사 목적으로만 일시 처리하며(서버 보관 최대 1시간),
+학습 데이터로 쓰거나 재배포하지 않습니다. 자세한 내용은 README의 `개인정보 처리` 절을 보세요.
 
 ## 채점 기준 출처
 
