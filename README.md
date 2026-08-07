@@ -1,4 +1,4 @@
-# CADLens
+# <img width="1108" height="1112" alt="KakaoTalk_20260731_225046510" src="https://github.com/user-attachments/assets/a1c5b5fc-5eac-4dbb-a8c9-ac791b7ac86a" /> CADLens
 
 전산응용기계제도기능사 실기 도면을 제출 전에 스스로 점검하는 서비스입니다.
 
