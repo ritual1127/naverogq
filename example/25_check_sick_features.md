@@ -1,4 +1,4 @@
-# 일반기계기사 — 검사함수 분석 — check_sick_features
+# 기계설계산업기사 — 검사함수 분석 — check_sick_features
 
 ## 함수: `rules.py::check_sick_features`
 
