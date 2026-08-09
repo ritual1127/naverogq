@@ -1,4 +1,4 @@
-# 치공구설계산업기사 — 오작 조건 분석 — DQ_NO_GEOMETRIC_TOL
+# 기계설계산업기사 — 오작 조건 분석 — DQ_NO_GEOMETRIC_TOL
 
 ## 조건: `DQ_NO_GEOMETRIC_TOL`
 
