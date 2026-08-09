@@ -1,4 +1,4 @@
-# 치공구설계산업기사 — 오작 조건 분석 — DQ_PROJECTION
+# 기계설계산업기사 — 오작 조건 분석 — DQ_PROJECTION
 
 ## 조건: `DQ_PROJECTION`
 
