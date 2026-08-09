@@ -1,4 +1,4 @@
-# 치공구설계산업기사 — 오작 조건 분석 — DQ_SHEET_SIZE
+# 기계설계산업기사 — 오작 조건 분석 — DQ_SHEET_SIZE
 
 ## 조건: `DQ_SHEET_SIZE`
 
