@@ -1,4 +1,4 @@
-# 치공구설계산업기사 — 루브릭 세부 분석 — PROJECTION_LAYOUT (투상도 선택과 배열)
+# 기계설계산업기사 — 루브릭 세부 분석 — PROJECTION_LAYOUT (투상도 선택과 배열)
 
 ## 항목: `PROJECTION_LAYOUT` — 투상도 선택과 배열
 
