@@ -276,6 +276,60 @@ def test_bench_fixtures_are_graded_exactly():
     assert m["recall"] == 1.0 and m["precision"] == 1.0
 
 
+def test_cloudconvert_posts_to_the_real_v2_endpoint():
+    """The job URL is built from a module constant. This path only runs where an
+    API key is set, so a missing or misspelled constant stays invisible in
+    development and dies on the one server that depends on it."""
+    import sys
+    import types
+
+    import dwg
+
+    sent = []
+
+    class _Resp:
+        ok = True
+        status_code = 200
+
+        def json(self):
+            # No upload form -- the call bails out right after creating the job,
+            # which is all this test needs to see.
+            return {"data": {"id": "job1",
+                             "tasks": [{"name": "up", "result": {"form": None}}]}}
+
+    fake = types.ModuleType("requests")
+    fake.RequestException = Exception
+    fake.get = lambda url, **kw: _Resp()
+
+    def post(url, **kw):
+        sent.append(url)
+        return _Resp()
+
+    fake.post = post
+
+    had_module = "requests" in sys.modules
+    old_module = sys.modules.get("requests")
+    old_key = os.environ.get("CLOUDCONVERT_API_KEY")
+    sys.modules["requests"] = fake
+    os.environ["CLOUDCONVERT_API_KEY"] = "test-key"
+    try:
+        try:
+            dwg.dwg_via_cloudconvert("no-such-file.dwg", "out.dxf")
+        except RuntimeError:
+            pass
+    finally:
+        if had_module:
+            sys.modules["requests"] = old_module
+        else:
+            del sys.modules["requests"]
+        if old_key is None:
+            os.environ.pop("CLOUDCONVERT_API_KEY", None)
+        else:
+            os.environ["CLOUDCONVERT_API_KEY"] = old_key
+
+    assert sent == ["https://api.cloudconvert.com/v2/jobs"], sent
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

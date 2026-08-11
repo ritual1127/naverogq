@@ -156,6 +156,9 @@ def recover_orphaned_paper_views(path):
     return ok
 
 
+CLOUDCONVERT_API = "https://api.cloudconvert.com/v2"
+
+
 def find_cloudconvert():
     return os.environ.get("CLOUDCONVERT_API_KEY") or None
 
