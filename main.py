@@ -164,7 +164,8 @@ def _enabled(src):
 
 
 @app.post("/api/analyze")
-def analyze(file: UploadFile = File(...), checks: str = Form(None)):
+def analyze(file: UploadFile = File(...),  # noqa: B008 -- FastAPI declares deps this way
+            checks: str = Form(None)):
     name = os.path.basename(file.filename or "upload")
     ext = os.path.splitext(name)[1].lower()
     openable = _openable()
@@ -227,7 +228,7 @@ def _unzip(zpath, workdir):
         _extract(zpath, root)
     except _TooBig:
         shutil.rmtree(workdir, ignore_errors=True)
-        raise HTTPException(413, "압축을 풀면 너무 커집니다 (최대 200MB).")
+        raise HTTPException(413, "압축을 풀면 너무 커집니다 (최대 200MB).") from None
     found = []
     for dirpath, _, files in os.walk(root):
         if "oldversions" in dirpath.lower():
@@ -248,7 +249,8 @@ def _run(job, path, name, enabled=None):
         facts, findings, summary = check.analyze(path, enabled=enabled)
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}")
+        # Traceback already went to the log; the client only needs the summary.
+        raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}") from None
 
     svg, marked, marker_index, svg_note, svg_tf = _render(facts)
     payload = {

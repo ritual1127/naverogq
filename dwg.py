@@ -270,14 +270,14 @@ SHORT_NAME = {"dwg_via_libredwg": "LibreDWG",
 
 
 def dwg_to_dxf(dwg_path: str) -> str:
-    """DWG 를 DXF 로 바꿔 그 경로를 돌려준다. LibreDWG, CloudConvert, ODA 순으로
-    시도하고 전부 실패하면 RuntimeError 를 낸다.
+    """Convert a DWG to DXF and return the new path. Tries LibreDWG, then
+    CloudConvert, then ODA, and raises RuntimeError if none of them work.
 
-    반환한 DXF 는 임시 디렉터리 안에 있고 **호출자가 소유한다.** 이 함수는 결과에
-    쓰이지 않는 임시 디렉터리만 정리한다.
-    """
-    # ponytail: 성공 시 남는 임시 디렉터리는 OS 임시 폴더 청소에 맡긴다.
-    # 요청 단위로 확실히 지우려면 호출자가 컨텍스트 매니저로 감싸야 한다.
+    The returned DXF lives in a temp directory that the caller owns -- it is read
+    again for rendering. Only the temp directories that do not hold the result are
+    cleaned up here."""
+    # ponytail: the surviving temp dir is left to the OS temp sweep. Deleting it
+    # per request means wrapping this call in a context manager at the caller.
     work = tempfile.mkdtemp(prefix="dwg_conv_")
     tried = []
     for fn in (dwg_via_libredwg, dwg_via_cloudconvert):
@@ -295,8 +295,8 @@ def dwg_to_dxf(dwg_path: str) -> str:
             traceback.print_exc()
             continue
 
-    # 여기부터는 work 안의 변환 결과를 쓰지 않는다. 성공 시에는 반환한 DXF가
-    # work 안에 있으므로 지우지 않는다 -- 호출자가 그 파일을 읽는다.
+    # Past this point nothing in work is used again -- the successful branches
+    # above already returned the file they left there.
     shutil.rmtree(work, ignore_errors=True)
 
     exe = find_oda()
@@ -322,7 +322,8 @@ def dwg_to_dxf(dwg_path: str) -> str:
                        check=False, timeout=300,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     finally:
-        # 입력 사본은 변환이 끝나면 쓸모가 없다. dst 는 반환할 DXF 를 담고 있어 남긴다.
+        # The input copy is dead weight once the converter has run. dst is not
+        # touched here -- it holds the DXF we are about to return.
         shutil.rmtree(src, ignore_errors=True)
     out = glob.glob(os.path.join(dst, "*.dxf")) + glob.glob(os.path.join(dst, "*.DXF"))
     if not out:
@@ -912,8 +913,8 @@ def _transform(svg_text, bb, margin=MARGIN_MM):
 
 
 def analyze(path: str) -> dict[str, Any]:
-    """DXF 또는 DWG 한 장을 읽어 채점에 쓰는 facts 딕셔너리를 돌려준다.
-    DWG 는 먼저 DXF 로 변환한다."""
+    """Read one DXF or DWG and return the facts dict the grader consumes.
+    A DWG is converted to DXF first."""
     ext = os.path.splitext(path)[1].lower()
     if ext == ".dwg":
         dxf = dwg_to_dxf(path)

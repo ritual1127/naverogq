@@ -1,5 +1,6 @@
 import re
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 Facts = dict[str, Any]
 Finding = dict[str, Any]
@@ -51,7 +52,7 @@ RUBRIC = [
     ("MATERIAL", "재료 선택과 처리", 7, "auto"),
 ]
 RUBRIC_MAX = {c: p for c, _, p, _ in RUBRIC}
-RUBRIC_LABEL = {c: l for c, l, _, _ in RUBRIC}
+RUBRIC_LABEL = {c: label for c, label, _, _ in RUBRIC}
 RUBRIC_MODE = {c: m for c, _, _, m in RUBRIC}
 
 CHECKS = [
@@ -377,11 +378,10 @@ def check_catalog():
 def grade(facts: Facts, enabled: Iterable[str] | None = None,
           ai_projection: dict[str, Any] | None = None
           ) -> tuple[list[Finding], Scorecard]:
-    """facts 를 채점해 (findings, scorecard) 를 돌려준다.
+    """Score facts and return (findings, scorecard).
 
-    검사 하나가 예외를 내도 나머지 채점은 계속하고, 그 사실을 EX_RULE_ERROR
-    finding 으로 남긴다. 도면 한 장의 문제로 채점 전체가 죽지 않게 하기 위함이다.
-    """
+    A check that raises does not stop the rest: the failure is recorded as an
+    EX_RULE_ERROR finding, so one bad drawing cannot take the whole grade down."""
     on = ALL_CHECK_IDS if enabled is None else (set(enabled) & ALL_CHECK_IDS)
 
     findings = []
