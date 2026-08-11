@@ -19,17 +19,6 @@ CADLens 확장 대상 종목 중 하나. 조사 배경과 5개 종목 비교는
 ## 이 폴더의 문서
 
 - [`15_AI도면해석표준_적용.md`](15_AI도면해석표준_적용.md) — AI 도면 해석 표준 적용
-- [`16_check_sketches.md`](16_check_sketches.md) — 검사함수 분석 — check_sketches
-- [`17_check_holes.md`](17_check_holes.md) — 검사함수 분석 — check_holes
-- [`18_check_walls.md`](18_check_walls.md) — 검사함수 분석 — check_walls
-- [`19_check_material.md`](19_check_material.md) — 검사함수 분석 — check_material
-- [`20_check_props.md`](20_check_props.md) — 검사함수 분석 — check_props
-- [`21_check_dimension_tolerances.md`](21_check_dimension_tolerances.md) — 검사함수 분석 — check_dimension_tolerances
-- [`22_check_missing_dimensions.md`](22_check_missing_dimensions.md) — 검사함수 분석 — check_missing_dimensions
-- [`23_check_drawing_meta.md`](23_check_drawing_meta.md) — 검사함수 분석 — check_drawing_meta
-- [`24_check_interference.md`](24_check_interference.md) — 검사함수 분석 — check_interference
-- [`25_check_sick_features.md`](25_check_sick_features.md) — 검사함수 분석 — check_sick_features
-- [`26_check_references.md`](26_check_references.md) — 검사함수 분석 — check_references
 - [`27_오작_DQ_NO_SURFACE_SYMBOL.md`](27_오작_DQ_NO_SURFACE_SYMBOL.md) — 오작 조건 분석 — DQ_NO_SURFACE_SYMBOL
 - [`28_오작_DQ_NO_GEOMETRIC_TOL.md`](28_오작_DQ_NO_GEOMETRIC_TOL.md) — 오작 조건 분석 — DQ_NO_GEOMETRIC_TOL
 - [`29_오작_DQ_PROJECTION.md`](29_오작_DQ_PROJECTION.md) — 오작 조건 분석 — DQ_PROJECTION
@@ -43,4 +32,4 @@ CADLens 확장 대상 종목 중 하나. 조사 배경과 5개 종목 비교는
 - [`37_루브릭_NOTES_TITLE.md`](37_루브릭_NOTES_TITLE.md) — 루브릭 세부 분석 — NOTES_TITLE (주서·표제란·부품란)
 - [`38_루브릭_MATERIAL.md`](38_루브릭_MATERIAL.md) — 루브릭 세부 분석 — MATERIAL (재료 선택과 처리)
 
-전체 47개 중 24개 작성. 번호대별 의미는 [`../README.md`](../README.md)의 구조 표를 보세요.
+전체 36개 중 13개 작성. 번호대별 의미는 [`../README.md`](../README.md)의 구조 표를 보세요.

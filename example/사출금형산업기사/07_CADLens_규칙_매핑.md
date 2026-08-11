@@ -1,20 +1,23 @@
 # 사출금형산업기사 — CADLens 규칙 매핑
 
-## 현행 검사 함수 (`rules.py`)
+## 현행 판정 함수 (`exam.py`)
+
+`exam.py`의 `PRODUCERS` 튜플에 등록된 함수 8개가 판정을 담당합니다.
+도면 파싱은 `dwg.py`가, 자동 판정이 어려운 투상도 배열은 `ai_review.py`가 맡습니다.
 
 | 함수 | 검사 코드 | 대상 |
 |---|---|---|
-| `check_sketches` | `SKETCH_UNDER_CONSTRAINED`, `SKETCH_OVER_CONSTRAINED` | 3D 스케치 구속 |
-| `check_holes` | `HOLE_TOO_SMALL`, `HOLE_TOO_DEEP` | 홀 가공성 |
-| `check_walls` | `WALL_TOO_THIN` | 살두께 |
-| `check_material` | `MATERIAL_NOT_SET` | 재질 지정 |
-| `check_props` | `PROP_MISSING` | 품번·설계자 |
-| `check_dimension_tolerances` | `TOL_MISSING`, `TOL_INVERTED`, `TOL_ZERO`, `TOL_TOO_LOOSE` | 치수공차 |
-| `check_missing_dimensions` | `DIM_MISSING` | 치수 누락 |
-| `check_drawing_meta` | `TITLEBLOCK_MISSING`, `SCALE_NONSTANDARD`, `NO_DIMENSIONS_AT_ALL` | 도면 양식 |
-| `check_interference` | `INTERFERENCE` | 부품 간섭 |
-| `check_sick_features` | `FEATURE_SICK` | 피처 오류 |
-| `check_references` | `REFS_BROKEN` | 참조 무결성 |
+| `_disqualifiers` | `DQ_NO_SURFACE_SYMBOL`, `DQ_NO_GEOMETRIC_TOL`, `DQ_PROJECTION`, `DQ_SHEET_SIZE`, `DQ_SCALE` | 오작(실격) |
+| `_dimensions` | `EX_NO_DIMS`, `EX_DIM_MISSING` | 치수 기입 |
+| `_tolerance` | `EX_NO_FIT`, `EX_TOL_FEW` | 끼워맞춤·치수공차 |
+| `_surface` | `EX_SURFACE_EMPTY`, `EX_SURFACE_UNIFORM`, `EX_SURFACE_FEW` | 표면거칠기 |
+| `_geometric` | `EX_FCF_NO_DATUM`, `EX_FCF_NO_VALUE`, `EX_FCF_FEW` | 기하공차 |
+| `_notes` | `EX_NO_NOTES`, `EX_NOTE_ITEM`, `EX_NO_TITLEBLOCK` | 주서·표제란 |
+| `_material` | `EX_NO_HEAT` | 재료·열처리 |
+| `_projection` | `EX_FEW_VIEWS`, `EX_NO_CENTERLINE`, `EX_VIEW_NO_LABEL`, `EX_VIEW_NO_SCALE` | 투상도 배열 |
+| (`ai_review.judge`) | `AI_PROJECTION` | 투상도 선택·배열 30점 |
+
+검사 코드는 전부 24개이며 `exam.py`의 `CHECKS` 목록에서 켜고 끌 수 있습니다.
 
 ## 루브릭 항목별 재사용 판정
 
@@ -38,11 +41,11 @@
 
 ## 로직이 종목과 무관한 이유
 
-`rules.py`의 검사는 대부분 KS/ISO 제도 규칙에 근거합니다.
+`exam.py`의 검사는 대부분 KS/ISO 제도 규칙에 근거합니다.
 
-- `TOL_INVERTED` — 공차 상한이 하한보다 작으면 가공 불가. 종목과 무관한 물리적 사실.
-- `DIM_MISSING` — 치수 없는 원은 크기를 알 수 없음. 종목과 무관.
-- `TITLEBLOCK_MISSING` — 표제란 없는 도면은 출도 불가. 종목과 무관.
+- `EX_DIM_MISSING` — 치수 없는 원은 크기를 알 수 없음. 종목과 무관.
+- `EX_NO_TITLEBLOCK` — 표제란 없는 도면은 출도 불가. 종목과 무관.
+- `EX_FCF_NO_DATUM` — 데이텀 없는 기하공차는 기준이 없어 의미가 성립하지 않음.
 
 반면 `exam.py`의 상수(A3, 최소 기호 3개 등)는 전적으로 종목별 공개문제에서 온 값이라
 종목이 바뀌면 반드시 바꿔야 합니다. **이 분리가 종목 확장의 핵심입니다.**
@@ -51,8 +54,8 @@
 
 ```
 [재사용 — 로직 불변]          [종목별로 값만 교체]         [신규 개발 필요]
-rules.py 검사 함수 11개    →  exam.py의 SPECS 상수     →  금형 전용 규칙 등
-(TOL_*, DIM_MISSING 등)       (도면 크기, 최소 기호 등)     (draft, 클리어런스 등)
+exam.py 판정 함수 8개      →  종목별 SPECS 상수(예정)  →  금형 전용 규칙 등
+(EX_*, DQ_* 판정 조건식)      (도면 크기, 최소 기호 등)     (draft, 클리어런스 등)
 ```
 
 이 경계를 명확히 나눠 두면, 새 종목이 추가될 때마다 "이 종목은 왼쪽 칸만 필요한가,
@@ -60,11 +63,11 @@ rules.py 검사 함수 11개    →  exam.py의 SPECS 상수     →  금형 전
 문서의 재사용률 추정치는 사실 이 세 칸 중 몇 번째 칸까지 필요한지를 수치로 바꾼
 것입니다.
 
-## 검사 함수 하나를 예로 든 재사용 검증
+## 판정 함수 하나를 예로 든 재사용 검증
 
-`check_dimension_tolerances`를 예로 들면, 이 함수는 텍스트에서 공차 표기를
-정규식으로 찾아 `TOL_MISSING`/`TOL_INVERTED`/`TOL_ZERO`/`TOL_TOO_LOOSE`를
-판정합니다. 이 판정은 "공차의 상한이 하한보다 작으면 가공 불가능하다"는 물리적
-사실에 기반하므로, 종목이 기계설계산업기사든 사출금형산업기사든 똑같이 참입니다.
+`_tolerance`를 예로 들면, 이 함수는 `text_tolerance_state`가 치수 문자열을
+`fit`(H7 같은 끼워맞춤 기호) / `explicit`(±0.1) / `not_applicable`(참고치수·나사)
+로 분류한 결과를 받아 `EX_NO_FIT`, `EX_TOL_FEW`를 판정합니다. 이 분류는 KS/ISO
+공차 표기법 자체에 기반하므로, 종목이 기계설계산업기사든 사출금형산업기사든 똑같이 참입니다.
 종목이 바뀌어도 이 함수의 코드 한 줄도 바꿀 필요가 없다는 뜻이며, 이런 함수가
-`rules.py`의 대부분을 차지합니다.
+`exam.py`의 대부분을 차지합니다.

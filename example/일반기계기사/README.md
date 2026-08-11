@@ -25,4 +25,4 @@ CADLens가 실기 전체를 다루지 못하기 때문입니다. 작업형에 �
 - [`27_오작_DQ_NO_SURFACE_SYMBOL.md`](27_오작_DQ_NO_SURFACE_SYMBOL.md) — 오작 조건 분석 — DQ_NO_SURFACE_SYMBOL
 - [`28_오작_DQ_NO_GEOMETRIC_TOL.md`](28_오작_DQ_NO_GEOMETRIC_TOL.md) — 오작 조건 분석 — DQ_NO_GEOMETRIC_TOL
 
-전체 47개 중 4개 작성. 번호대별 의미는 [`../README.md`](../README.md)의 구조 표를 보세요.
+전체 36개 중 4개 작성. 번호대별 의미는 [`../README.md`](../README.md)의 구조 표를 보세요.
