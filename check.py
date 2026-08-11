@@ -1,10 +1,21 @@
 import os
+from typing import Any, Iterable
 
 DXF_EXT = {".dxf", ".dwg"}
 SUPPORTED = sorted(DXF_EXT)
 
+Facts = dict[str, Any]
+Finding = dict[str, Any]
+Summary = dict[str, int]
 
-def analyze(path, enabled=None, use_ai=True):
+
+def analyze(path: str, enabled: Iterable[str] | None = None,
+            use_ai: bool = True) -> tuple[Facts, list[Finding], Summary]:
+    """도면 한 장을 읽어 (facts, findings, summary) 를 돌려준다.
+
+    enabled 가 None 이면 모든 검사를 켠다. use_ai 를 끄면 투상도 배열 판정을
+    건너뛰고 그 항목은 '사람 확인 필요'로 남는다.
+    """
     ext = os.path.splitext(path)[1].lower()
     if ext not in DXF_EXT:
         raise ValueError(f"지원하지 않는 확장자: {ext or '(없음)'}. "

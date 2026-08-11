@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import traceback
+from typing import Any
 
 import ezdxf
 from ezdxf import bbox
@@ -268,7 +269,15 @@ SHORT_NAME = {"dwg_via_libredwg": "LibreDWG",
               "dwg_via_cloudconvert": "CloudConvert"}
 
 
-def dwg_to_dxf(dwg_path):
+def dwg_to_dxf(dwg_path: str) -> str:
+    """DWG 를 DXF 로 바꿔 그 경로를 돌려준다. LibreDWG, CloudConvert, ODA 순으로
+    시도하고 전부 실패하면 RuntimeError 를 낸다.
+
+    반환한 DXF 는 임시 디렉터리 안에 있고 **호출자가 소유한다.** 이 함수는 결과에
+    쓰이지 않는 임시 디렉터리만 정리한다.
+    """
+    # ponytail: 성공 시 남는 임시 디렉터리는 OS 임시 폴더 청소에 맡긴다.
+    # 요청 단위로 확실히 지우려면 호출자가 컨텍스트 매니저로 감싸야 한다.
     work = tempfile.mkdtemp(prefix="dwg_conv_")
     tried = []
     for fn in (dwg_via_libredwg, dwg_via_cloudconvert):
@@ -286,6 +295,10 @@ def dwg_to_dxf(dwg_path):
             traceback.print_exc()
             continue
 
+    # 여기부터는 work 안의 변환 결과를 쓰지 않는다. 성공 시에는 반환한 DXF가
+    # work 안에 있으므로 지우지 않는다 -- 호출자가 그 파일을 읽는다.
+    shutil.rmtree(work, ignore_errors=True)
+
     exe = find_oda()
     if not exe:
         if not has_dwg_support():
@@ -302,13 +315,18 @@ def dwg_to_dxf(dwg_path):
     src = tempfile.mkdtemp(prefix="oda_in_")
     dst = tempfile.mkdtemp(prefix="oda_out_")
     base = os.path.basename(dwg_path)
-    with open(dwg_path, "rb") as a, open(os.path.join(src, base), "wb") as b:
-        b.write(a.read())
-    subprocess.run([exe, src, dst, "ACAD2018", "DXF", "0", "1", "*.DWG"],
-                   check=False, timeout=300,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        with open(dwg_path, "rb") as a, open(os.path.join(src, base), "wb") as b:
+            b.write(a.read())
+        subprocess.run([exe, src, dst, "ACAD2018", "DXF", "0", "1", "*.DWG"],
+                       check=False, timeout=300,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    finally:
+        # 입력 사본은 변환이 끝나면 쓸모가 없다. dst 는 반환할 DXF 를 담고 있어 남긴다.
+        shutil.rmtree(src, ignore_errors=True)
     out = glob.glob(os.path.join(dst, "*.dxf")) + glob.glob(os.path.join(dst, "*.DXF"))
     if not out:
+        shutil.rmtree(dst, ignore_errors=True)
         raise RuntimeError("ODA File Converter가 DXF를 생성하지 못했습니다. "
                            "DWG 파일이 손상되었을 수 있습니다.")
     return out[0]
@@ -522,7 +540,7 @@ def detect_mm_per_unit(doc, msp):
     return 1.0, "mm으로 가정"
 
 
-def facts_from_dxf(path, source_name=None):
+def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     doc = ezdxf.readfile(path)
     msp = doc.modelspace()
     layouts = [msp] + [doc.layouts.get(n) for n in doc.layout_names()
@@ -893,7 +911,9 @@ def _transform(svg_text, bb, margin=MARGIN_MM):
         return None
 
 
-def analyze(path):
+def analyze(path: str) -> dict[str, Any]:
+    """DXF 또는 DWG 한 장을 읽어 채점에 쓰는 facts 딕셔너리를 돌려준다.
+    DWG 는 먼저 DXF 로 변환한다."""
     ext = os.path.splitext(path)[1].lower()
     if ext == ".dwg":
         dxf = dwg_to_dxf(path)

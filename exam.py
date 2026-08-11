@@ -1,11 +1,16 @@
 import re
+from typing import Any, Iterable
+
+Facts = dict[str, Any]
+Finding = dict[str, Any]
+Scorecard = dict[str, Any]
 
 _ISO_FIT = re.compile(r"\d\s*[A-Za-z]{1,2}\d{1,2}(?![\d.])")
 _EXPLICIT_TOL = re.compile(r"±|\^|[+\-]\s*\d*\.\d+|\bmin\b|\bmax\b", re.I)
 _NO_TOL_NEEDED = re.compile(r"^\s*[(\[]|^\s*R[\d.]|^\s*M\s*\d|×|\bTYP\b|\bREF\b", re.I)
 
 
-def text_tolerance_state(text):
+def text_tolerance_state(text: str | None) -> str:
     """Classify a dimension's text: does it already carry a tolerance?
     "fit" = ISO fit symbol (H7), "explicit" = ±0.1 and friends,
     "not_applicable" = radius/thread/reference dims that need none."""
@@ -369,7 +374,14 @@ def check_catalog():
             for cid, label, grp, on in CHECKS]
 
 
-def grade(facts, enabled=None, ai_projection=None):
+def grade(facts: Facts, enabled: Iterable[str] | None = None,
+          ai_projection: dict[str, Any] | None = None
+          ) -> tuple[list[Finding], Scorecard]:
+    """facts 를 채점해 (findings, scorecard) 를 돌려준다.
+
+    검사 하나가 예외를 내도 나머지 채점은 계속하고, 그 사실을 EX_RULE_ERROR
+    finding 으로 남긴다. 도면 한 장의 문제로 채점 전체가 죽지 않게 하기 위함이다.
+    """
     on = ALL_CHECK_IDS if enabled is None else (set(enabled) & ALL_CHECK_IDS)
 
     findings = []
