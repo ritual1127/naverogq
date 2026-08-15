@@ -3,9 +3,12 @@ import copy
 import hashlib
 import json
 import os
+import time
 
 GEMINI_MODEL = "gemini-3.6-flash"
 CLOUDFLARE_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
+GROQ_MODEL = "qwen/qwen3.6-27b"
+MISTRAL_MODEL = "mistral-small-latest"
 
 MAX_POINTS = 30
 RENDER_DPI = 150
@@ -23,6 +26,14 @@ def _cloudflare_creds():
     return (token, account) if token and account else None
 
 
+def _groq_key():
+    return os.environ.get("GROQ_API_KEY")
+
+
+def _mistral_key():
+    return os.environ.get("MISTRAL_API_KEY")
+
+
 def _importable(*names):
     try:
         for n in names:
@@ -36,22 +47,25 @@ def provider():
     forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
     if not _importable("pymupdf"):
         return None
-    gemini = _gemini_key() and _importable("google.genai")
-    cloudflare = _cloudflare_creds() and _importable("requests")
-    if forced == "gemini":
-        return "gemini" if gemini else None
-    if forced == "cloudflare":
-        return "cloudflare" if cloudflare else None
-    if gemini:
-        return "gemini"
-    if cloudflare:
-        return "cloudflare"
-    return None
+    ready = {
+        "gemini": bool(_gemini_key()) and _importable("google.genai"),
+        "cloudflare": bool(_cloudflare_creds()) and _importable("requests"),
+        "groq": bool(_groq_key()) and _importable("requests"),
+        "mistral": bool(_mistral_key()) and _importable("requests"),
+    }
+    if forced:
+        return forced if ready.get(forced) else None
+    # 순서가 곧 우선순위다. 앞이 막히면 뒤로 넘어간다. Groq 를 뒤에 두는 것은
+    # 무료 한도가 분당 8,000 토큰이라 도면 한 장에 그 대부분이 나가기 때문이다.
+    return next((n for n in ("gemini", "cloudflare", "mistral", "groq")
+                 if ready[n]), None)
 
 
 def active_model():
     return {"gemini": GEMINI_MODEL,
-            "cloudflare": CLOUDFLARE_MODEL}.get(provider())
+            "cloudflare": CLOUDFLARE_MODEL,
+            "groq": GROQ_MODEL,
+            "mistral": MISTRAL_MODEL}.get(provider())
 
 
 def is_available():
@@ -233,6 +247,96 @@ def _ask_cloudflare(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
     return (choices[0].get("message") or {}).get("content")
 
 
+def _ask_openai_style(api_url, model, key, png, prompt, timeout,
+                      system, schema, max_tokens, label):
+    """Call an OpenAI-compatible chat endpoint and return the reply text.
+
+    Groq 와 Mistral 은 요청 모양이 같아 한 함수로 부른다. 둘 다 무료 한도가
+    분 단위라 429 가 흔한데, 리셋이 곧이면 한 번만 기다렸다 다시 보낸다."""
+    import requests
+
+    content = [{"type": "text", "text": prompt}]
+    if png:
+        content.append({"type": "image_url", "image_url": {
+            "url": "data:image/png;base64,"
+                   + base64.standard_b64encode(png).decode()}})
+    # 두 곳 모두 비전 모델에 json_schema 를 강제하지 못하고 json_object 만
+    # 받는다. 스키마는 지시문에 실어 보내고 형식은 받는 쪽에서 확인한다.
+    # json_object 모드는 메시지 어딘가에 'json' 이라는 낱말을 요구한다.
+    system = (system
+              + "\n\nReply with a single json object matching this schema. "
+                "스키마에 없는 키를 넣지 마세요.\n"
+              + json.dumps(schema, ensure_ascii=False))
+
+    def send():
+        return requests.post(
+            api_url,
+            headers={"Authorization": "Bearer " + key},
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": content},
+                ],
+                "response_format": {"type": "json_object"},
+                # 무료 한도가 분당 토큰이라, max_tokens 가 그 한도를 넘으면
+                # 생성해 보기도 전에 요청 자체를 거절당한다(413).
+                "max_tokens": min(max_tokens, FREE_TIER_MAX_TOKENS),
+            },
+            timeout=timeout,
+        )
+
+    response = send()
+    # 채점(이미지가 있는 요청)만 기다렸다 다시 보낸다. 번역은 없어도 화면이
+    # 돌아가므로, 그것 때문에 사용자를 수십 초 세워 둘 이유가 없다.
+    if response.status_code == 429 and png:
+        wait = _retry_after(response)
+        if wait:
+            print(f"[ai] {label} 한도 — {wait:.0f}초 뒤 한 번 더 시도", flush=True)
+            time.sleep(wait)
+            response = send()
+    response.raise_for_status()
+    choices = response.json().get("choices") or [{}]
+    return (choices[0].get("message") or {}).get("content")
+
+
+def _ask_groq(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
+              max_tokens=4000):
+    return _ask_openai_style(
+        "https://api.groq.com/openai/v1/chat/completions", GROQ_MODEL,
+        _groq_key(), png, prompt, timeout, system, schema, max_tokens, "groq")
+
+
+def _ask_mistral(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
+                 max_tokens=4000):
+    return _ask_openai_style(
+        "https://api.mistral.ai/v1/chat/completions", MISTRAL_MODEL,
+        _mistral_key(), png, prompt, timeout, system, schema, max_tokens,
+        "mistral")
+
+
+RETRY_MAX_WAIT = 30.0
+FREE_TIER_MAX_TOKENS = 4000
+
+
+def _retry_after(response):
+    """Seconds to wait before one retry, or 0 when waiting would not help."""
+    raw = (response.headers.get("retry-after")
+           or response.headers.get("x-ratelimit-reset-tokens")
+           or response.headers.get("x-ratelimit-reset-requests") or "")
+    seconds, value = 0.0, ""
+    for ch in raw.strip():
+        if ch.isdigit() or ch == ".":
+            value += ch
+            continue
+        if value:
+            seconds += float(value) * {"m": 60, "s": 1, "h": 3600}.get(ch, 0)
+            value = ""
+    if value:                       # 단위 없는 "20" 은 초로 본다
+        seconds += float(value)
+    return seconds if 0 < seconds <= RETRY_MAX_WAIT else 0.0
+
+
 def _ask_gemini(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
                 max_tokens=None):
     from google import genai
@@ -319,7 +423,8 @@ def judge(facts, timeout=120.0):
         return _to_findings(hit, model)
 
     prompt = PROMPT + _context(facts)
-    ask = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini}[name]
+    ask = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
+           "groq": _ask_groq, "mistral": _ask_mistral}[name]
     try:
         text = ask(png, prompt, timeout)
     except Exception as e:
