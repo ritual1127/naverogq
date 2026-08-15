@@ -465,13 +465,18 @@ def judge(facts, timeout=120.0):
     model = active_model()
     cached = _cache_path(png, model)
     hit = _cache_get(cached)
+    ask = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
+           "groq": _ask_groq, "mistral": _ask_mistral}[name]
     if hit is not None:
-        print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
+        # 채점은 됐는데 답변이나 번역만 실패한 판이 캐시에 남아 있으면 그
+        # 상태로 굳는다. 캐시를 쓰되 빠진 부분은 이번에 채워 다시 저장한다.
+        if _fill_missing(hit, ask, timeout):
+            _cache_put(cached, hit)
+        else:
+            print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
         return _to_findings(hit, model)
 
     prompt = PROMPT + _context(facts)
-    ask = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
-           "groq": _ask_groq, "mistral": _ask_mistral}[name]
     try:
         text = ask(png, prompt, timeout)
     except Exception as e:
@@ -496,6 +501,25 @@ def judge(facts, timeout=120.0):
     data["i18n"] = _translate(data, ask, timeout)
     _cache_put(cached, data)
     return _to_findings(data, model)
+
+
+def _fill_missing(data, ask, timeout):
+    """Retry the answer and translation steps that failed on an earlier run.
+
+    True 를 돌려주면 캐시를 다시 써야 한다는 뜻이다. 세 단계가 순서대로 이어져
+    있어 뒤가 실패하면 앞 결과만 남는데, 캐시를 그대로 쓰면 그 반쪽짜리 판이
+    영영 굳는다. 다음 검사 때 빠진 것만 다시 부른다."""
+    if not isinstance(data.get("deductions"), list):
+        return False
+    filled = False
+    if any("answers" not in d for d in data["deductions"] if isinstance(d, dict)):
+        before = [d.get("answers") for d in data["deductions"]]
+        _add_followups(data, ask, timeout)
+        filled = [d.get("answers") for d in data["deductions"]] != before
+    if not data.get("i18n"):
+        data["i18n"] = _translate(data, ask, timeout)
+        filled = filled or bool(data["i18n"])
+    return filled
 
 
 def _add_followups(data, ask, timeout):
