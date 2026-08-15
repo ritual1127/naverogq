@@ -128,6 +128,50 @@ SCHEMA = {
 }
 
 
+LANGS = ("en", "ja", "zh")
+
+TRANSLATE_SYSTEM = """\
+당신은 기계제도 도면 채점 결과를 번역합니다.
+
+받은 JSON은 한국어 채점 결과입니다. 같은 구조로 영어(en) · 일본어(ja) ·
+중국어 간체(zh) 번역을 만드세요.
+
+- 뜻을 바꾸지 말고, 점수·개수·치수·기호(Ø, Ra, H7, A/B 데이텀)는 그대로 두세요.
+- 지어내지 마세요. 원문에 없는 지적이나 조언을 덧붙이면 안 됩니다.
+- fix는 Inventor에서 취할 동작이므로 각 언어판 메뉴 이름으로 옮기세요.
+  예: "배치 > 투상도" → "Place Views > Projected"
+- deductions 배열의 순서와 개수를 원문과 똑같이 유지하세요."""
+
+TRANSLATE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        lang: {
+            "type": "object",
+            "properties": {
+                "verdict": {"type": "string"},
+                "deductions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string"},
+                            "detail": {"type": "string"},
+                            "fix": {"type": "string"},
+                        },
+                        "required": ["title", "detail", "fix"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            "required": ["verdict", "deductions"],
+            "additionalProperties": False,
+        } for lang in LANGS
+    },
+    "required": list(LANGS),
+    "additionalProperties": False,
+}
+
+
 def _without_additional_properties(node):
     if isinstance(node, dict):
         return {k: _without_additional_properties(v) for k, v in node.items()
@@ -150,25 +194,27 @@ def _context(facts):
     return "\n".join(bits)
 
 
-def _ask_cloudflare(png, prompt, timeout):
+def _ask_cloudflare(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
+                    max_tokens=4000):
     import requests
 
     token, account = _cloudflare_creds()
-    data_url = "data:image/png;base64," + base64.standard_b64encode(png).decode()
+    content = [{"type": "text", "text": prompt}]
+    if png:
+        content.append({"type": "image_url", "image_url": {
+            "url": "data:image/png;base64,"
+                   + base64.standard_b64encode(png).decode()}})
     response = requests.post(
         f"https://api.cloudflare.com/client/v4/accounts/{account}"
         f"/ai/run/{CLOUDFLARE_MODEL}",
         headers={"Authorization": "Bearer " + token},
         json={
             "messages": [
-                {"role": "system", "content": SYSTEM},
-                {"role": "user", "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": {"url": data_url}},
-                ]},
+                {"role": "system", "content": system},
+                {"role": "user", "content": content},
             ],
-            "response_format": {"type": "json_schema", "json_schema": SCHEMA},
-            "max_tokens": 4000,
+            "response_format": {"type": "json_schema", "json_schema": schema},
+            "max_tokens": max_tokens,
         },
         timeout=timeout,
     )
@@ -187,7 +233,8 @@ def _ask_cloudflare(png, prompt, timeout):
     return (choices[0].get("message") or {}).get("content")
 
 
-def _ask_gemini(png, prompt, timeout):
+def _ask_gemini(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
+                max_tokens=None):
     from google import genai
     from google.genai import types
 
@@ -195,14 +242,17 @@ def _ask_gemini(png, prompt, timeout):
         api_key=_gemini_key(),
         http_options=types.HttpOptions(timeout=int(timeout * 1000)),
     )
+    parts = [prompt]
+    if png:
+        parts.insert(0, types.Part.from_bytes(data=png, mime_type="image/png"))
     response = client.models.generate_content(
         model=GEMINI_MODEL,
-        contents=[types.Part.from_bytes(data=png, mime_type="image/png"), prompt],
+        contents=parts,
         config=types.GenerateContentConfig(
-            system_instruction=SYSTEM,
+            system_instruction=system,
             response_mime_type="application/json",
             response_json_schema=_without_additional_properties(
-                copy.deepcopy(SCHEMA)),
+                copy.deepcopy(schema)),
         ),
     )
     return response.text
@@ -285,17 +335,57 @@ def judge(facts, timeout=120.0):
     if not isinstance(data, dict):
         return None
 
+    # 빈 자리채움 항목은 여기서 한 번만 걸러낸다. 번역과 화면 표시가 같은
+    # 목록을 봐야 항목 순서가 어긋나지 않는다.
+    data["deductions"] = [d for d in (data.get("deductions") or [])
+                          if isinstance(d, dict) and (d.get("title")
+                                                      or d.get("detail"))]
+    data["i18n"] = _translate(data, ask, timeout)
     _cache_put(cached, data)
     return _to_findings(data, model)
 
 
+def _translate(data, ask, timeout):
+    """Return {lang: {verdict, deductions:[{title,detail,fix}]}} for LANGS.
+
+    AI 가 도면마다 다른 문장을 만들기 때문에 고정 번역표를 쓸 수 없다. 채점
+    응답을 그대로 한 번 더 넘겨 세 언어를 한꺼번에 받고, 채점 결과와 같은
+    캐시에 넣는다. 그래서 같은 도면을 다시 검사하면 번역 호출도 일어나지 않는다.
+    실패하면 None 을 돌려주고 화면은 지금까지처럼 안내 문구로 넘어간다."""
+    source = {"verdict": data.get("verdict", ""),
+              "deductions": [{"title": d.get("title", ""),
+                              "detail": d.get("detail", ""),
+                              "fix": d.get("fix", "")}
+                             for d in data["deductions"]]}
+    try:
+        text = ask(None, json.dumps(source, ensure_ascii=False), timeout,
+                   TRANSLATE_SYSTEM, TRANSLATE_SCHEMA, 8000)
+        out = json.loads(text) if text else None
+    except Exception as e:
+        print(f"[ai] 번역 실패 {type(e).__name__}: {str(e)[:200]}", flush=True)
+        return None
+    if not isinstance(out, dict):
+        return None
+    want = len(source["deductions"])
+    for lang in LANGS:
+        got = (out.get(lang) or {}).get("deductions")
+        if not isinstance(got, list) or len(got) != want:
+            print(f"[ai] 번역 {lang} 항목 수가 원문과 달라 버림", flush=True)
+            return None
+    return {lang: out[lang] for lang in LANGS}
+
+
 def _to_findings(data, model):
+    i18n = data.get("i18n") or {}
     findings, total = [], 0
-    for d in data.get("deductions") or []:
-        if not isinstance(d, dict):
-            continue
-        if not (d.get("title") or d.get("detail")):
-            continue          # 내용 없는 자리채움 항목은 화면에 올리지 않는다
+    for pos, d in enumerate(data.get("deductions") or []):
+        if not isinstance(d, dict) or not (d.get("title") or d.get("detail")):
+            continue          # 옛 캐시에 남아 있을 수 있는 자리채움 항목
+        translated = {
+            lang: {k: (i18n[lang]["deductions"][pos].get(k) or "")
+                   for k in ("title", "detail", "fix")}
+            for lang in i18n if pos < len(i18n[lang].get("deductions") or [])
+        }
         try:
             raw = int(d.get("deduct", 0))
         except (TypeError, ValueError):
@@ -311,8 +401,11 @@ def _to_findings(data, model):
             "item": "PROJECTION_LAYOUT",
             "deduct": deduct,
             "where": {},
+            "i18n": translated,
         })
     return {"verdict": data.get("verdict", ""),
+            "verdict_i18n": {lang: i18n[lang].get("verdict", "")
+                             for lang in i18n},
             "findings": findings,
             "score": MAX_POINTS - total,
             "model": model}
