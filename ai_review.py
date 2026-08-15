@@ -144,6 +144,50 @@ SCHEMA = {
 
 LANGS = ("en", "ja", "zh")
 
+# 수험생이 지적을 보고 실제로 하는 질문 세 가지. 자유 입력을 받지 않고 이
+# 목록만 쓰기 때문에 답을 채점할 때 미리 만들어 둘 수 있다.
+FOLLOWUP_QUESTIONS = ("why", "where", "verify")
+
+FOLLOWUP_SYSTEM = """\
+당신은 전산응용기계제도기능사 실기 도면 채점위원입니다.
+
+받은 JSON은 방금 당신이 매긴 '투상도 선택과 배열' 지적입니다. 지적 하나마다
+수험생이 물을 세 가지에 미리 답해 두세요. answers 배열에 순서대로 넣습니다.
+
+1. 왜 감점인가 — 어느 채점 항목과 어느 KS 제도 규칙에 걸리는지, 감점인지
+   오작(실격)인지 밝힙니다.
+2. 어디를 눌러야 하나 — Inventor에서 밟을 메뉴 순서를 단계로 적습니다.
+3. 고친 뒤 어떻게 확인하나 — 도면에서 무엇을 보면 제대로 고쳐졌는지 적습니다.
+
+- 이미 적힌 detail·fix를 그대로 되풀이하지 말고 그다음을 설명하세요.
+- 지어내지 마세요. 도면에서 확인되지 않은 치수를 만들면 안 됩니다. 확실하지
+  않으면 "그 회차 공개문제와 지시사항에서 확인하세요"라고 쓰세요.
+- 규격은 이름까지만 적고 **조·항·장 번호는 쓰지 마세요.** 확인할 수 없는
+  번호를 적으면 수험생이 그것을 근거로 믿게 됩니다.
+- 답 앞에 번호나 질문을 다시 적지 마세요. 답 내용만 씁니다.
+- 각 답은 두세 문장으로 짧게, 한국어로 씁니다.
+- deductions 배열의 순서와 개수를 원문과 똑같이 유지하세요."""
+
+FOLLOWUP_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "deductions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "answers": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["answers"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["deductions"],
+    "additionalProperties": False,
+}
+
+
 TRANSLATE_SYSTEM = """\
 당신은 기계제도 도면 채점 결과를 번역합니다.
 
@@ -154,6 +198,7 @@ TRANSLATE_SYSTEM = """\
 - 지어내지 마세요. 원문에 없는 지적이나 조언을 덧붙이면 안 됩니다.
 - fix는 Inventor에서 취할 동작이므로 각 언어판 메뉴 이름으로 옮기세요.
   예: "배치 > 투상도" → "Place Views > Projected"
+- answers 배열도 순서와 개수를 그대로 두고 각 항목을 옮기세요.
 - deductions 배열의 순서와 개수를 원문과 똑같이 유지하세요."""
 
 TRANSLATE_SCHEMA = {
@@ -171,8 +216,10 @@ TRANSLATE_SCHEMA = {
                             "title": {"type": "string"},
                             "detail": {"type": "string"},
                             "fix": {"type": "string"},
+                            "answers": {"type": "array",
+                                        "items": {"type": "string"}},
                         },
-                        "required": ["title", "detail", "fix"],
+                        "required": ["title", "detail", "fix", "answers"],
                         "additionalProperties": False,
                     },
                 },
@@ -445,9 +492,40 @@ def judge(facts, timeout=120.0):
     data["deductions"] = [d for d in (data.get("deductions") or [])
                           if isinstance(d, dict) and (d.get("title")
                                                       or d.get("detail"))]
+    _add_followups(data, ask, timeout)
     data["i18n"] = _translate(data, ask, timeout)
     _cache_put(cached, data)
     return _to_findings(data, model)
+
+
+def _add_followups(data, ask, timeout):
+    """Fill each deduction's "answers" with replies to FOLLOWUP_QUESTIONS.
+
+    버튼을 누를 때 부르지 않고 채점할 때 미리 만들어 둔다. 그래야 누른 즉시
+    뜨고, 서버에 새 주소를 열지 않아도 되며, 같은 도면을 다시 검사하면 캐시가
+    그대로 쓰인다. 실패하면 답변 없이 두고 화면은 버튼을 감춘다."""
+    want = len(data["deductions"])
+    if not want:
+        return
+    source = {"deductions": [{"title": d.get("title", ""),
+                              "detail": d.get("detail", ""),
+                              "fix": d.get("fix", "")}
+                             for d in data["deductions"]]}
+    try:
+        text = ask(None, json.dumps(source, ensure_ascii=False), timeout,
+                   FOLLOWUP_SYSTEM, FOLLOWUP_SCHEMA, 4000)
+        out = json.loads(text) if text else None
+    except Exception as e:
+        print(f"[ai] 후속 답변 실패 {type(e).__name__}: {str(e)[:200]}", flush=True)
+        return
+    got = (out or {}).get("deductions")
+    if not isinstance(got, list) or len(got) != want:
+        print("[ai] 후속 답변 항목 수가 원문과 달라 버림", flush=True)
+        return
+    for d, answered in zip(data["deductions"], got, strict=True):
+        answers = (answered or {}).get("answers")
+        if isinstance(answers, list) and len(answers) == len(FOLLOWUP_QUESTIONS):
+            d["answers"] = [str(a) for a in answers]
 
 
 def _translate(data, ask, timeout):
@@ -460,7 +538,8 @@ def _translate(data, ask, timeout):
     source = {"verdict": data.get("verdict", ""),
               "deductions": [{"title": d.get("title", ""),
                               "detail": d.get("detail", ""),
-                              "fix": d.get("fix", "")}
+                              "fix": d.get("fix", ""),
+                              "answers": d.get("answers") or []}
                              for d in data["deductions"]]}
     try:
         text = ask(None, json.dumps(source, ensure_ascii=False), timeout,
@@ -480,6 +559,22 @@ def _translate(data, ask, timeout):
     return {lang: out[lang] for lang in LANGS}
 
 
+def _followups_by_lang(deduction, i18n, pos):
+    """{"ko": [...], "en": [...]} — 답이 다 갖춰진 언어만 담는다."""
+    out = {}
+    korean = deduction.get("answers")
+    if isinstance(korean, list) and len(korean) == len(FOLLOWUP_QUESTIONS):
+        out["ko"] = korean
+    for lang in i18n:
+        items = i18n[lang].get("deductions") or []
+        if pos >= len(items):
+            continue
+        answers = (items[pos] or {}).get("answers")
+        if isinstance(answers, list) and len(answers) == len(FOLLOWUP_QUESTIONS):
+            out[lang] = [str(a) for a in answers]
+    return out
+
+
 def _to_findings(data, model):
     i18n = data.get("i18n") or {}
     findings, total = [], 0
@@ -491,6 +586,7 @@ def _to_findings(data, model):
                    for k in ("title", "detail", "fix")}
             for lang in i18n if pos < len(i18n[lang].get("deductions") or [])
         }
+        followups = _followups_by_lang(d, i18n, pos)
         try:
             raw = int(d.get("deduct", 0))
         except (TypeError, ValueError):
@@ -507,6 +603,7 @@ def _to_findings(data, model):
             "deduct": deduct,
             "where": {},
             "i18n": translated,
+            "followups": followups,
         })
     return {"verdict": data.get("verdict", ""),
             "verdict_i18n": {lang: i18n[lang].get("verdict", "")
