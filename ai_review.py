@@ -4,22 +4,23 @@ import hashlib
 import json
 import os
 
-CLAUDE_MODEL = "claude-opus-5"
 GEMINI_MODEL = "gemini-3.6-flash"
+CLOUDFLARE_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
 
 MAX_POINTS = 30
 RENDER_DPI = 150
 MAX_PIXELS = 2400
 
 
-def _claude_key():
-    return (os.environ.get("ANTHROPIC_API_KEY")
-            or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
-
-
 def _gemini_key():
     return (os.environ.get("GEMINI_API_KEY")
             or os.environ.get("GOOGLE_API_KEY"))
+
+
+def _cloudflare_creds():
+    token = os.environ.get("CLOUDFLARE_API_TOKEN")
+    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+    return (token, account) if token and account else None
 
 
 def _importable(*names):
@@ -36,20 +37,21 @@ def provider():
     if not _importable("pymupdf"):
         return None
     gemini = _gemini_key() and _importable("google.genai")
-    claude = _claude_key() and _importable("anthropic")
+    cloudflare = _cloudflare_creds() and _importable("requests")
     if forced == "gemini":
         return "gemini" if gemini else None
-    if forced == "claude":
-        return "claude" if claude else None
+    if forced == "cloudflare":
+        return "cloudflare" if cloudflare else None
     if gemini:
         return "gemini"
-    if claude:
-        return "claude"
+    if cloudflare:
+        return "cloudflare"
     return None
 
 
 def active_model():
-    return {"gemini": GEMINI_MODEL, "claude": CLAUDE_MODEL}.get(provider())
+    return {"gemini": GEMINI_MODEL,
+            "cloudflare": CLOUDFLARE_MODEL}.get(provider())
 
 
 def is_available():
@@ -148,27 +150,41 @@ def _context(facts):
     return "\n".join(bits)
 
 
-def _ask_claude(png, prompt, timeout):
-    import anthropic
-    client = anthropic.Anthropic(timeout=timeout)
-    response = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=16000,
-        system=SYSTEM,
-        output_config={"format": {"type": "json_schema", "schema": SCHEMA}},
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image",
-                 "source": {"type": "base64", "media_type": "image/png",
-                            "data": base64.standard_b64encode(png).decode()}},
-                {"type": "text", "text": prompt},
+def _ask_cloudflare(png, prompt, timeout):
+    import requests
+
+    token, account = _cloudflare_creds()
+    data_url = "data:image/png;base64," + base64.standard_b64encode(png).decode()
+    response = requests.post(
+        f"https://api.cloudflare.com/client/v4/accounts/{account}"
+        f"/ai/run/{CLOUDFLARE_MODEL}",
+        headers={"Authorization": "Bearer " + token},
+        json={
+            "messages": [
+                {"role": "system", "content": SYSTEM},
+                {"role": "user", "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ]},
             ],
-        }],
+            "response_format": {"type": "json_schema", "json_schema": SCHEMA},
+            "max_tokens": 4000,
+        },
+        timeout=timeout,
     )
-    if response.stop_reason == "refusal":
+    response.raise_for_status()
+    body = response.json()
+    if not body.get("success"):
+        print(f"[ai] cloudflare: {str(body.get('errors'))[:300]}", flush=True)
         return None
-    return next(b.text for b in response.content if b.type == "text")
+    result = body.get("result") or {}
+    # Workers AI 는 스키마로 파싱한 결과를 response 에, 원문을 choices 에 준다
+    if isinstance(result.get("response"), dict):
+        return json.dumps(result["response"])
+    if isinstance(result.get("response"), str):
+        return result["response"]
+    choices = result.get("choices") or [{}]
+    return (choices[0].get("message") or {}).get("content")
 
 
 def _ask_gemini(png, prompt, timeout):
@@ -253,7 +269,7 @@ def judge(facts, timeout=120.0):
         return _to_findings(hit, model)
 
     prompt = PROMPT + _context(facts)
-    ask = {"claude": _ask_claude, "gemini": _ask_gemini}[name]
+    ask = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini}[name]
     try:
         text = ask(png, prompt, timeout)
     except Exception as e:
@@ -278,6 +294,8 @@ def _to_findings(data, model):
     for d in data.get("deductions") or []:
         if not isinstance(d, dict):
             continue
+        if not (d.get("title") or d.get("detail")):
+            continue          # 내용 없는 자리채움 항목은 화면에 올리지 않는다
         try:
             raw = int(d.get("deduct", 0))
         except (TypeError, ValueError):

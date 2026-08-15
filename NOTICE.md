@@ -37,7 +37,6 @@ LibreDWG는 별도 프로세스(`dwg2dxf.exe`)로 실행하고 파일만 주고�
 | Requests | 2.34.2 | Apache-2.0 |
 | PyMuPDF | 1.28.0 | **AGPL-3.0-or-later** 또는 상용 |
 | google-genai | 2.16.0 | Apache-2.0 |
-| anthropic | 0.120.2 | MIT |
 
 개발 전용(런타임 미포함): pytest (MIT, 회귀 테스트), fontTools (MIT, `tools_wordmark.py`에서
 3D 워드마크 좌표를 오프라인 생성).

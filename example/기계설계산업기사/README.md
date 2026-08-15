@@ -13,23 +13,22 @@ CADLens 확장 대상 종목 중 하나. 조사 배경과 5개 종목 비교는
 
 재사용률이 가장 높고, 치공구설계산업기사가 통합된 종목이라 대상 응시자도
 가장 많습니다. 대부분 `exam.py`의 상수만 종목값으로 바꾸면 동작합니다.
-그래서 검사 함수 11개와 루브릭 7개를 **개별 문서로 하나씩** 확인했고,
-이 폴더의 문서 수가 가장 많은 이유입니다.
+판정 함수 8개와 루브릭 7개를 **하나씩 개별 문서로** 대보고 내린 결론이며,
+그 개별 문서는 [`../공통/`](../공통/)에 있습니다.
 
 ## 이 폴더의 문서
 
-- [`15_AI도면해석표준_적용.md`](15_AI도면해석표준_적용.md) — AI 도면 해석 표준 적용
-- [`27_오작_DQ_NO_SURFACE_SYMBOL.md`](27_오작_DQ_NO_SURFACE_SYMBOL.md) — 오작 조건 분석 — DQ_NO_SURFACE_SYMBOL
-- [`28_오작_DQ_NO_GEOMETRIC_TOL.md`](28_오작_DQ_NO_GEOMETRIC_TOL.md) — 오작 조건 분석 — DQ_NO_GEOMETRIC_TOL
-- [`29_오작_DQ_PROJECTION.md`](29_오작_DQ_PROJECTION.md) — 오작 조건 분석 — DQ_PROJECTION
-- [`30_오작_DQ_SHEET_SIZE.md`](30_오작_DQ_SHEET_SIZE.md) — 오작 조건 분석 — DQ_SHEET_SIZE
-- [`31_오작_DQ_SCALE.md`](31_오작_DQ_SCALE.md) — 오작 조건 분석 — DQ_SCALE
-- [`32_루브릭_PROJECTION_LAYOUT.md`](32_루브릭_PROJECTION_LAYOUT.md) — 루브릭 세부 분석 — PROJECTION_LAYOUT (투상도 선택과 배열)
-- [`33_루브릭_DIMENSIONS.md`](33_루브릭_DIMENSIONS.md) — 루브릭 세부 분석 — DIMENSIONS (치수 기입)
-- [`34_루브릭_TOLERANCE.md`](34_루브릭_TOLERANCE.md) — 루브릭 세부 분석 — TOLERANCE (끼워맞춤 공차·치수공차)
-- [`35_루브릭_SURFACE.md`](35_루브릭_SURFACE.md) — 루브릭 세부 분석 — SURFACE (표면거칠기)
-- [`36_루브릭_GEOMETRIC.md`](36_루브릭_GEOMETRIC.md) — 루브릭 세부 분석 — GEOMETRIC (형상(기하)공차)
-- [`37_루브릭_NOTES_TITLE.md`](37_루브릭_NOTES_TITLE.md) — 루브릭 세부 분석 — NOTES_TITLE (주서·표제란·부품란)
-- [`38_루브릭_MATERIAL.md`](38_루브릭_MATERIAL.md) — 루브릭 세부 분석 — MATERIAL (재료 선택과 처리)
+- [`01_개요.md`](01_개요.md) — 개요
+- [`02_출제기준_필기.md`](02_출제기준_필기.md) — 필기 출제기준
+- [`03_출제기준_실기.md`](03_출제기준_실기.md) — 실기 출제기준
+- [`04_실기_과제구성.md`](04_실기_과제구성.md) — 실기 과제 구성
+- [`05_채점기준_배점.md`](05_채점기준_배점.md) — 채점기준 및 배점
+- [`06_오작_실격_조건.md`](06_오작_실격_조건.md) — 오작·실격 조건
+- [`07_CADLens_규칙_매핑.md`](07_CADLens_규칙_매핑.md) — CADLens 규칙 매핑
+- [`08_추가개발_필요항목.md`](08_추가개발_필요항목.md) — 추가 개발 필요 항목
+- [`09_도입타당성_결론.md`](09_도입타당성_결론.md) — 도입 타당성 결론
 
-전체 36개 중 13개 작성. 번호대별 의미는 [`../README.md`](../README.md)의 구조 표를 보세요.
+도입 여부를 가르는 것은 이 중 `07`(규칙 매핑) · `08`(추가 개발) · `09`(타당성 결론)입니다.
+
+번호 10~47은 **5개 종목에서 내용이 같아** [`../공통/`](../공통/)에 한 부만 두었습니다.
+KS 표준 적용, 오작 조건, 루브릭 7개, 도입 실무 문서가 거기 있습니다.

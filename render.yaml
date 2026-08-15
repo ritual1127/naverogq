@@ -11,3 +11,8 @@ services:
     envVars:
       - key: GOOGLE_API_KEY
         sync: false
+      # Gemini 할당량이 끊겼을 때 투상도 30점 채점을 이어받는 경로
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
