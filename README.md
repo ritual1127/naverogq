@@ -89,32 +89,22 @@ GPL과 AGPL을 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 적어 �
 
 ---
 
-## 실행 방법
+## 쓰는 방법
 
-**그냥 쓰려면 [naverogq.onrender.com](https://naverogq.onrender.com) 에 들어가면 됩니다.** 설치할 게 없습니다.
+**[naverogq.onrender.com](https://naverogq.onrender.com) 에 들어가면 됩니다.** 회원가입도 설치도 없습니다. 도면을 끌어다 놓으면 끝입니다.
 
-직접 돌려야 한다면(예: 학교에서 도면을 밖으로 안 내보내고 쓰고 싶을 때) Docker로 띄우면 됩니다.
+### AI 채점기를 두 곳으로 붙여 둔 이유
 
-```bash
-git clone https://github.com/ritual1127/naverogq.git
-cd naverogq
-docker build -t cadlens .
-docker run -p 7860:7860 -e GOOGLE_API_KEY=... cadlens          # 90점 전부
-docker run -p 7860:7860 cadlens                                # 규칙 60점만
-```
+배점이 가장 큰 투상도 30점을 AI가 채점하므로, **AI가 멈추면 채점의 3분의 1이 멈춥니다.** 무료로 계속 열어 두려면 한쪽 할당량이 끊겨도 서비스가 버텨야 합니다.
 
-Dockerfile이 LibreDWG를 알아서 설치해서 DWG가 바로 열립니다. 빌드 마지막에 예제 DWG로 변환이 되는지 한 번 돌려보기 때문에, 변환이 깨진 상태로는 배포되지 않습니다.
-
-| 환경 변수 | 꼭 필요한가 | 설명 |
+| 순서 | 채점기 | 모델 |
 |---|---|---|
-| `GEMINI_API_KEY` 또는 `GOOGLE_API_KEY` | AI 채점에 필요 | 투상도 30점을 Gemini(`gemini-3.6-flash`)가 채점. 공개 서버 기본값 |
-| `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | AI 채점에 필요 | Gemini 키가 없을 때 Cloudflare Workers AI(`@cf/meta/llama-4-scout-17b-16e-instruct`)가 채점 |
-| `AI_PROVIDER` | 아니요 | `gemini` 또는 `cloudflare`로 직접 지정 |
-| `CLOUDCONVERT_API_KEY` | 아니요 | LibreDWG가 없는 환경에서 DWG를 변환할 때 쓰는 대체 경로. **넣으면 DWG 원본이 CloudConvert 서버로 올라갑니다.** Docker로 띄우면 LibreDWG가 들어 있어 필요 없습니다 |
+| 기본 | Google Gemini | `gemini-3.6-flash` |
+| 대체 | Cloudflare Workers AI | `@cf/meta/llama-4-scout-17b-16e-instruct` |
 
-**AI 채점기를 두 곳으로 붙여 둔 이유** — 무료 사용자에게 계속 열어 두려면 한쪽 할당량이 끊겨도 30점 채점이 멈추면 안 됩니다. Gemini 키가 없으면 Cloudflare Workers AI로 자동으로 넘어가고, 두 경로 모두 같은 프롬프트·같은 JSON 스키마를 쓰기 때문에 결과 형식이 달라지지 않습니다. 같은 도면·같은 모델이면 응답을 캐시해서 다시 부르지 않습니다.
+두 경로가 **같은 프롬프트와 같은 JSON 스키마**를 쓰기 때문에 어느 쪽이 채점해도 결과 형식이 달라지지 않습니다. 같은 도면을 같은 모델로 다시 검사하면 저장해 둔 응답을 써서 API를 다시 부르지 않습니다.
 
-키가 아예 없으면 **투상도 30점이 "사람 확인 필요"로 비워집니다.** 규칙 60점과 실격 확인은 그대로 돌아가지만, 배점이 가장 큰 항목이 빠진 상태입니다.
+두 경로가 다 막히면 **투상도 30점이 "사람 확인 필요"로 비워지고**, 화면에도 AI가 꺼져 있다고 표시됩니다. 규칙 60점과 실격 확인은 그대로 돌아가지만 배점이 가장 큰 항목이 빠진 상태이므로, 없는 점수를 있는 것처럼 채우지 않습니다.
 
 ---
 
@@ -201,11 +191,11 @@ Dockerfile이 LibreDWG를 알아서 설치해서 DWG가 바로 열립니다. 빌
 
 **개인정보** — 회원가입도 로그인도 없고 이름·연락처를 받지 않습니다. 쿠키와 추적 코드가 없습니다. 올린 도면은 그 검사에만 쓰고 **최대 1시간** 뒤 서버에서 지웁니다. AI 학습에 쓰거나 팔지 않습니다. 다만 **투상도 30점을 채점할 때 도면을 그림으로 바꿔 Google Gemini에 보냅니다**(Gemini 키가 없는 환경에서는 Cloudflare Workers AI로 갑니다. 어느 쪽이든 원본 파일은 안 보냄). 도면 표제란에 이름이 있으면 결과 화면에 뜨니 **지우고 올리세요.**
 
-DWG 변환에는 서버 안의 LibreDWG를 씁니다. 공개 서버와 Docker 이미지가 이 방식이라 **원본 도면이 밖으로 나가지 않습니다.** 단, LibreDWG가 없는 환경에서 `CLOUDCONVERT_API_KEY`를 넣어 띄우면 **DWG 원본이 CloudConvert 서버로 업로드됩니다.** 직접 띄워 쓰실 때만 해당하고, 그 경우 이 사실을 사용자에게 알려야 합니다.
+DWG를 DXF로 바꾸는 일은 **서버 안에 설치된 LibreDWG**가 합니다. 변환을 위해 도면을 외부로 보내지 않습니다.
 
 **AI 생성물 표기** — 90점 중 **투상도 30점과 "AI 총평" 문장을 AI(Gemini 또는 Cloudflare Workers AI)가 만듭니다.** 배점이 가장 큰 항목이고, 규칙 코드로는 채점이 안 되는 부분입니다. 나머지 60점과 실격 판정은 규칙 코드가 맡습니다. 화면에서 AI가 매긴 항목엔 `AI` 표시가 붙습니다. AI 점수는 매번 똑같이 안 나오니 확정 점수가 아닙니다. 코드와 문서도 AI 도구로 썼고 전부 사람이 확인한 뒤 넣었습니다.
 
-**미성년자 안전** — 개인정보 입력란, 결제, 광고, 추적 코드가 없습니다. 채팅·댓글·프로필처럼 사용자끼리 만날 수 있는 기능이 아예 없습니다. AI는 도면 채점 역할로 고정돼 있고, 응답도 JSON 스키마로 묶어 두어 정해진 형식의 채점 결과만 화면에 나옵니다. 자유 대화가 되지 않습니다. 도면을 밖으로 내보내면 안 되는 학교라면 Docker에 AI 키를 넣지 않고 띄울 수 있고, 그때는 규칙 60점만 나옵니다.
+**미성년자 안전** — 개인정보 입력란, 결제, 광고, 추적 코드가 없습니다. 채팅·댓글·프로필처럼 사용자끼리 만날 수 있는 기능이 아예 없습니다. AI는 도면 채점 역할로 고정돼 있고, 응답도 JSON 스키마로 묶어 두어 정해진 형식의 채점 결과만 화면에 나옵니다. 자유 대화가 되지 않습니다. 올린 도면은 최대 1시간 뒤 서버에서 지우고, AI 학습에 쓰지 않습니다.
 
 **저작권** — 도면 저작권은 그린 사람 것입니다. 검사 기준은 KS 규격과 공개된 채점 기준만 보고 만들었고 **비공개 채점표를 베낀 적이 없습니다.** CADLens는 공식 채점이 아니고 한국산업인력공단·Q-Net과 아무 관계가 없습니다. 코드는 MIT이고, LibreDWG(GPL-3.0)와 PyMuPDF(AGPL-3.0) 취급은 [`NOTICE.md`](NOTICE.md)에 있습니다.
 
@@ -226,7 +216,7 @@ DWG 변환에는 서버 안의 LibreDWG를 씁니다. 공개 서버와 Docker �
 | Claude Opus 5 / Sonnet 5 / Sonnet 4.8 | Anthropic | 만들 때 — 코드 작성·정리, 문서와 번역 초안 (Claude Code) |
 | GPT-5.6 Sol | OpenAI | 만들 때 — 코드 작성 도움 |
 
-**사용한 오픈소스** — 서버는 ezdxf 1.4.4(MIT), Pillow 12.3.0(MIT-CMU), FastAPI 0.141.1(MIT), Uvicorn 0.52.0(BSD-3-Clause), python-multipart 0.0.32(Apache-2.0), Requests 2.34.2(Apache-2.0), PyMuPDF 1.28.0(**AGPL-3.0**/상용), google-genai 2.16.0(Apache-2.0). Cloudflare Workers AI는 전용 SDK 없이 Requests로 REST를 직접 부릅니다. 브라우저에서는 three.js(MIT)를 외부에서 안 불러오고 직접 올려서 씁니다. 따로 설치해야 하는 건 GNU LibreDWG `dwg2dxf` 0.14(**GPL-3.0-or-later**, DWG 변환), ODA File Converter(상용 무료, 변환 대체용), Autodesk Inventor(상용, ipt/idw/iam 읽기)입니다. CloudConvert(외부 유료 API)도 DWG 변환 대체 경로로 붙여 뒀지만 **키를 넣었을 때만 동작하고 공개 서버에서는 쓰지 않습니다.** 개발할 때만 pytest(MIT)와 fontTools(MIT)를 씁니다. 라이선스를 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 더 자세히 있습니다.
+**사용한 오픈소스** — 서버는 ezdxf 1.4.4(MIT), Pillow 12.3.0(MIT-CMU), FastAPI 0.141.1(MIT), Uvicorn 0.52.0(BSD-3-Clause), python-multipart 0.0.32(Apache-2.0), Requests 2.34.2(Apache-2.0), PyMuPDF 1.28.0(**AGPL-3.0**/상용), google-genai 2.16.0(Apache-2.0). Cloudflare Workers AI는 전용 SDK 없이 Requests로 REST를 직접 부릅니다. 브라우저에서는 three.js(MIT)를 외부에서 안 불러오고 직접 올려서 씁니다. 서버에는 GNU LibreDWG `dwg2dxf` 0.14(**GPL-3.0-or-later**)가 DWG 변환용으로 들어가 있고, ODA File Converter(상용 무료)와 CloudConvert(외부 유료 API)를 변환 대체 경로로 붙여 뒀습니다. **대체 경로는 공개 서버에서 쓰지 않습니다.** 개발할 때만 pytest(MIT)와 fontTools(MIT)를 씁니다. 라이선스를 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 더 자세히 있습니다.
 
 **외부 자문** — **구미전자공업고등학교 김민정 선생님**께 실기 채점 항목을 수업에서 어떻게 확인하시는지, 학생들이 실제로 자주 틀리는 게 뭔지 자문을 받았습니다. 들은 내용은 검사 항목을 고르고 지적 문구를 쓰는 데 반영했습니다. 도와주신 분이 이 프로젝트 결과에 책임을 지시는 건 아닙니다.
 
