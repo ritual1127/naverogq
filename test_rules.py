@@ -330,6 +330,20 @@ def test_cloudconvert_posts_to_the_real_v2_endpoint():
     assert sent == ["https://api.cloudconvert.com/v2/jobs"], sent
 
 
+def test_variance_spread():
+    import variance
+
+    assert variance.spread([]) is None
+    one = variance.spread([27])
+    assert one["spread"] == 0 and one["stdev"] == 0.0
+    s = variance.spread([30, 22, 26, 26])
+    assert s["n"] == 4
+    assert s["min"] == 22 and s["max"] == 30
+    assert s["spread"] == 8
+    assert s["median"] == 26
+    assert 3.2 < s["stdev"] < 3.3, s["stdev"]
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
