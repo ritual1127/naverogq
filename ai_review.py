@@ -11,6 +11,10 @@ GROQ_MODEL = "qwen/qwen3.6-27b"
 MISTRAL_MODEL = "mistral-small-latest"
 
 MAX_POINTS = 30
+# 채점 지침이 정한 감점 폭의 최댓값. "형상 표현이 불가능할 정도의 투상도 누락,
+# 제3각법 위반 배치"가 8~12점이고 그보다 큰 감점 사유는 지침에 없다. 그런데
+# 실제로는 한 지적에 30점을 통째로 깎는 판정이 다섯 번에 한 번 나왔다.
+MAX_SINGLE_DEDUCT = 12
 RENDER_DPI = 150
 MAX_PIXELS = 2400
 
@@ -73,19 +77,31 @@ def is_available():
 
 
 def render_png(dxf_path):
+    """도면을 AI에게 보여줄 그림으로 만든다.
+
+    도면 단위를 밀리미터로 환산해서 그린다. 이걸 안 하면 단위가 미터나 인치인
+    도면이 백지로 나온다. 페이지 크기를 도면 범위에서 자동으로 잡는데, 범위가
+    0.12(미터 단위 도면)이면 사방 5mm 여백에 그림이 통째로 먹혀 버린다.
+    실제로 선이 6,373개 들어 있는 도면이 201바이트짜리 빈 그림이 됐고,
+    AI는 도면이 아니라 백지를 보고 '투상도가 하나도 없다'고 채점했다."""
     import ezdxf
     from ezdxf.addons.drawing import Frontend, RenderContext
     from ezdxf.addons.drawing import layout as dlayout
     from ezdxf.addons.drawing import pymupdf as dpymupdf
 
+    import dwg
+
     limit_mm = MAX_PIXELS / RENDER_DPI * 25.4
     doc = ezdxf.readfile(dxf_path)
+    msp = doc.modelspace()
+    mm_per_unit, _ = dwg.detect_mm_per_unit(doc, msp)
     backend = dpymupdf.PyMuPdfBackend()
-    Frontend(RenderContext(doc), backend).draw_layout(doc.modelspace(),
-                                                      finalize=True)
+    Frontend(RenderContext(doc), backend).draw_layout(msp, finalize=True)
     page = dlayout.Page(0, 0, dlayout.Units.mm, dlayout.Margins.all(5),
                         max_width=limit_mm, max_height=limit_mm)
-    return backend.get_pixmap_bytes(page, fmt="png", dpi=RENDER_DPI)
+    settings = dlayout.Settings(fit_page=False, scale=mm_per_unit)
+    return backend.get_pixmap_bytes(page, fmt="png", dpi=RENDER_DPI,
+                                    settings=settings)
 
 
 SYSTEM = """\
@@ -615,7 +631,7 @@ def _to_findings(data, model):
             raw = int(d.get("deduct", 0))
         except (TypeError, ValueError):
             raw = 0
-        deduct = max(0, min(MAX_POINTS - total, raw))
+        deduct = max(0, min(MAX_SINGLE_DEDUCT, MAX_POINTS - total, raw))
         total += deduct
         findings.append({
             "code": "AI_PROJECTION",
