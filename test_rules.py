@@ -344,6 +344,19 @@ def test_variance_spread():
     assert 3.2 < s["stdev"] < 3.3, s["stdev"]
 
 
+def test_drop_clause_numbers():
+    import ai_review
+
+    drop = ai_review._drop_clause_numbers
+    assert drop("KS B 0001 제3장에 따라 감점입니다") == "KS B 0001에 따라 감점입니다"
+    assert drop("KS B ISO 128 Section 4 requires it") == "KS B ISO 128 requires it"
+    assert drop("KS B 0001 第3章による") == "KS B 0001による"
+    # 규격 이름만 있으면 그대로 둔다
+    assert drop("KS B 0001 에 따라") == "KS B 0001 에 따라"
+    # 조문 번호가 아닌 숫자는 건드리지 않는다
+    assert drop("Ø17js5 를 3곳에서 확인") == "Ø17js5 를 3곳에서 확인"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
