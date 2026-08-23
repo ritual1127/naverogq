@@ -9,3 +9,6 @@ uploads/
 .idea/
 *.swp
 .DS_Store
+
+# 스킬과 그 도구는 공개하지 않는다
+.claude/
