@@ -15,3 +15,8 @@ uploads/
 
 # wrangler 배포 캐시
 .wrangler/
+
+# 남에게 받은 실제 도면은 저장소에 올리지 않는다 (P04)
+실제도면/*
+!실제도면/README.md
+!실제도면/labels.json
