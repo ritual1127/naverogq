@@ -124,6 +124,20 @@ SYSTEM = """\
 - 정면도 선택이 부적절, 불필요한 중복 투상도: 4~7점
 - 배치 불균형, 단면 표기 미흡: 1~3점
 
+지적마다 **kind 를 아래 여섯 개 중에서 고르세요.** 제목은 우리가 kind 로 붙이므로
+직접 쓰지 않습니다. 같은 판정에 매번 다른 제목이 붙으면 수험생이 재검사 때
+지난번과 비교할 수 없습니다.
+
+- `FRONT_VIEW` — 정면도로 고른 면이 부적절
+- `VIEW_MISSING` — 형상을 표현할 투상도가 없거나 모자람
+- `VIEW_EXTRA` — 불필요하거나 중복된 투상도
+- `THIRD_ANGLE` — 제3각법 배치 위반 (평면도·우측면도 자리)
+- `SECTION_DETAIL` — 단면도·상세도가 없거나 절단선·해칭·문자 표기가 틀림
+- `LAYOUT` — 배치가 치우치거나 겹치는 등 도면 공간 활용
+
+verdict 에는 **투상도 항목 총평을 한국어 한 문장**으로 씁니다. "FAIL" 같은 낱말만
+적지 마세요.
+
 원칙:
 - 이미지에서 **실제로 보이는 것**만 근거로 삼으세요. 흐릿해서 판단이 서지 않으면
   감점하지 말고 info로 남기세요. 확신 없는 감점은 학습자를 잘못된 방향으로 보냅니다.
@@ -131,6 +145,36 @@ SYSTEM = """\
   예: "배치 > 투상도 로 정면도 위쪽에 평면도를 추가하세요."
 - 결함이 없으면 deductions를 빈 배열로 두고 30점을 주세요.
 - 모든 문장은 한국어로 씁니다."""
+
+# 지적 제목은 AI 가 쓰지 않고 여기서 붙인다. 같은 판정에 "투상도 전체 누락",
+# "투상도 완전 누락", "기계 부품 투상도 미작성 및 투상 뷰 부재" 처럼 매번 다른
+# 제목이 달리면 재검사에서 지난번과 비교가 안 된다(P03). AI 는 kind 만 고른다.
+PROJECTION_KINDS = {
+    "FRONT_VIEW": {"ko": "정면도 선택 부적절",
+                   "en": "Unsuitable front view",
+                   "ja": "正面図の選択が不適切",
+                   "zh": "主视图选择不当"},
+    "VIEW_MISSING": {"ko": "투상도 누락",
+                     "en": "Missing views",
+                     "ja": "投影図の欠落",
+                     "zh": "视图缺失"},
+    "VIEW_EXTRA": {"ko": "불필요한 투상도",
+                   "en": "Unnecessary views",
+                   "ja": "不要な投影図",
+                   "zh": "多余的视图"},
+    "THIRD_ANGLE": {"ko": "제3각법 배치 위반",
+                    "en": "Third-angle layout violated",
+                    "ja": "第三角法の配置違反",
+                    "zh": "违反第三角投影布置"},
+    "SECTION_DETAIL": {"ko": "단면도·상세도 표기 미흡",
+                       "en": "Section or detail view not marked properly",
+                       "ja": "断面図・詳細図の表記不備",
+                       "zh": "剖视图或详图标注不足"},
+    "LAYOUT": {"ko": "투상도 배치 불균형",
+               "en": "Unbalanced view layout",
+               "ja": "投影図の配置不均衡",
+               "zh": "视图布置不均衡"},
+}
 
 PROMPT = "이 도면의 투상도 선택과 배열을 채점하세요.\n\n참고 정보(CAD 파일에서 직접 읽은 값):\n"
 
@@ -144,12 +188,12 @@ SCHEMA = {
                 "type": "object",
                 "properties": {
                     "severity": {"type": "string", "enum": ["error", "warn", "info"]},
-                    "title": {"type": "string"},
+                    "kind": {"type": "string", "enum": list(PROJECTION_KINDS)},
                     "detail": {"type": "string"},
                     "fix": {"type": "string"},
                     "deduct": {"type": "integer"},
                 },
-                "required": ["severity", "title", "detail", "fix", "deduct"],
+                "required": ["severity", "kind", "detail", "fix", "deduct"],
                 "additionalProperties": False,
             },
         },
@@ -195,15 +239,15 @@ FOLLOWUP_SYSTEM = """\
   예: "배치 > 투상도" → "Place Views > Projected"
 - **deductions 배열의 순서와 개수를 네 언어 모두 원문과 똑같이 유지하세요.**"""
 
+# title 은 PROJECTION_KINDS 에 언어별로 이미 있어서 번역을 받지 않는다.
 _TRANSLATED_DEDUCTION = {
     "type": "object",
     "properties": {
-        "title": {"type": "string"},
         "detail": {"type": "string"},
         "fix": {"type": "string"},
         "answers": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["title", "detail", "fix", "answers"],
+    "required": ["detail", "fix", "answers"],
     "additionalProperties": False,
 }
 
@@ -540,7 +584,7 @@ def _enrich(data, ask, timeout):
     if not want:
         return False
     source = {"verdict": data.get("verdict", ""),
-              "deductions": [{"title": d.get("title", ""),
+              "deductions": [{"title": _title(d, "ko"),
                               "detail": d.get("detail", ""),
                               "fix": d.get("fix", "")}
                              for d in data["deductions"]]}
@@ -601,15 +645,29 @@ def _followups_by_lang(deduction, i18n, pos):
     return out
 
 
+def _title(deduction, lang):
+    """제목은 kind 로 정해진 것을 쓴다. kind 가 없으면 AI 가 쓴 옛 제목을 그대로 둔다.
+
+    옛 제목은 `aicache` 에 남아 있는 지난 판이다. 그때 화면에 뜬 문장을
+    바꿔 버리면 그 판으로 잰 편차 기록과 대조가 안 된다."""
+    fixed = PROJECTION_KINDS.get(deduction.get("kind"))
+    if fixed:
+        return fixed[lang]
+    return deduction.get("title", "") if lang == "ko" else ""
+
+
 def _to_findings(data, model):
     i18n = data.get("i18n") or {}
     findings, total = [], 0
     for pos, d in enumerate(data.get("deductions") or []):
-        if not isinstance(d, dict) or not (d.get("title") or d.get("detail")):
+        if not isinstance(d, dict) or not (d.get("kind") or d.get("title")
+                                           or d.get("detail")):
             continue          # 옛 캐시에 남아 있을 수 있는 자리채움 항목
         translated = {
-            lang: {k: (i18n[lang]["deductions"][pos].get(k) or "")
-                   for k in ("title", "detail", "fix")}
+            lang: {"title": _title(d, lang) or (
+                       i18n[lang]["deductions"][pos].get("title") or ""),
+                   **{k: (i18n[lang]["deductions"][pos].get(k) or "")
+                      for k in ("detail", "fix")}}
             for lang in i18n if pos < len(i18n[lang].get("deductions") or [])
         }
         followups = _followups_by_lang(d, i18n, pos)
@@ -622,7 +680,7 @@ def _to_findings(data, model):
         findings.append({
             "code": "AI_PROJECTION",
             "severity": d.get("severity", "warn"),
-            "title": d.get("title", "투상도 배열 지적"),
+            "title": _title(d, "ko") or "투상도 배열 지적",
             "detail": d.get("detail", ""),
             "fix": d.get("fix", ""),
             "item": "PROJECTION_LAYOUT",

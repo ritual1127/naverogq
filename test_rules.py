@@ -357,6 +357,33 @@ def test_drop_clause_numbers():
     assert drop("Ø17js5 를 3곳에서 확인") == "Ø17js5 를 3곳에서 확인"
 
 
+def test_ai_title_is_fixed_by_kind():
+    """같은 kind 면 AI 가 뭐라고 썼든 제목이 같아야 한다 (P03)."""
+    import ai_review
+
+    def titles(text):
+        data = {"verdict": "총평", "i18n": {"en": {"deductions": [{"detail": "d",
+                                                                  "fix": "f"}]}},
+                "deductions": [{"severity": "error", "kind": "VIEW_MISSING",
+                                "detail": text, "fix": text, "deduct": 10}]}
+        out = ai_review._to_findings(data, "test-model")
+        return out["findings"][0]["title"], out["findings"][0]["i18n"]["en"]["title"]
+
+    first = titles("투상도 전체 누락 및 형상 표현 불가")
+    second = titles("기계 부품 투상도 미작성 및 투상 뷰 부재")
+    assert first == second == ("투상도 누락", "Missing views")
+
+    # kind 는 여섯 개 중 하나만 나올 수 있다
+    kinds = ai_review.SCHEMA["properties"]["deductions"]["items"]["properties"]["kind"]
+    assert kinds["enum"] == list(ai_review.PROJECTION_KINDS)
+    assert "title" not in ai_review.SCHEMA["properties"]["deductions"]["items"]["properties"]
+
+    # 옛 캐시에는 kind 가 없다. 그때 화면에 뜬 제목을 그대로 둔다
+    old = {"deductions": [{"severity": "warn", "title": "투상도 완전 누락",
+                           "detail": "d", "fix": "f", "deduct": 5}]}
+    assert ai_review._to_findings(old, "m")["findings"][0]["title"] == "투상도 완전 누락"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
