@@ -1,0 +1,10 @@
+name = "cadlens-interview"
+compatibility_date = "2026-08-26"
+pages_build_output_dir = "public"
+
+# 답변이 쌓이는 곳. 이름·학번·도면 파일은 여기 들어오지 않는다.
+# 1000건이 넘어도 통계는 SQL 한 번으로 센다. schema.sql 참고.
+[[d1_databases]]
+binding = "DB"
+database_name = "cadlens-interview"
+database_id = "ac0c4017-3c86-4d94-b84a-e76e98af564a"

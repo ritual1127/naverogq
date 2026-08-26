@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>도면 그리다 뭐 빠뜨렸어? · 기계제도 설문</title>
+<meta name="description" content="전산응용기계제도 도면 그리면서 겪은 것만 물어보는 설문. 거의 다 누르기, 3분이면 끝나고 이름은 안 받아.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CADLens">
+<meta property="og:url" content="https://cadlens-interview.pages.dev/">
+<meta property="og:title" content="도면 그리다 뭐 빠뜨렸어?">
+<meta property="og:description" content="전산응용기계제도 얘기 3분만. 거의 다 누르기 · 이름 안 받아.">
+<meta property="og:image" content="https://cadlens-interview.pages.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="도면 그리다 뭐 빠뜨렸어? — 표면거칠기 기호, 데이텀, 끼워맞춤 공차, 중심선">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="도면 그리다 뭐 빠뜨렸어?">
+<meta name="twitter:description" content="전산응용기계제도 얘기 3분만. 거의 다 누르기 · 이름 안 받아.">
+<meta name="twitter:image" content="https://cadlens-interview.pages.dev/og.png">
+<meta name="theme-color" content="#1f6feb">
+<link rel="icon" href="/og.png">
+<style>
+  :root {
+    --bg:#f4f4f2; --card:#fff; --ink:#17181a; --dim:#65696f;
+    --line:#e0e0dd; --accent:#1f6feb; --tint:#1f6feb0f; --hint:#8a8f98;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#131418; --card:#1c1e23; --ink:#eceef2; --dim:#a3a8b2;
+            --line:#2f323a; --accent:#5b9cff; --tint:#5b9cff1f; --hint:#878d98; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.6 -apple-system,"Pretendard","Malgun Gothic",sans-serif; }
+  .wrap { max-width:680px; margin:0 auto; padding:26px 16px 90px; }
+
+  .head { background:var(--card); border:1px solid var(--line); border-radius:14px;
+          border-top:7px solid var(--accent); padding:22px 20px; margin:0 0 22px; }
+  .head h1 { font-size:21px; line-height:1.45; margin:0 0 10px; }
+  .head p { color:var(--dim); font-size:14.5px; margin:0 0 6px; }
+  .head p:last-child { margin-bottom:0; }
+  .head b { color:var(--ink); }
+
+  .sec { font-size:12.5px; letter-spacing:.03em; color:var(--accent);
+         font-weight:600; margin:26px 0 8px; padding-left:4px; }
+
+  .q { background:var(--card); border:1px solid var(--line); border-radius:14px;
+       padding:18px 20px; margin:0 0 10px; }
+  .q > h2 { font-size:16px; font-weight:600; line-height:1.5; margin:0 0 3px; }
+  .q > h2 .req { color:#e5484d; margin-left:3px; }
+  .q > .hint { color:var(--hint); font-size:13.5px; margin:0 0 12px; }
+  .q > .hint b { color:var(--dim); }
+  .q > h2:last-of-type + .opts { margin-top:12px; }
+
+  /* 고르는 칸은 어디서나 같은 모양이다 — 한 줄에 동그라미/네모 하나 */
+  .opts { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+          gap:2px; margin-top:12px; }
+  .opts.wide { grid-template-columns:1fr; }
+  .opt { display:flex; align-items:center; gap:11px; padding:9px 11px;
+         border:1px solid transparent; border-radius:9px; cursor:pointer;
+         font-size:14.5px; line-height:1.4; }
+  .opt:hover { background:var(--tint); }
+  .opt input { appearance:none; -webkit-appearance:none; margin:0; flex:0 0 auto;
+    width:19px; height:19px; border:2px solid #9aa0a8; background:transparent;
+    display:grid; place-content:center; cursor:pointer; }
+  .opt input[type=radio] { border-radius:50%; }
+  .opt input[type=checkbox] { border-radius:5px; }
+  .opt input::before { content:""; width:9px; height:9px; transform:scale(0);
+    transition:transform .1s; background:var(--accent); }
+  .opt input[type=radio]::before { border-radius:50%; }
+  .opt input[type=checkbox]::before { border-radius:2px; }
+  .opt input:checked { border-color:var(--accent); }
+  .opt input:checked::before { transform:scale(1); }
+  .opt input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .opt:has(input:checked) { background:var(--tint); border-color:var(--accent); }
+
+  .grp { font-size:12.5px; color:var(--hint); margin:14px 0 2px; padding-left:4px; }
+  .grp:first-of-type { margin-top:4px; }
+
+  input[type=text] { width:100%; background:transparent; color:var(--ink);
+    border:0; border-bottom:2px solid var(--line); border-radius:0;
+    padding:9px 2px; font:inherit; font-size:15px; margin-top:6px; }
+  input[type=text]:focus { outline:0; border-bottom-color:var(--accent); }
+  input[type=text]::placeholder { color:var(--hint); }
+
+  button { width:100%; margin-top:24px; padding:15px; border:0; border-radius:11px;
+    background:var(--accent); color:#fff; font:inherit; font-size:16px;
+    font-weight:600; cursor:pointer; }
+  button[disabled] { opacity:.5; cursor:default; }
+  .msg { margin-top:12px; font-size:14.5px; text-align:center; min-height:20px; }
+  .ok { text-align:center; padding:70px 0; }
+  .ok h1 { font-size:20px; }
+  .ok p { color:var(--dim); font-size:15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<form id="f">
+
+  <div class="head">
+    <h1>기계제도 도면 그리면서 겪은 거, 좀 들려줄래?</h1>
+    <p><b>전산응용기계제도</b> 실기랑 학교 도면 과제 얘기야.
+       거의 다 <b>누르기</b>고 적는 칸은 네 개뿐이야. <b>3분</b>이면 끝나.</p>
+    <p><b>고르는 칸은 다 눌러야 보내져.</b> 해당 없으면 "안 함" · "모르겠어" 같은 걸 고르면 돼.
+       그게 진짜 답이니까 억지로 만들어 내지 마. 적는 칸 넷 중 하나만 필수야.</p>
+    <p>이름은 안 받아.</p>
+  </div>
+
+  <p class="sec">A · 너에 대해</p>
+
+  <div class="q">
+    <h2>몇 학년이야?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="grade" value="1학년">1학년</label>
+      <label class="opt"><input type="radio" name="grade" value="2학년">2학년</label>
+      <label class="opt"><input type="radio" name="grade" value="3학년">3학년</label>
+      <label class="opt"><input type="radio" name="grade" value="졸업">졸업</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>전산응용기계제도기능사는 어디까지 했어?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="cert" value="실기까지 합격">실기까지 합격</label>
+      <label class="opt"><input type="radio" name="cert" value="실기 떨어진 적 있음">실기 떨어진 적 있음</label>
+      <label class="opt"><input type="radio" name="cert" value="실기 준비 중">실기 준비 중</label>
+      <label class="opt"><input type="radio" name="cert" value="필기만 붙음">필기만 붙음</label>
+      <label class="opt"><input type="radio" name="cert" value="아직 안 봄">아직 안 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>2D는 뭐 써?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="cad2d" value="AutoCAD">AutoCAD</label>
+      <label class="opt"><input type="radio" name="cad2d" value="ZwCAD">ZwCAD</label>
+      <label class="opt"><input type="radio" name="cad2d" value="기타">기타</label>
+      <label class="opt"><input type="radio" name="cad2d" value="안 써 봄">안 써 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>3D는 뭐 써?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="cad3d" value="Inventor">Inventor</label>
+      <label class="opt"><input type="radio" name="cad3d" value="SolidWorks">SolidWorks</label>
+      <label class="opt"><input type="radio" name="cad3d" value="CATIA">CATIA</label>
+      <label class="opt"><input type="radio" name="cad3d" value="Fusion">Fusion</label>
+      <label class="opt"><input type="radio" name="cad3d" value="안 해 봄">안 해 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>지금까지 그려 본 도면이 몇 장쯤 돼?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="practiced" value="거의 없음">거의 없음</label>
+      <label class="opt"><input type="radio" name="practiced" value="1~5장">1~5장</label>
+      <label class="opt"><input type="radio" name="practiced" value="6~20장">6~20장</label>
+      <label class="opt"><input type="radio" name="practiced" value="20장 넘음">20장 넘음</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>도면 얼마나 자주 그려?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="freq" value="거의 매일">거의 매일</label>
+      <label class="opt"><input type="radio" name="freq" value="주 2~3번">주 2~3번</label>
+      <label class="opt"><input type="radio" name="freq" value="주 1번">주 1번</label>
+      <label class="opt"><input type="radio" name="freq" value="가끔">가끔</label>
+      <label class="opt"><input type="radio" name="freq" value="시험 앞두고만">시험 앞두고만</label>
+    </div>
+  </div>
+
+  <p class="sec">B · 시간 — 실기는 5시간에 부품도 1장 + 렌더링 등각투상도 1장</p>
+
+  <div class="q">
+    <h2>2D 부품도 한 장에 얼마나 걸려?<span class="req">*</span></h2>
+    <p class="hint">연습할 때 기준으로 대충. 재 본 적 없으면 느낌으로.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="t2d" value="1시간 안쪽">1시간 안쪽</label>
+      <label class="opt"><input type="radio" name="t2d" value="1~2시간">1~2시간</label>
+      <label class="opt"><input type="radio" name="t2d" value="2~3시간">2~3시간</label>
+      <label class="opt"><input type="radio" name="t2d" value="3시간 넘음">3시간 넘음</label>
+      <label class="opt"><input type="radio" name="t2d" value="끝까지 못 그려 봄">끝까지 못 그려 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>3D 등각투상도는 얼마나 걸려?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="t3d" value="30분 안쪽">30분 안쪽</label>
+      <label class="opt"><input type="radio" name="t3d" value="30분~1시간">30분~1시간</label>
+      <label class="opt"><input type="radio" name="t3d" value="1~2시간">1~2시간</label>
+      <label class="opt"><input type="radio" name="t3d" value="2시간 넘음">2시간 넘음</label>
+      <label class="opt"><input type="radio" name="t3d" value="안 해 봄">안 해 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>출력까지 몇 분 걸려?<span class="req">*</span></h2>
+    <p class="hint">실기에서 <b>10분 넘으면 미완성</b>이야.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="tplot" value="5분 안쪽">5분 안쪽</label>
+      <label class="opt"><input type="radio" name="tplot" value="5~10분">5~10분</label>
+      <label class="opt"><input type="radio" name="tplot" value="10분 넘어 봄">10분 넘어 봄</label>
+      <label class="opt"><input type="radio" name="tplot" value="출력은 안 해 봄">출력은 안 해 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>시간 모자라서 못 끝낸 적 있어?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="timeout" value="있음">있음</label>
+      <label class="opt"><input type="radio" name="timeout" value="아슬아슬하게 끝냄">아슬아슬하게 끝냄</label>
+      <label class="opt"><input type="radio" name="timeout" value="없음">없음</label>
+    </div>
+  </div>
+
+  <p class="sec">C · 빠뜨리거나 틀린 것</p>
+
+  <div class="q">
+    <h2>해당되는 거 다 눌러 줘<span class="req">*</span></h2>
+    <p class="hint">한 번이라도 빠뜨렸거나, 지적받았거나, <b>매번 헷갈리는</b> 거 전부.
+      많이 누를수록 좋아. 이게 제일 궁금한 칸이야.</p>
+
+    <p class="grp">도면 기본</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="missed" value="표제란·부품란">표제란·부품란</label>
+      <label class="opt"><input type="checkbox" name="missed" value="재질 기입">재질 기입</label>
+      <label class="opt"><input type="checkbox" name="missed" value="척도 표기">척도 표기</label>
+      <label class="opt"><input type="checkbox" name="missed" value="제3각법 기호">제3각법 기호</label>
+      <label class="opt"><input type="checkbox" name="missed" value="도면 크기·윤곽선">도면 크기·윤곽선</label>
+      <label class="opt"><input type="checkbox" name="missed" value="중심선·중심마크">중심선·중심마크</label>
+      <label class="opt"><input type="checkbox" name="missed" value="선 굵기·색(레이어)">선 굵기·색(레이어)</label>
+    </div>
+
+    <p class="grp">치수와 공차</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="missed" value="치수 빠뜨림">치수 빠뜨림</label>
+      <label class="opt"><input type="checkbox" name="missed" value="끼워맞춤 공차(H7·g6)">끼워맞춤 공차(H7·g6)</label>
+      <label class="opt"><input type="checkbox" name="missed" value="구멍 대문자·축 소문자 구분">구멍 대문자·축 소문자 구분</label>
+      <label class="opt"><input type="checkbox" name="missed" value="일반공차 주서">일반공차 주서</label>
+      <label class="opt"><input type="checkbox" name="missed" value="중심거리 허용차">중심거리 허용차</label>
+    </div>
+
+    <p class="grp">기호</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="missed" value="표면거칠기 기호">표면거칠기 기호</label>
+      <label class="opt"><input type="checkbox" name="missed" value="다듬질 정도 w·x·y 구분">다듬질 정도 w·x·y 구분</label>
+      <label class="opt"><input type="checkbox" name="missed" value="표면거칠기 비교표">표면거칠기 비교표</label>
+      <label class="opt"><input type="checkbox" name="missed" value="기하공차">기하공차</label>
+      <label class="opt"><input type="checkbox" name="missed" value="데이텀">데이텀</label>
+      <label class="opt"><input type="checkbox" name="missed" value="모떼기·필렛 주서">모떼기·필렛 주서</label>
+      <label class="opt"><input type="checkbox" name="missed" value="열처리 주서(HRC)">열처리 주서(HRC)</label>
+    </div>
+
+    <p class="grp">투상과 표기</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="missed" value="투상도 하나 통째 빠뜨림">투상도 하나 통째 빠뜨림</label>
+      <label class="opt"><input type="checkbox" name="missed" value="단면도 문자 표기(A-A)">단면도 문자 표기(A-A)</label>
+      <label class="opt"><input type="checkbox" name="missed" value="부분확대도 척도 표기">부분확대도 척도 표기</label>
+      <label class="opt"><input type="checkbox" name="missed" value="암나사 표기">암나사 표기</label>
+      <label class="opt"><input type="checkbox" name="missed" value="키홈·자리파기">키홈·자리파기</label>
+      <label class="opt"><input type="checkbox" name="missed" value="스퍼기어·스프링 요목표">스퍼기어·스프링 요목표</label>
+    </div>
+
+    <p class="grp">사고</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="missed" value="A4로 출력해서 잘림">A4로 출력해서 잘림</label>
+      <label class="opt"><input type="checkbox" name="missed" value="조립 상태로 그림">조립 상태로 그림</label>
+      <label class="opt"><input type="checkbox" name="missed" value="파일 날림·저장 실패">파일 날림·저장 실패</label>
+      <label class="opt"><input type="checkbox" name="missed" value="수험번호 칸 밖으로 나감">수험번호 칸 밖으로 나감</label>
+    </div>
+
+    <p class="grp">해당 없으면</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="missed" value="빠뜨린 적 없음">빠뜨린 적 없음</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>위에 없는데 빠뜨린 거 있어?</h2>
+    <p class="hint">없으면 비워 둬.</p>
+    <input type="text" name="missed_etc" placeholder="직접 적어 줘">
+  </div>
+
+  <p class="sec">D · 제일 최근에 틀렸던 거 하나로 쭉 답해 줘</p>
+
+  <div class="q">
+    <h2>제일 최근에 뭘 틀렸어?<span class="req">*</span></h2>
+    <p class="hint">한 줄이면 돼. 예: "표면거칠기 기호를 아예 안 넣음", "3각법인데 1각법으로 배치".</p>
+    <input type="text" name="recent_one" required placeholder="한 줄로">
+  </div>
+
+  <div class="q">
+    <h2>그거 언제 알았어?<span class="req">*</span></h2>
+    <div class="opts wide">
+      <label class="opt"><input type="radio" name="when_found" value="그리는 중에 내가">그리는 중에 내가</label>
+      <label class="opt"><input type="radio" name="when_found" value="내기 직전에 내가">내기 직전에 내가</label>
+      <label class="opt"><input type="radio" name="when_found" value="내고 나서 내가">내고 나서 내가</label>
+      <label class="opt"><input type="radio" name="when_found" value="선생님이 말해 줌">선생님이 말해 줌</label>
+      <label class="opt"><input type="radio" name="when_found" value="친구가 말해 줌">친구가 말해 줌</label>
+      <label class="opt"><input type="radio" name="when_found" value="점수 나오고 알았음">점수 나오고 알았음</label>
+      <label class="opt"><input type="radio" name="when_found" value="아직도 잘 모름">아직도 잘 모름</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>알고 나서 어떻게 했어?<span class="req">*</span></h2>
+    <div class="opts wide">
+      <label class="opt"><input type="radio" name="what_did" value="처음부터 다시 그림">처음부터 다시 그림</label>
+      <label class="opt"><input type="radio" name="what_did" value="그 부분만 고침">그 부분만 고침</label>
+      <label class="opt"><input type="radio" name="what_did" value="그냥 냈음">그냥 냈음</label>
+      <label class="opt"><input type="radio" name="what_did" value="선생님한테 물어봄">선생님한테 물어봄</label>
+      <label class="opt"><input type="radio" name="what_did" value="다음부터 조심하기로만 함">다음부터 조심하기로만 함</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>고치는 데 얼마나 걸렸어?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="redraw_time" value="5분 안쪽">5분 안쪽</label>
+      <label class="opt"><input type="radio" name="redraw_time" value="5~15분">5~15분</label>
+      <label class="opt"><input type="radio" name="redraw_time" value="15~30분">15~30분</label>
+      <label class="opt"><input type="radio" name="redraw_time" value="30분~1시간">30분~1시간</label>
+      <label class="opt"><input type="radio" name="redraw_time" value="1시간 넘음">1시간 넘음</label>
+      <label class="opt"><input type="radio" name="redraw_time" value="안 고침">안 고침</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>그래서 점수 깎였어?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="lost_score" value="안 깎임">안 깎임</label>
+      <label class="opt"><input type="radio" name="lost_score" value="1~5점">1~5점</label>
+      <label class="opt"><input type="radio" name="lost_score" value="6~10점">6~10점</label>
+      <label class="opt"><input type="radio" name="lost_score" value="10점 넘음">10점 넘음</label>
+      <label class="opt"><input type="radio" name="lost_score" value="실격·오작">실격·오작</label>
+      <label class="opt"><input type="radio" name="lost_score" value="모름">모름</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>그거 처음 있는 일이야?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="repeat" value="처음">처음</label>
+      <label class="opt"><input type="radio" name="repeat" value="두세 번째">두세 번째</label>
+      <label class="opt"><input type="radio" name="repeat" value="매번 그럼">매번 그럼</label>
+    </div>
+  </div>
+
+  <p class="sec">E · 지금은 내기 전에 뭘 해?</p>
+
+  <div class="q">
+    <h2>확인하는 방법 — 하는 거 다 눌러<span class="req">*</span></h2>
+    <p class="hint"><b>아무것도 안 하면 그것도 답이야.</b> 없는 걸 만들어 내지 마.</p>
+    <div class="opts wide">
+      <label class="opt"><input type="checkbox" name="check_how" value="아무것도 안 함">아무것도 안 함</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="그냥 눈으로 훑음">그냥 눈으로 훑음</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="내가 만든 목록으로 확인">내가 만든 목록으로 확인</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="선생님이 준 목록으로 확인">선생님이 준 목록으로 확인</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="친구한테 보여 줌">친구한테 보여 줌</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="선생님한테 보여 줌">선생님한테 보여 줌</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="캐드에서 확대해서 봄">캐드에서 확대해서 봄</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="답안 도면과 비교">답안 도면과 비교</label>
+      <label class="opt"><input type="checkbox" name="check_how" value="출력해서 종이로 봄">출력해서 종이로 봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>확인하는 데 시간 얼마나 써?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="check_time" value="안 함">안 함</label>
+      <label class="opt"><input type="radio" name="check_time" value="1~3분">1~3분</label>
+      <label class="opt"><input type="radio" name="check_time" value="5분쯤">5분쯤</label>
+      <label class="opt"><input type="radio" name="check_time" value="10분 넘음">10분 넘음</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>그렇게 해서 실제로 뭘 잡아 본 적 있어?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="caught" value="잡은 적 있음">잡은 적 있음</label>
+      <label class="opt"><input type="radio" name="caught" value="못 잡았음">못 잡았음</label>
+      <label class="opt"><input type="radio" name="caught" value="확인을 안 해서 모름">확인을 안 해서 모름</label>
+    </div>
+  </div>
+
+  <p class="sec">F · 안 틀리려고 뭘 해 봤어?</p>
+
+  <div class="q">
+    <h2>써 본 거 다 눌러 — 돈이든 시간이든<span class="req">*</span></h2>
+    <div class="opts wide">
+      <label class="opt"><input type="checkbox" name="spent" value="아무것도 안 씀">아무것도 안 씀</label>
+      <label class="opt"><input type="checkbox" name="spent" value="남는 시간에 따로 연습">남는 시간에 따로 연습</label>
+      <label class="opt"><input type="checkbox" name="spent" value="체크리스트를 직접 만듦">체크리스트를 직접 만듦</label>
+      <label class="opt"><input type="checkbox" name="spent" value="인강 삼">인강 삼</label>
+      <label class="opt"><input type="checkbox" name="spent" value="책 삼">책 삼</label>
+      <label class="opt"><input type="checkbox" name="spent" value="학원·과외">학원·과외</label>
+      <label class="opt"><input type="checkbox" name="spent" value="유튜브 찾아봄">유튜브 찾아봄</label>
+      <label class="opt"><input type="checkbox" name="spent" value="친구한테 부탁(밥·커피)">친구한테 부탁(밥·커피)</label>
+      <label class="opt"><input type="checkbox" name="spent" value="프로그램·앱 찾아봄">프로그램·앱 찾아봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>시간으로 치면 얼마나 썼어?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="spent_time" value="안 씀">안 씀</label>
+      <label class="opt"><input type="radio" name="spent_time" value="1~3시간">1~3시간</label>
+      <label class="opt"><input type="radio" name="spent_time" value="4~10시간">4~10시간</label>
+      <label class="opt"><input type="radio" name="spent_time" value="10시간 넘음">10시간 넘음</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>돈으로 치면?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="spent_money" value="안 씀">안 씀</label>
+      <label class="opt"><input type="radio" name="spent_money" value="5만원 미만">5만원 미만</label>
+      <label class="opt"><input type="radio" name="spent_money" value="5만~20만원">5만~20만원</label>
+      <label class="opt"><input type="radio" name="spent_money" value="20만원 넘음">20만원 넘음</label>
+    </div>
+  </div>
+
+  <p class="sec">G · 사소한 것</p>
+
+  <div class="q">
+    <h2>KS 규격집에서 자주 찾는 거 다 눌러<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="ks" value="베어링 끼워맞춤">베어링 끼워맞춤</label>
+      <label class="opt"><input type="checkbox" name="ks" value="오일실">오일실</label>
+      <label class="opt"><input type="checkbox" name="ks" value="멈춤링(스냅링) 홈">멈춤링(스냅링) 홈</label>
+      <label class="opt"><input type="checkbox" name="ks" value="키·키홈">키·키홈</label>
+      <label class="opt"><input type="checkbox" name="ks" value="나사·탭">나사·탭</label>
+      <label class="opt"><input type="checkbox" name="ks" value="센터 구멍">센터 구멍</label>
+      <label class="opt"><input type="checkbox" name="ks" value="널링">널링</label>
+      <label class="opt"><input type="checkbox" name="ks" value="기어 요목표">기어 요목표</label>
+      <label class="opt"><input type="checkbox" name="ks" value="스프링 요목표">스프링 요목표</label>
+      <label class="opt"><input type="checkbox" name="ks" value="표면거칠기 비교표">표면거칠기 비교표</label>
+      <label class="opt"><input type="checkbox" name="ks" value="끼워맞춤 공차표">끼워맞춤 공차표</label>
+      <label class="opt"><input type="checkbox" name="ks" value="안 찾아봄">안 찾아봄</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>한 장 그릴 때 제일 오래 걸리는 건?<span class="req">*</span></h2>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="slowest" value="투상도 배치">투상도 배치</label>
+      <label class="opt"><input type="radio" name="slowest" value="단면도·해칭">단면도·해칭</label>
+      <label class="opt"><input type="radio" name="slowest" value="치수 기입">치수 기입</label>
+      <label class="opt"><input type="radio" name="slowest" value="공차·기호 넣기">공차·기호 넣기</label>
+      <label class="opt"><input type="radio" name="slowest" value="주서·표제란">주서·표제란</label>
+      <label class="opt"><input type="radio" name="slowest" value="3D 모델링">3D 모델링</label>
+      <label class="opt"><input type="radio" name="slowest" value="렌더링">렌더링</label>
+      <label class="opt"><input type="radio" name="slowest" value="출력 설정">출력 설정</label>
+      <label class="opt"><input type="radio" name="slowest" value="잘 모르겠어">잘 모르겠어</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>그리다가 제일 짜증 날 때는?<span class="req">*</span></h2>
+    <div class="opts wide">
+      <label class="opt"><input type="radio" name="annoying" value="뭘 빠뜨렸는지 몰라서 계속 다시 봄">뭘 빠뜨렸는지 몰라서 계속 다시 봄</label>
+      <label class="opt"><input type="radio" name="annoying" value="규격집에서 값 찾기">규격집에서 값 찾기</label>
+      <label class="opt"><input type="radio" name="annoying" value="치수선 겹침 정리">치수선 겹침 정리</label>
+      <label class="opt"><input type="radio" name="annoying" value="다 그렸는데 배치가 틀림">다 그렸는데 배치가 틀림</label>
+      <label class="opt"><input type="radio" name="annoying" value="출력이 이상하게 나옴">출력이 이상하게 나옴</label>
+      <label class="opt"><input type="radio" name="annoying" value="프로그램이 느리거나 꺼짐">프로그램이 느리거나 꺼짐</label>
+      <label class="opt"><input type="radio" name="annoying" value="딱히 없어">딱히 없어</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>선생님이 제일 많이 하는 지적 한마디는?</h2>
+    <p class="hint">들은 말 <b>그대로</b>. 이게 제일 값어치 있는 줄이야.</p>
+    <input type="text" name="teacher" placeholder='예: "중심선부터 그려라"'>
+  </div>
+
+  <p class="sec">H · 마지막</p>
+
+  <div class="q">
+    <h2>그때 그린 도면 파일 줄 수 있어?<span class="req">*</span></h2>
+    <p class="hint"><b>이름이랑 학번은 지우고.</b></p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="file" value="줄 수 있어">줄 수 있어</label>
+      <label class="opt"><input type="radio" name="file" value="찾아보고 알려 줄게">찾아보고 알려 줄게</label>
+      <label class="opt"><input type="radio" name="file" value="없어 / 못 줘">없어 / 못 줘</label>
+    </div>
+  </div>
+
+  <div class="q">
+    <h2>안 물어봤는데 하고 싶은 말 있어?</h2>
+    <p class="hint">없으면 비워 둬.</p>
+    <input type="text" name="free" placeholder="아무거나">
+  </div>
+
+  <button type="submit">보내기</button>
+  <p class="msg" id="m"></p>
+</form>
+</div>
+<script>
+const MULTI = ['missed', 'check_how', 'spent', 'ks'];
+const f = document.getElementById('f'), m = document.getElementById('m');
+
+// 고르는 칸은 전부 필수다. 라디오는 브라우저가 묶음으로 봐 주니 하나만 required 를 달고,
+// 체크박스는 하나라도 눌리면 required 를 떼서 "적어도 하나"가 되게 한다.
+(function () {
+  var groups = {};
+  var all = f.querySelectorAll('input[type=radio], input[type=checkbox]');
+  for (var i = 0; i < all.length; i++) {
+    var el = all[i];
+    if (!groups[el.name]) groups[el.name] = [];
+    groups[el.name].push(el);
+  }
+  Object.keys(groups).forEach(function (name) {
+    var boxes = groups[name];
+    if (boxes[0].type === 'radio') { boxes[0].required = true; return; }
+    var sync = function () {
+      var any = boxes.some(function (b) { return b.checked; });
+      boxes.forEach(function (b) { b.required = !any; });
+    };
+    boxes.forEach(function (b) { b.addEventListener('change', sync); });
+    sync();
+  });
+})();
+f.addEventListener('invalid', (e) => {
+  const q = e.target.closest('.q');
+  if (q) q.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  m.textContent = '안 고른 칸이 있어';
+}, true);
+
+f.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = f.querySelector('button');
+  btn.disabled = true; m.textContent = '보내는 중…';
+  const data = {};
+  for (const [k, v] of new FormData(f).entries()) {
+    if (MULTI.indexOf(k) >= 0) { (data[k] = data[k] || []).push(v); }
+    else { data[k] = v; }
+  }
+  try {
+    const r = await fetch('/api/answer', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.querySelector('.wrap').innerHTML =
+      '<div class="ok"><h1>보냈어. 고마워 🙏</h1>' +
+      '<p>도면 준다고 했으면 카톡으로 보내 줘. 이름은 지우고.</p></div>';
+  } catch (err) {
+    btn.disabled = false;
+    m.textContent = '안 보내졌어 — ' + err.message + ' · 다시 눌러 줘';
+  }
+});
+</script>
+</body>
+</html>
