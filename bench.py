@@ -196,7 +196,8 @@ def run(cases):
     return rows, {"tp": tp, "fp": fp, "fn": fn, "recall": recall,
                   "precision": precision,
                   "exact": sum(1 for r in rows if not r["miss"] and not r["extra"]),
-                  "cases": len(rows)}
+                  "cases": len(rows),
+                  "failed": sum(1 for r in rows if r["error"])}
 
 
 def markdown(rows, m):
@@ -216,7 +217,10 @@ def markdown(rows, m):
         want = ", ".join(r["expected"]) or "지적 없음"
         out.append(f"| {r['name']} | {want} | {verdict} |")
     out += ["",
-            f"- 기준 도면 {m['cases']}장 중 완전 일치 {m['exact']}장",
+            f"- 기준 도면 {m['cases']}장 중 완전 일치 {m['exact']}장",]
+    if m["failed"]:
+        out += [f"- **분석 실패 {m['failed']}장** — 아래 숫자는 이 장들을 뺀 것이다"]
+    out += [
             f"- 검출률(recall) {m['recall'] * 100:.1f}% — "
             f"실제 결함 {m['tp'] + m['fn']}건 중 {m['tp']}건 검출",
             f"- 정확도(precision) {m['precision'] * 100:.1f}% — "
@@ -234,6 +238,10 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmp:
         cases = load_labeled(args.labels) if args.labels else fixtures(tmp)
+        if not cases:
+            print(f"FAIL: {args.labels} 에 도면이 한 장도 없다. "
+                  f"0장으로는 정확도를 잴 수 없다.", file=sys.stderr)
+            return 1
         rows, m = run(cases)
 
     report = markdown(rows, m)
@@ -241,6 +249,11 @@ def main():
     if args.out:
         with open(args.out, "w", encoding="utf-8") as fh:
             fh.write(report + "\n")
+
+    if m["failed"]:
+        print(f"\nFAIL: {m['failed']}장을 열지 못했다. 파일 이름이 labels.json 과 "
+              f"같은지, 파일이 같은 폴더에 있는지 본다.", file=sys.stderr)
+        return 1
 
     if args.check and (m["recall"] < MIN_RECALL or m["precision"] < MIN_PRECISION):
         print(f"\nFAIL: recall {m['recall']:.2f} / precision {m['precision']:.2f} "
