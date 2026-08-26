@@ -505,6 +505,28 @@
 const MULTI = ['missed', 'check_how', 'spent', 'ks'];
 const f = document.getElementById('f'), m = document.getElementById('m');
 
+// "해당 없음"을 누르면 나머지가 풀리고, 나머지를 누르면 "해당 없음"이 풀린다.
+// 둘을 같이 세면 "확인을 아예 안 함"과 "강한 신호" 숫자가 서로 어긋난다.
+const ESCAPE = {
+  missed: '빠뜨린 적 없음',
+  check_how: '아무것도 안 함',
+  spent: '아무것도 안 씀',
+  ks: '안 찾아봄'
+};
+Object.keys(ESCAPE).forEach(function (name) {
+  var boxes = [].slice.call(f.querySelectorAll('input[name="' + name + '"]'));
+  boxes.forEach(function (b) {
+    b.addEventListener('change', function () {
+      if (!b.checked) return;
+      var isEscape = b.value === ESCAPE[name];
+      boxes.forEach(function (o) {
+        if (o !== b && (isEscape || o.value === ESCAPE[name])) o.checked = false;
+      });
+      // 방금 누른 것은 켜진 채로 남으므로 필수 검사는 그대로 만족한다
+    });
+  });
+});
+
 // 고르는 칸은 전부 필수다. 라디오는 브라우저가 묶음으로 봐 주니 하나만 required 를 달고,
 // 체크박스는 하나라도 눌리면 required 를 떼서 "적어도 하나"가 되게 한다.
 (function () {

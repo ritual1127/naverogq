@@ -186,16 +186,20 @@ def run(cases):
         except Exception as e:
             got, err = set(), f"{type(e).__name__}: {e}"
         hit, miss, extra = expected & got, expected - got, got - expected
-        tp += len(hit)
-        fn += len(miss)
-        fp += len(extra)
+        # 못 연 도면은 숫자에서 뺀다. 안 그러면 파일 이름을 틀린 것이
+        # 검출률이 낮은 것처럼 보인다.
+        if err is None:
+            tp += len(hit)
+            fn += len(miss)
+            fp += len(extra)
         rows.append({"name": name, "expected": sorted(expected), "miss": sorted(miss),
                      "extra": sorted(extra), "error": err})
     recall = tp / (tp + fn) if tp + fn else 1.0
     precision = tp / (tp + fp) if tp + fp else 1.0
     return rows, {"tp": tp, "fp": fp, "fn": fn, "recall": recall,
                   "precision": precision,
-                  "exact": sum(1 for r in rows if not r["miss"] and not r["extra"]),
+                  "exact": sum(1 for r in rows
+                               if not r["error"] and not r["miss"] and not r["extra"]),
                   "cases": len(rows),
                   "failed": sum(1 for r in rows if r["error"])}
 
@@ -217,10 +221,15 @@ def markdown(rows, m):
         want = ", ".join(r["expected"]) or "지적 없음"
         out.append(f"| {r['name']} | {want} | {verdict} |")
     out += ["",
-            f"- 기준 도면 {m['cases']}장 중 완전 일치 {m['exact']}장",]
+            f"- 기준 도면 {m['cases']}장 중 분석 {m['cases'] - m['failed']}장 · "
+            f"완전 일치 {m['exact']}장",]
     if m["failed"]:
         out += [f"- **분석 실패 {m['failed']}장** — 아래 숫자는 이 장들을 뺀 것이다"]
-    out += [
+    if m["cases"] - m["failed"] == 0:
+        # 0장에 100%를 찍던 것이 P09다. 잴 게 없으면 숫자를 만들지 않는다.
+        out += ["- 분석된 도면이 0장이라 검출률·정확도를 잴 수 없다"]
+    else:
+        out += [
             f"- 검출률(recall) {m['recall'] * 100:.1f}% — "
             f"실제 결함 {m['tp'] + m['fn']}건 중 {m['tp']}건 검출",
             f"- 정확도(precision) {m['precision'] * 100:.1f}% — "

@@ -54,6 +54,14 @@ const NOTES_SHOWN = 50;  // 직접 적은 것 — 항목마다 최근 몇 줄
 const NOTES_COPIED = 30; // 복사 글에 넣는 줄 수
 // 이 중 하나라도 없으면 저장하지 않는다. 빈 줄이 쌓이면 나중에 못 읽는다.
 const NEED_ONE_OF = ["recent_one", "missed", "when_found", "spent"];
+// 여러 개 고르기에서 "해당 없음"에 해당하는 값. 이걸 골랐으면 나머지는 버린다.
+// 같이 세면 "확인을 아예 안 함"과 "강한 신호" 숫자가 서로 어긋난다.
+const ESCAPE = {
+  missed: "빠뜨린 적 없음",
+  check_how: "아무것도 안 함",
+  spent: "아무것도 안 씀",
+  ks: "안 찾아봄",
+};
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -76,8 +84,11 @@ export async function onRequestPost({ request, env }) {
       if (v.length > MAX_PICKS) {
         return new Response(`${k} 가 ${MAX_PICKS}개를 넘는다`, { status: 413 });
       }
-      const got = v.filter((x) => typeof x === "string" && x.trim() && x.length <= 200)
-        .map((x) => x.trim());
+      // 같은 값을 여러 번 보내 표를 부풀리는 것을 막는다
+      let got = [...new Set(
+        v.filter((x) => typeof x === "string" && x.trim() && x.length <= 200)
+         .map((x) => x.trim()))];
+      if (ESCAPE[k] && got.includes(ESCAPE[k])) got = [ESCAPE[k]];
       if (!got.length) continue;
       answer[k] = got;
       for (const one of got) picks.push([k, one]);
@@ -109,7 +120,15 @@ export async function onRequestPost({ request, env }) {
       env.DB.prepare("INSERT INTO notes (answer_id, field, text) VALUES (?, ?, ?)")
         .bind(id, f, t)),
   ];
-  if (rows.length) await env.DB.batch(rows);
+  if (rows.length) {
+    try {
+      await env.DB.batch(rows);
+    } catch (e) {
+      // 고른 것이 안 들어갔는데 답만 남으면 모든 비율의 분모만 늘어난다. 같이 지운다.
+      await env.DB.prepare("DELETE FROM answers WHERE id = ?").bind(id).run();
+      return new Response("저장하다 실패했다. 다시 눌러 줘", { status: 500 });
+    }
+  }
 
   return Response.json({ ok: true });
 }
@@ -123,7 +142,7 @@ const STRONG_SQL = `SELECT COUNT(DISTINCT answer_id) AS c FROM picks WHERE
 const LATE = ["내고 나서 내가", "선생님이 말해 줌", "친구가 말해 줌", "점수 나오고 알았음"];
 
 async function load(env, page) {
-  const [total, tally, answered, strong, noteRows, rawRows] = await env.DB.batch([
+  const [total, tally, answered, strong, noteRows, noteTotal, rawRows] = await env.DB.batch([
     env.DB.prepare("SELECT COUNT(*) AS n, MAX(at) AS last FROM answers"),
     env.DB.prepare(
       "SELECT field, value, COUNT(*) AS c FROM picks GROUP BY field, value ORDER BY c DESC"),
@@ -133,6 +152,7 @@ async function load(env, page) {
     env.DB.prepare(`SELECT field, text FROM (
         SELECT field, text, ROW_NUMBER() OVER (PARTITION BY field ORDER BY answer_id DESC) AS rn
         FROM notes) WHERE rn <= ?`).bind(NOTES_SHOWN),
+    env.DB.prepare("SELECT field, COUNT(*) AS c FROM notes GROUP BY field"),
     env.DB.prepare("SELECT id, at, data FROM answers ORDER BY id DESC LIMIT ? OFFSET ?")
       .bind(PER_PAGE, page * PER_PAGE),
   ]);
@@ -148,12 +168,13 @@ async function load(env, page) {
     if (!notes.has(r.field)) notes.set(r.field, []);
     notes.get(r.field).push(r.text);
   }
+  const noteAll = Object.fromEntries(noteTotal.results.map((r) => [r.field, r.c]));
   const pick = (f, v) => (counts.get(f) || []).find(([x]) => x === v)?.[1] || 0;
 
   return {
     n: total.results[0].n,
     last: total.results[0].last,
-    counts, base, notes,
+    counts, base, notes, noteAll,
     strong: strong.results[0].c,
     late: LATE.reduce((s, v) => s + pick("when_found", v), 0),
     nocheck: pick("check_how", "아무것도 안 함"),
@@ -179,20 +200,29 @@ export async function onRequestGet({ request, env }) {
   const page = Math.max(0, parseInt(url.searchParams.get("p") || "0", 10) || 0);
 
   if (format === "json") {
-    const rows = await env.DB.prepare(
-      "SELECT id, at, data FROM answers ORDER BY id DESC LIMIT ? OFFSET ?")
-      .bind(PER_PAGE * 5, page * PER_PAGE * 5).all();
-    return Response.json(rows.results.map((r) => ({ id: r.id, ...JSON.parse(r.data) })));
+    const size = PER_PAGE * 5;
+    const [count, rows] = await env.DB.batch([
+      env.DB.prepare("SELECT COUNT(*) AS n FROM answers"),
+      env.DB.prepare("SELECT id, at, data FROM answers ORDER BY id DESC LIMIT ? OFFSET ?")
+        .bind(size, page * size),
+    ]);
+    const total = count.results[0].n;
+    // 몇 건 중 몇 건을 보고 있는지 같이 준다. 조용히 잘리면 다 받은 줄 안다.
+    return Response.json({
+      total, page, per_page: size,
+      next: (page + 1) * size < total ? `?key=...&p=${page + 1}&format=json` : null,
+      rows: rows.results.map((r) => ({ id: r.id, ...JSON.parse(r.data) })),
+    }, { headers: { "cache-control": "no-store" } });
   }
 
   const d = await load(env, page);
   if (format === "md") {
     return new Response(report(d), {
-      headers: { "content-type": "text/plain; charset=utf-8" },
+      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
     });
   }
   return new Response(page_(d, key), {
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });
 }
 
@@ -233,7 +263,7 @@ function report(d) {
     if (kind !== "note") continue;
     const lines = d.notes.get(k) || [];
     L.push("");
-    L.push(`### ${label} (최근 ${Math.min(lines.length, NOTES_COPIED)}줄 / 전체 ${lines.length}줄)`);
+    L.push(`### ${label} (최근 ${Math.min(lines.length, NOTES_COPIED)}줄 / 전체 ${d.noteAll[k] || 0}줄)`);
     if (!lines.length) L.push("- (없음)");
     for (const t of lines.slice(0, NOTES_COPIED)) L.push(`- "${t.replace(/"/g, "'")}"`);
   }
@@ -271,7 +301,9 @@ function page_(d, key) {
 
   const notes = FIELDS.filter(([, , t]) => t === "note").map(([k, l]) => {
     const lines = d.notes.get(k) || [];
-    return `<section><h3>${esc(l)} <em>최근 ${lines.length}줄</em></h3>` +
+    const all = d.noteAll[k] || 0;
+    return `<section><h3>${esc(l)} <em>${
+      all > lines.length ? `최근 ${lines.length}줄 / 전체 ${all}줄` : `${all}줄`}</em></h3>` +
       (lines.length
         ? `<ol class="lines">${lines.map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`
         : `<p class="none">아직 없다</p>`) + `</section>`;
@@ -291,8 +323,8 @@ function page_(d, key) {
       }).join("")}
     </details>`).join("");
 
-  const first = d.page * PER_PAGE + 1;
-  const last = d.page * PER_PAGE + d.raw.length;
+  const first = d.raw.length ? d.page * PER_PAGE + 1 : 0;
+  const last = d.raw.length ? d.page * PER_PAGE + d.raw.length : 0;
   const nav = `<p class="nav">
     ${d.page > 0 ? `<a href="${q(d.page - 1)}">← 앞</a>` : `<span>← 앞</span>`}
     <b>${N ? `${first}–${last}` : 0} / ${N}</b>
@@ -358,7 +390,7 @@ function page_(d, key) {
 <div class="tools">
   <button class="main" id="copy" type="button">전체 지표 복사 (AI에 붙여넣기)</button>
   <a href="?key=${encodeURIComponent(key)}&amp;format=md" target="_blank">글로 보기</a>
-  <a href="?key=${encodeURIComponent(key)}&amp;format=json" target="_blank">JSON</a>
+  <a href="?key=${encodeURIComponent(key)}&amp;p=0&amp;format=json" target="_blank">JSON</a>
 </div>
 
 <div class="kpis">
