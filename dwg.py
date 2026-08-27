@@ -10,6 +10,7 @@ from typing import Any
 
 import ezdxf
 from ezdxf import bbox
+from ezdxf import recover
 from ezdxf.addons import Importer
 from ezdxf.enums import TextEntityAlignment
 from ezdxf.addons.drawing import Frontend, RenderContext
@@ -63,9 +64,26 @@ REAL_ENTITIES = {"LINE", "CIRCLE", "ARC", "DIMENSION", "POLYLINE", "LWPOLYLINE",
                  "SPLINE", "ELLIPSE", "TEXT", "MTEXT", "INSERT", "HATCH", "LEADER"}
 
 
+def readfile(path):
+    """Open a DXF, falling back to ezdxf's recovery reader.
+
+    Files written by other CAD programs are often slightly malformed and
+    ezdxf.readfile() raises on them, while AutoCAD opens them fine. Our own
+    synthetic samples are always clean so this never showed up until a
+    third-party file was tried (P11)."""
+    try:
+        return ezdxf.readfile(path)
+    except Exception:
+        doc, auditor = recover.readfile(path)
+        print(f"[dwg] 손상된 DXF 를 복구해서 열었습니다 "
+              f"(오류 {len(auditor.errors)} · 고침 {len(auditor.fixes)}): "
+              f"{os.path.basename(path)}", flush=True)
+        return doc
+
+
 def dxf_has_content(path):
     try:
-        d = ezdxf.readfile(path)
+        d = readfile(path)
     except Exception:
         return False
     for name in d.layout_names():
@@ -85,7 +103,7 @@ _ANON_BLOCK_RE = re.compile(r"^\*I\d+$", re.IGNORECASE)
 def recover_orphaned_paper_views(path):
     """Restore Inventor drawing views that LibreDWG leaves as orphan blocks."""
     try:
-        doc = ezdxf.readfile(path)
+        doc = readfile(path)
     except Exception:
         return False
 
@@ -545,7 +563,7 @@ def detect_mm_per_unit(doc, msp):
 
 
 def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
-    doc = ezdxf.readfile(path)
+    doc = readfile(path)
     msp = doc.modelspace()
     layouts = [msp] + [doc.layouts.get(n) for n in doc.layout_names()
                        if n.lower() != "model"]
@@ -770,7 +788,7 @@ def drawable_space(doc):
 
 
 def render_svg(dxf_path, markers=()):
-    doc = ezdxf.readfile(dxf_path)
+    doc = readfile(dxf_path)
     space, is_model = drawable_space(doc)
     if ERR_LAYER not in doc.layers:
         doc.layers.add(ERR_LAYER, color=1)

@@ -384,6 +384,45 @@ def test_ai_title_is_fixed_by_kind():
     assert ai_review._to_findings(old, "m")["findings"][0]["title"] == "투상도 완전 누락"
 
 
+def test_malformed_dxf_recovers():
+    """다른 CAD 가 쓴 DXF 는 살짝 깨져 있는 일이 잦다.
+
+    ezdxf.readfile 은 거기서 ValueError 를 던지지만 AutoCAD 는 연다.
+    우리 합성 도면은 늘 깨끗해서 실제 파일을 넣어 보기 전까지 안 드러났다 (P11)."""
+    import ezdxf
+    import dwg
+
+    fd, path = tempfile.mkstemp(suffix=".dxf")
+    os.close(fd)
+    try:
+        doc = ezdxf.new("R2013", setup=True)
+        msp = doc.modelspace()
+        msp.add_lwpolyline([(0, 0), (420, 0), (420, 297), (0, 297)], close=True)
+        msp.add_circle((120, 120), 10.0)
+        doc.saveas(path)
+
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        # 실수 값 하나를 QCAD 가 뱉었던 것과 같은 모양으로 망가뜨린다
+        broken = text.replace("\n120.0\n", "\n120.0l\n", 1)
+        assert broken != text, "망가뜨릴 실수 값을 못 찾았다"
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(broken)
+
+        try:
+            ezdxf.readfile(path)
+        except Exception:
+            pass
+        else:
+            raise AssertionError("ezdxf.readfile 이 그냥 열렸다 — 시험이 무의미하다")
+
+        doc2 = dwg.readfile(path)          # 복구해서 열려야 한다
+        assert doc2.modelspace() is not None
+        assert dwg.dxf_has_content(path)   # 빈 도면으로 오해하지 않아야 한다
+    finally:
+        os.unlink(path)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
