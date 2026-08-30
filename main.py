@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import check
+import stats
 
 DATA = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
                     "cad-checker")
@@ -64,7 +65,8 @@ def _is_local(request):
 
 
 @app.get("/", response_class=HTMLResponse)
-def index():
+def index(request: Request):
+    stats.bump(request, "visit")
     with open(os.path.join(HERE, "static", "index.html"), encoding="utf-8") as fh:
         return fh.read()
 
@@ -119,8 +121,13 @@ def samples():
     return {"samples": out}
 
 
+@app.get("/api/stats")
+def site_stats():
+    return stats.summary()
+
+
 @app.post("/api/analyze-sample")
-def analyze_sample(body: dict):
+def analyze_sample(body: dict, request: Request):
     name = os.path.basename((body or {}).get("name", ""))
     path = os.path.abspath(os.path.join(SAMPLES, name))
     if not name or not path.startswith(os.path.abspath(SAMPLES) + os.sep) \
@@ -130,6 +137,7 @@ def analyze_sample(body: dict):
         raise HTTPException(400, "분석할 수 없는 형식입니다.")
     job = uuid.uuid4().hex[:12]
     os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
+    stats.bump(request, "sample")
     return _run(job, path, name, _enabled(body))
 
 
@@ -151,6 +159,7 @@ def analyze_path(body: dict, request: Request):
                                  f"지원: {', '.join(check.SUPPORTED)}")
     job = uuid.uuid4().hex[:12]
     os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
+    stats.bump(request, "check")
     return _run(job, path, os.path.basename(path), _enabled(body))
 
 
@@ -164,7 +173,8 @@ def _enabled(src):
 
 
 @app.post("/api/analyze")
-def analyze(file: UploadFile = File(...),  # noqa: B008 -- FastAPI declares deps this way
+def analyze(request: Request,
+            file: UploadFile = File(...),  # noqa: B008 -- FastAPI declares deps this way
             checks: str = Form(None)):
     name = os.path.basename(file.filename or "upload")
     ext = os.path.splitext(name)[1].lower()
@@ -193,6 +203,7 @@ def analyze(file: UploadFile = File(...),  # noqa: B008 -- FastAPI declares deps
 
     if ext == ".zip":
         path, name = _unzip(path, workdir)
+    stats.bump(request, "check")
     return _run(job, path, name, _enabled({"checks": checks}))
 
 

@@ -423,6 +423,49 @@ def test_malformed_dxf_recovers():
         os.unlink(path)
 
 
+def test_stats_counts_by_ip():
+    """접속은 IP 하나에 하나로 세고, 검사는 올린 횟수만큼 센다.
+    IP 원본이 남으면 안 되고, 주가 다르면 같은 IP 라도 이어 보이면 안 된다."""
+    import datetime
+    import importlib
+    import stats as _stats
+
+    class Req:
+        def __init__(self, ip):
+            self.headers = {"cf-connecting-ip": ip}
+            self.client = None
+
+    with tempfile.TemporaryDirectory() as tmp:
+        os.environ["CADLENS_STAT_DB"] = os.path.join(tmp, "stats.db")
+        os.environ["CADLENS_STAT_SALT"] = "test-salt"
+        stats = importlib.reload(_stats)
+        try:
+            day = datetime.date(2026, 8, 30)          # 일요일 = 그 주의 마지막 날
+            for kind in ("visit", "check", "check"):  # 한 사람이 두 번 검사
+                stats.bump(Req("203.0.113.9"), kind, day)
+            stats.bump(Req("203.0.113.10"), "visit", day)
+            stats.bump(Req("203.0.113.10"), "sample", day)
+
+            s = stats.summary(day)
+            assert s["today"]["visitors"] == 2, s          # IP 둘
+            assert s["today"]["checks"] == 3, s            # 검사 2 + 예제 1
+            assert s["week"]["recheckers"] == 1, s         # 두 번 이상은 한 명
+            assert s["total"]["checks"] == 2, s
+            assert s["total"]["samples"] == 1, s
+            assert s["daily"][-1] == {"day": "2026-08-30", "visitors": 2,
+                                      "checks": 3}, s["daily"]
+
+            with open(os.environ["CADLENS_STAT_DB"], "rb") as fh:
+                raw = fh.read()
+            assert b"203.0.113.9" not in raw, "IP 원본이 그대로 남았다"
+
+            # 주가 바뀌면 같은 IP 도 다른 사람이 된다
+            assert stats.visitor_id("203.0.113.9", day) !=                    stats.visitor_id("203.0.113.9", day + datetime.timedelta(days=1))
+        finally:
+            del os.environ["CADLENS_STAT_DB"], os.environ["CADLENS_STAT_SALT"]
+            importlib.reload(_stats)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
