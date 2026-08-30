@@ -411,27 +411,62 @@ _TITLE_TEXT_RE = re.compile(r"품\s*명|도\s*명|품\s*번|도\s*번|재\s*질|
 MIN_TITLE_TEXT_HITS = 2
 _NOTE_KEYWORD_RE = re.compile(r"주서|일반\s*공차|2768|열처리|담금질|침탄|질화|도금|도장|"
                               r"모[떼따]기|라운드|필렛|거칠기|다듬질|HRC|주기", re.I)
+# "단면도 A-A (1:1)" 같은 뷰 이름표는 12자가 넘어도 주서가 아니다.
+# 이걸 주서로 세면 주서가 통째로 없는 도면에서도 "주서 없음"이 안 뜬다.
+_VIEW_LABEL_RE = re.compile(
+    r"^(정면도|평면도|배면도|저면도|좌측면도|우측면도|측면도|입면도|등각투상도|"
+    r"단면도|부분\s*단면도|회전\s*단면도|상세도|확대도|"
+    r"section|detail|view)\b", re.I)
 MIN_NOTE_LEN = 12
 
 
 def _is_note(text):
     t = (text or "").strip()
-    return bool(t) and ("\n" in t or len(t) >= MIN_NOTE_LEN
-                        or _NOTE_KEYWORD_RE.search(t))
+    if not t or _VIEW_LABEL_RE.match(t):
+        return False
+    return "\n" in t or len(t) >= MIN_NOTE_LEN or bool(_NOTE_KEYWORD_RE.search(t))
+
+
+BORDER_MIN_SPAN = 0.6          # 도면에서 제일 큰 사각형의 몇 배 이상이어야 윤곽선인가
+
+
+def _rect_size(entity):
+    """축에 나란한 닫힌 사각형이면 (폭, 높이). 아니면 None."""
+    try:
+        if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
+            return None
+        pts = entity.get_points("xy")
+    except Exception:
+        return None
+    if len(pts) != 4:
+        return None
+    xs = {round(p[0], 3) for p in pts}
+    ys = {round(p[1], 3) for p in pts}
+    if len(xs) != 2 or len(ys) != 2:
+        return None
+    return max(xs) - min(xs), max(ys) - min(ys)
 
 
 def _is_border(entity):
-    try:
-        if entity.dxftype() != "LWPOLYLINE" or not entity.closed:
-            return False
-        pts = entity.get_points("xy")
-    except Exception:
-        return False
-    if len(pts) != 4:
-        return False
-    xs = {round(p[0], 3) for p in pts}
-    ys = {round(p[1], 3) for p in pts}
-    return len(xs) == 2 and len(ys) == 2
+    return _rect_size(entity) is not None
+
+
+def _drawn_span(rects, circles):
+    """그려진 것이 차지하는 폭과 높이. 윤곽선인지 재는 잣대."""
+    xs, ys = [], []
+    for r in rects:
+        try:
+            pts = r.get_points("xy")
+        except Exception:
+            continue
+        xs += [p[0] for p in pts]
+        ys += [p[1] for p in pts]
+    for c in circles:
+        xs += [c["x"] - c["r"], c["x"] + c["r"]]
+        ys += [c["y"] - c["r"], c["y"] + c["r"]]
+    if not xs or not ys:
+        return 0.0, 0.0
+    return max(xs) - min(xs), max(ys) - min(ys)
 
 
 def _surface_symbol(text):
@@ -462,6 +497,12 @@ def _geometric_tol(text):
 
 
 SYMBOL_ZONE_FACTOR = 4.0
+# 투상법 기호는 원 두 개로 그린다. 치수를 넣는 자리가 아닌데 미치수 구멍으로
+# 잡히던 것을 막는다. 기호가 문자에서 떨어져 있어도 덮이게 mm 로 크게 잡는다.
+# ponytail: 표제란 구석이라 이 반경 안의 진짜 구멍까지 같이 빠진다.
+#           오탐을 줄이는 쪽이 낫다고 보고 넓게 뒀다.
+PROJECTION_ZONE_MM = 45.0
+_PROJECTION_RE = re.compile(r"제?\s*[13]\s*각\s*법|third\s*angle|first\s*angle", re.I)
 MIN_HOLE_DIA_MM = 1.0
 
 
@@ -474,6 +515,16 @@ def _zone(entity, kind, lines=1):
     if not h:
         return None
     return (p.x, p.y, h * SYMBOL_ZONE_FACTOR, h * lines)
+
+
+def _fixed_zone(entity, mm, k):
+    """문자 위치에서 mm 만큼을 통째로 기호 자리로 본다."""
+    try:
+        p = entity.dxf.insert
+    except Exception:
+        return None
+    reach = mm / k if k else mm
+    return (p.x, p.y, reach, reach)
 
 
 def _in_symbol_zone(cx, cy, zones):
@@ -647,6 +698,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                         surfaces.append(s)
                         symbol_zones.append(_zone(e, t))
                         continue
+                    if _PROJECTION_RE.search(value):
+                        symbol_zones.append(_fixed_zone(e, PROJECTION_ZONE_MM, K))
                     texts.append(value)
                     if _is_note(value):
                         symbol_zones.append(_zone(e, t, value.count("\n") + 1))
@@ -700,7 +753,12 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         elif border is None and _ANON_BLOCK_RE.match(name):
             border = name
     if border is None and rects:
-        border = "윤곽선"
+        # 부품 외형도 닫힌 사각형이다. 그려진 것 전체를 거의 다 감싸야 윤곽선으로 본다.
+        # 이 조건이 없으면 뷰 하나짜리 사각형도 도면양식으로 세어 표제란 누락을 놓친다.
+        span_x, span_y = _drawn_span(rects, circles)
+        if any(w >= span_x * BORDER_MIN_SPAN and h >= span_y * BORDER_MIN_SPAN
+               for w, h in (z for z in (_rect_size(r) for r in rects) if z)):
+            border = "윤곽선"
 
     title_block = (list(titles) or [None])[0]
     if not title_block:

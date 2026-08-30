@@ -466,6 +466,27 @@ def test_stats_counts_by_ip():
             importlib.reload(_stats)
 
 
+def test_synthetic_sheet_is_clean_and_defects_are_caught():
+    """합성 기준 도면은 지적 0건이어야 하고, 결함을 하나 넣으면 그것만 잡혀야 한다.
+
+    여기서 잡는 것 셋은 실제로 오탐·미탐이었다 —
+    제3각법 기호의 원을 미치수 구멍으로, 뷰 이름표를 주서로,
+    뷰 사각형을 도면 윤곽선으로 봤다."""
+    import check
+    import make_drawings
+
+    with tempfile.TemporaryDirectory() as tmp:
+        clean = make_drawings.build(0, out_dir=tmp)
+        _, findings, _ = check.analyze(clean, use_ai=False)
+        assert [f["code"] for f in findings] == [], [f["code"] for f in findings]
+
+        for defect in ("no_notes", "no_title", "no_center", "undimensioned"):
+            path = make_drawings.build(0, defect=defect, out_dir=tmp)
+            _, findings, _ = check.analyze(path, use_ai=False)
+            got = {f["code"] for f in findings}
+            assert make_drawings.DEFECTS[defect] <= got, (defect, sorted(got))
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
