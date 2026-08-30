@@ -10,6 +10,8 @@ import hashlib
 import os
 import secrets
 import sqlite3
+import threading
+import time
 
 DEFAULT_DIR = os.path.join(
     os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "cad-checker")
@@ -45,6 +47,32 @@ def _salt_value():
     return _salt
 
 
+D1_API = ("https://api.cloudflare.com/client/v4/accounts/{acct}"
+          "/d1/database/{db}/query")
+
+
+def d1_conf():
+    """셋 다 있어야 D1 을 쓴다. 하나라도 없으면 이 서버의 sqlite 로 센다.
+    Render 무료 플랜은 다시 뜰 때 디스크가 지워져 sqlite 는 0부터 시작한다."""
+    acct = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+    db = os.environ.get("CADLENS_D1_STATS")
+    token = os.environ.get("CLOUDFLARE_API_TOKEN")
+    return (acct, db, token) if acct and db and token else None
+
+
+def _d1(sql, params=(), timeout=10):
+    import requests
+    acct, db, token = d1_conf()
+    r = requests.post(D1_API.format(acct=acct, db=db),
+                      headers={"Authorization": f"Bearer {token}"},
+                      json={"sql": sql, "params": [str(p) for p in params]},
+                      timeout=timeout)
+    body = r.json()
+    if not body.get("success"):
+        raise RuntimeError(str(body.get("errors") or body)[:200])
+    return [x.get("results") or [] for x in body.get("result", [])]
+
+
 def _connect():
     path = db_path()
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
@@ -74,29 +102,92 @@ def visitor_id(ip, today=None):
     return hashlib.sha256(raw).hexdigest()[:16]
 
 
+UPSERT = ("INSERT INTO hits(day, visitor, kind, n) VALUES(?,?,?,1) "
+          "ON CONFLICT(day, visitor, kind) DO UPDATE SET n = n + 1")
+
+
 def bump(request, kind, today=None):
     """한 번 센다. 통계 때문에 검사가 실패하면 안 되므로 조용히 넘어간다."""
     today = today or datetime.date.today()
+    row = (today.isoformat(), visitor_id(client_ip(request), today), kind)
+    if d1_conf():
+        # 화면이 D1 응답을 기다릴 이유가 없다. 실패해도 검사는 그대로 간다.
+        threading.Thread(target=_bump_d1, args=(row,), daemon=True).start()
+        return
     try:
         con = _connect()
         try:
             with con:
-                con.execute(
-                    "INSERT INTO hits(day, visitor, kind, n) VALUES(?,?,?,1) "
-                    "ON CONFLICT(day, visitor, kind) DO UPDATE SET n = n + 1",
-                    (today.isoformat(), visitor_id(client_ip(request), today), kind))
+                con.execute(UPSERT, row)
         finally:
             con.close()
     except Exception as e:                                    # noqa: BLE001
         print(f"[stats] {kind} 세기 실패: {type(e).__name__}: {e}", flush=True)
 
 
+def _bump_d1(row):
+    try:
+        _d1(UPSERT, row)
+        _cache[0] = 0.0                      # 다음 조회는 새로 읽는다
+    except Exception as e:                                    # noqa: BLE001
+        print(f"[stats] D1 세기 실패: {type(e).__name__}: {e}", flush=True)
+
+
 CHECK_KINDS = ("check", "sample")
+
+_cache = [0.0, None]                         # 마지막으로 읽은 때, 그 값
+CACHE_SEC = 30
+
+
+SUMMARY_SQL = """SELECT
+ (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day=?1 AND kind='visit'),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE day=?1 AND kind IN ('check','sample')),
+ (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day>=?2 AND kind='visit'),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE day>=?2 AND kind IN ('check','sample')),
+ (SELECT COUNT(*) FROM (SELECT visitor, SUM(n) s FROM hits WHERE day>=?2
+    AND kind IN ('check','sample') GROUP BY visitor HAVING s >= 2)),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='visit'),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='check'),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='sample'),
+ (SELECT COUNT(DISTINCT day) FROM hits),
+ (SELECT COALESCE(MIN(day),?1) FROM hits)"""
+
+DAILY_SQL = ("SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v, "
+             "SUM(CASE WHEN kind IN ('check','sample') THEN n ELSE 0 END) c "
+             "FROM hits WHERE day>=?1 GROUP BY day ORDER BY day")
+
+
+def _summary_d1(today, days):
+    monday = today - datetime.timedelta(days=today.weekday())
+    first = (today - datetime.timedelta(days=days - 1)).isoformat()
+    row = _d1(SUMMARY_SQL, (today.isoformat(), monday.isoformat()))[0][0]
+    tv, tc, wv, wc, wr, vis, chk, smp, nday, since = list(row.values())
+    daily = _d1(DAILY_SQL, (first,))[0]
+    return {
+        "available": True, "store": "d1",
+        "today": {"visitors": tv or 0, "checks": tc or 0},
+        "week": {"since": monday.isoformat(), "visitors": wv or 0,
+                 "checks": wc or 0, "recheckers": wr or 0},
+        "total": {"visits": vis or 0, "checks": chk or 0, "samples": smp or 0,
+                  "days": nday or 0, "since": since or today.isoformat()},
+        "daily": [{"day": r["day"], "visitors": r["v"] or 0, "checks": r["c"] or 0}
+                  for r in daily],
+    }
 
 
 def summary(today=None, days=14):
     today = today or datetime.date.today()
     monday = today - datetime.timedelta(days=today.weekday())
+    if d1_conf():
+        if _cache[1] and time.time() - _cache[0] < CACHE_SEC:
+            return _cache[1]
+        try:
+            out = _summary_d1(today, days)
+            _cache[0], _cache[1] = time.time(), out
+            return out
+        except Exception as e:                                # noqa: BLE001
+            print(f"[stats] D1 조회 실패: {type(e).__name__}: {e}", flush=True)
+            return {"available": False}
     try:
         con = _connect()
     except Exception:                                          # noqa: BLE001
@@ -108,7 +199,7 @@ def summary(today=None, days=14):
         marks = ",".join("?" * len(CHECK_KINDS))
         day, week = today.isoformat(), monday.isoformat()
         out = {
-            "available": True,
+            "available": True, "store": "sqlite",
             "today": {
                 "visitors": one("SELECT COUNT(DISTINCT visitor) FROM hits "
                                 "WHERE day=? AND kind='visit'", (day,)),
