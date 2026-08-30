@@ -60,6 +60,14 @@ def d1_conf():
     return (acct, db, token) if acct and db and token else None
 
 
+NEEDED = ("CLOUDFLARE_ACCOUNT_ID", "CADLENS_D1_STATS", "CLOUDFLARE_API_TOKEN")
+
+
+def missing_conf():
+    """D1 을 못 쓰는 이유를 이름으로만 알려 준다. 값은 내보내지 않는다."""
+    return [k for k in NEEDED if not os.environ.get(k)]
+
+
 def _d1(sql, params=(), timeout=10):
     import requests
     acct, db, token = d1_conf()
@@ -200,6 +208,7 @@ def summary(today=None, days=14):
         day, week = today.isoformat(), monday.isoformat()
         out = {
             "available": True, "store": "sqlite",
+            "missing_env": missing_conf(),
             "today": {
                 "visitors": one("SELECT COUNT(DISTINCT visitor) FROM hits "
                                 "WHERE day=? AND kind='visit'", (day,)),
