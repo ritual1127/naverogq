@@ -1,0 +1,302 @@
+{
+ "000_ok.dxf": [],
+ "000_none.dxf": [
+  "DQ_NO_SURFACE_SYMBOL"
+ ],
+ "000_no_fcf.dxf": [
+  "DQ_NO_GEOMETRIC_TOL"
+ ],
+ "000_no_dims.dxf": [
+  "EX_NO_DIMS"
+ ],
+ "000_undimensioned.dxf": [
+  "EX_DIM_MISSING"
+ ],
+ "000_no_fit.dxf": [
+  "EX_NO_FIT",
+  "EX_TOL_FEW"
+ ],
+ "000_few.dxf": [
+  "EX_SURFACE_FEW"
+ ],
+ "000_uniform.dxf": [
+  "EX_SURFACE_UNIFORM"
+ ],
+ "000_empty.dxf": [
+  "EX_SURFACE_EMPTY"
+ ],
+ "000_no_datum.dxf": [
+  "EX_FCF_NO_DATUM"
+ ],
+ "000_no_tolval.dxf": [
+  "EX_FCF_NO_VALUE"
+ ],
+ "000_one_fcf.dxf": [
+  "EX_FCF_FEW"
+ ],
+ "000_no_notes.dxf": [
+  "EX_NO_HEAT",
+  "EX_NO_NOTES"
+ ],
+ "000_no_chamfer.dxf": [
+  "EX_NOTE_ITEM"
+ ],
+ "000_no_heat.dxf": [
+  "EX_NO_HEAT"
+ ],
+ "000_no_center.dxf": [
+  "EX_NO_CENTERLINE"
+ ],
+ "000_no_title.dxf": [
+  "EX_NO_TITLEBLOCK"
+ ],
+ "001_ok.dxf": [],
+ "001_none.dxf": [
+  "DQ_NO_SURFACE_SYMBOL"
+ ],
+ "001_no_fcf.dxf": [
+  "DQ_NO_GEOMETRIC_TOL"
+ ],
+ "001_no_dims.dxf": [
+  "EX_NO_DIMS"
+ ],
+ "001_undimensioned.dxf": [
+  "EX_DIM_MISSING"
+ ],
+ "001_no_fit.dxf": [
+  "EX_NO_FIT",
+  "EX_TOL_FEW"
+ ],
+ "001_few.dxf": [
+  "EX_SURFACE_FEW"
+ ],
+ "001_uniform.dxf": [
+  "EX_SURFACE_UNIFORM"
+ ],
+ "001_empty.dxf": [
+  "EX_SURFACE_EMPTY"
+ ],
+ "001_no_datum.dxf": [
+  "EX_FCF_NO_DATUM"
+ ],
+ "001_no_tolval.dxf": [
+  "EX_FCF_NO_VALUE"
+ ],
+ "001_one_fcf.dxf": [
+  "EX_FCF_FEW"
+ ],
+ "001_no_notes.dxf": [
+  "EX_NO_HEAT",
+  "EX_NO_NOTES"
+ ],
+ "001_no_chamfer.dxf": [
+  "EX_NOTE_ITEM"
+ ],
+ "001_no_heat.dxf": [
+  "EX_NO_HEAT"
+ ],
+ "001_no_center.dxf": [
+  "EX_NO_CENTERLINE"
+ ],
+ "001_no_title.dxf": [
+  "EX_NO_TITLEBLOCK"
+ ],
+ "002_ok.dxf": [],
+ "002_none.dxf": [
+  "DQ_NO_SURFACE_SYMBOL"
+ ],
+ "002_no_fcf.dxf": [
+  "DQ_NO_GEOMETRIC_TOL"
+ ],
+ "002_no_dims.dxf": [
+  "EX_NO_DIMS"
+ ],
+ "002_undimensioned.dxf": [
+  "EX_DIM_MISSING"
+ ],
+ "002_no_fit.dxf": [
+  "EX_NO_FIT",
+  "EX_TOL_FEW"
+ ],
+ "002_few.dxf": [
+  "EX_SURFACE_FEW"
+ ],
+ "002_uniform.dxf": [
+  "EX_SURFACE_UNIFORM"
+ ],
+ "002_empty.dxf": [
+  "EX_SURFACE_EMPTY"
+ ],
+ "002_no_datum.dxf": [
+  "EX_FCF_NO_DATUM"
+ ],
+ "002_no_tolval.dxf": [
+  "EX_FCF_NO_VALUE"
+ ],
+ "002_one_fcf.dxf": [
+  "EX_FCF_FEW"
+ ],
+ "002_no_notes.dxf": [
+  "EX_NO_HEAT",
+  "EX_NO_NOTES"
+ ],
+ "002_no_chamfer.dxf": [
+  "EX_NOTE_ITEM"
+ ],
+ "002_no_heat.dxf": [
+  "EX_NO_HEAT"
+ ],
+ "002_no_center.dxf": [
+  "EX_NO_CENTERLINE"
+ ],
+ "002_no_title.dxf": [
+  "EX_NO_TITLEBLOCK"
+ ],
+ "003_ok.dxf": [],
+ "003_none.dxf": [
+  "DQ_NO_SURFACE_SYMBOL"
+ ],
+ "003_no_fcf.dxf": [
+  "DQ_NO_GEOMETRIC_TOL"
+ ],
+ "003_no_dims.dxf": [
+  "EX_NO_DIMS"
+ ],
+ "003_undimensioned.dxf": [
+  "EX_DIM_MISSING"
+ ],
+ "003_no_fit.dxf": [
+  "EX_NO_FIT",
+  "EX_TOL_FEW"
+ ],
+ "003_few.dxf": [
+  "EX_SURFACE_FEW"
+ ],
+ "003_uniform.dxf": [
+  "EX_SURFACE_UNIFORM"
+ ],
+ "003_empty.dxf": [
+  "EX_SURFACE_EMPTY"
+ ],
+ "003_no_datum.dxf": [
+  "EX_FCF_NO_DATUM"
+ ],
+ "003_no_tolval.dxf": [
+  "EX_FCF_NO_VALUE"
+ ],
+ "003_one_fcf.dxf": [
+  "EX_FCF_FEW"
+ ],
+ "003_no_notes.dxf": [
+  "EX_NO_HEAT",
+  "EX_NO_NOTES"
+ ],
+ "003_no_chamfer.dxf": [
+  "EX_NOTE_ITEM"
+ ],
+ "003_no_heat.dxf": [
+  "EX_NO_HEAT"
+ ],
+ "003_no_center.dxf": [
+  "EX_NO_CENTERLINE"
+ ],
+ "003_no_title.dxf": [
+  "EX_NO_TITLEBLOCK"
+ ],
+ "004_ok.dxf": [],
+ "004_none.dxf": [
+  "DQ_NO_SURFACE_SYMBOL"
+ ],
+ "004_no_fcf.dxf": [
+  "DQ_NO_GEOMETRIC_TOL"
+ ],
+ "004_no_dims.dxf": [
+  "EX_NO_DIMS"
+ ],
+ "004_undimensioned.dxf": [
+  "EX_DIM_MISSING"
+ ],
+ "004_no_fit.dxf": [
+  "EX_NO_FIT",
+  "EX_TOL_FEW"
+ ],
+ "004_few.dxf": [
+  "EX_SURFACE_FEW"
+ ],
+ "004_uniform.dxf": [
+  "EX_SURFACE_UNIFORM"
+ ],
+ "004_empty.dxf": [
+  "EX_SURFACE_EMPTY"
+ ],
+ "004_no_datum.dxf": [
+  "EX_FCF_NO_DATUM"
+ ],
+ "004_no_tolval.dxf": [
+  "EX_FCF_NO_VALUE"
+ ],
+ "004_one_fcf.dxf": [
+  "EX_FCF_FEW"
+ ],
+ "004_no_notes.dxf": [
+  "EX_NO_HEAT",
+  "EX_NO_NOTES"
+ ],
+ "004_no_chamfer.dxf": [
+  "EX_NOTE_ITEM"
+ ],
+ "004_no_heat.dxf": [
+  "EX_NO_HEAT"
+ ],
+ "004_no_center.dxf": [
+  "EX_NO_CENTERLINE"
+ ],
+ "004_no_title.dxf": [
+  "EX_NO_TITLEBLOCK"
+ ],
+ "005_ok.dxf": [],
+ "005_none.dxf": [
+  "DQ_NO_SURFACE_SYMBOL"
+ ],
+ "005_no_fcf.dxf": [
+  "DQ_NO_GEOMETRIC_TOL"
+ ],
+ "005_no_dims.dxf": [
+  "EX_NO_DIMS"
+ ],
+ "005_undimensioned.dxf": [
+  "EX_DIM_MISSING"
+ ],
+ "005_no_fit.dxf": [
+  "EX_NO_FIT",
+  "EX_TOL_FEW"
+ ],
+ "005_few.dxf": [
+  "EX_SURFACE_FEW"
+ ],
+ "005_uniform.dxf": [
+  "EX_SURFACE_UNIFORM"
+ ],
+ "005_empty.dxf": [
+  "EX_SURFACE_EMPTY"
+ ],
+ "005_no_datum.dxf": [
+  "EX_FCF_NO_DATUM"
+ ],
+ "005_no_tolval.dxf": [
+  "EX_FCF_NO_VALUE"
+ ],
+ "005_one_fcf.dxf": [
+  "EX_FCF_FEW"
+ ],
+ "005_no_notes.dxf": [
+  "EX_NO_HEAT",
+  "EX_NO_NOTES"
+ ],
+ "005_no_chamfer.dxf": [
+  "EX_NOTE_ITEM"
+ ],
+ "005_no_heat.dxf": [
+  "EX_NO_HEAT"
+ ]
+}
