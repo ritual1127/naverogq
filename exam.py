@@ -9,13 +9,23 @@ Scorecard = dict[str, Any]
 _ISO_FIT = re.compile(r"\d\s*[A-Za-z]{1,2}\d{1,2}(?![\d.])")
 _EXPLICIT_TOL = re.compile(r"±|\^|[+\-]\s*\d*\.\d+|\bmin\b|\bmax\b", re.I)
 _NO_TOL_NEEDED = re.compile(r"^\s*[(\[]|^\s*R[\d.]|^\s*M\s*\d|×|\bTYP\b|\bREF\b", re.I)
+# MTEXT formatting: font/height/width/alignment/colour runs and braces. The
+# stacked-fraction run (\S...;) is left alone because it carries the tolerance.
+_MTEXT_FMT = re.compile(r"\\[fFHWQATCpP][^;]*;|\\[LlOoKkNnXx]|[{}]")
+
+
+def plain_dim_text(text: str | None) -> str:
+    """Strip MTEXT formatting and put a number where CAD hides the measured
+    value behind ``<>``. Real drawings write ``Ø<>H7``; only drawings typed by
+    hand carry the digits, so the fit symbol was invisible without this."""
+    return _MTEXT_FMT.sub("", text or "").replace("<>", "0")
 
 
 def text_tolerance_state(text: str | None) -> str:
     """Classify a dimension's text: does it already carry a tolerance?
     "fit" = ISO fit symbol (H7), "explicit" = ±0.1 and friends,
     "not_applicable" = radius/thread/reference dims that need none."""
-    t = (text or "").strip()
+    t = plain_dim_text(text).strip()
     if not t:
         return "plain"
     if _NO_TOL_NEEDED.search(t):
