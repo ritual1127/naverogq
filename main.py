@@ -1,9 +1,11 @@
+import asyncio
 import os
 import shutil
 import time
 import traceback
 import uuid
 import zipfile
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -26,7 +28,27 @@ SAMPLE_NOTES = {
     "sample_075em07z.dwg": "위 도면의 DWG 원본 — LibreDWG가 있어야 열립니다",
 }
 
-app = FastAPI(title="CADLens 도면 검사기")
+PRUNE_EVERY_SEC = 10 * 60
+
+
+@asynccontextmanager
+async def _lifespan(_app):
+    """_prune_uploads() is otherwise only reached from _run(), so with no
+    traffic an upload outlives the "deleted within an hour" notice we show.
+    ponytail: assumes one process; extra workers pruning in parallel is
+    harmless because rmtree ignores errors."""
+    async def loop():
+        while True:
+            _prune_uploads()
+            await asyncio.sleep(PRUNE_EVERY_SEC)
+    task = asyncio.create_task(loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
+app = FastAPI(title="CADLens 도면 검사기", lifespan=_lifespan)
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 
 JOB_TTL_SEC = 60 * 60
