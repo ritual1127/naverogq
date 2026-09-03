@@ -556,6 +556,70 @@ def test_views_are_clustered_when_the_cad_file_has_no_view_blocks():
     assert "형상 뭉치로 추정" in context, context
 
 
+def test_front_view_is_the_one_the_dimensions_cluster_on():
+    """치수가 몰린 뷰를 정면도로 고른다.
+
+    형상 개수로 고르면 안 된다. 실제 도면에서 형상이 가장 많은 덩어리는
+    등각투상도였고 치수는 0개였다. 여기서도 형상이 가장 많은 뷰와 치수가
+    몰린 뷰를 일부러 다르게 뒀다."""
+    import ezdxf
+    import ai_review
+    import dwg
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(0, 0), (420, 0), (420, 297), (0, 297)], close=True)
+    corners = ((-15, -15), (15, -15), (-15, 15), (15, 15), (0, 0))
+    for cx, cy in ((100, 100), (100, 200), (250, 100)):
+        # 오른쪽 뷰에 형상을 몰아 준다. 치수는 왼쪽 아래 뷰에 붙일 것이다.
+        spots = corners + ((-8, 0), (8, 0), (0, -8), (0, 8), (-8, 8), (8, -8))             if (cx, cy) == (250, 100) else corners
+        for dx, dy in spots:
+            msp.add_circle((cx + dx, cy + dy), 5)
+    for i in range(6):
+        msp.add_linear_dim(base=(100, 60 - i * 6), p1=(85, 70), p2=(115, 70)).render()
+
+    path = os.path.join(tempfile.mkdtemp(), "front.dxf")
+    doc.saveas(path)
+    views = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]["views"]
+
+    front = [v for v in views if v.get("is_front")]
+    assert len(front) == 1, [(v["x_mm"], v["y_mm"], v.get("dim_count")) for v in views]
+    assert (front[0]["x_mm"], front[0]["y_mm"]) == (100.0, 100.0), front
+    busiest = max(views, key=lambda v: v.get("shapes") or 0)
+    assert not busiest.get("is_front"), "형상이 가장 많은 뷰가 정면도는 아니다"
+
+    context = ai_review._context(dwg.facts_from_dxf(path))
+    assert "← 정면도로 보임" in context, context
+
+
+def test_front_view_is_left_unset_when_the_drawing_has_no_dimensions():
+    """치수가 없으면 정면도를 고르지 않는다.
+
+    DWG 를 변환한 도면은 치수가 선과 문자로 흩어져 DIMENSION 이 하나도 안
+    남는다. 그때 아무 뷰나 정면도로 찍으면 제3각법 판정이 통째로 뒤집힌다."""
+    import ezdxf
+    import ai_review
+    import dwg
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(0, 0), (420, 0), (420, 297), (0, 297)], close=True)
+    for cx, cy in ((100, 100), (100, 200)):
+        for dx, dy in ((-15, -15), (15, -15), (-15, 15), (15, 15), (0, 0)):
+            msp.add_circle((cx + dx, cy + dy), 5)
+
+    path = os.path.join(tempfile.mkdtemp(), "nodims.dxf")
+    doc.saveas(path)
+    views = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]["views"]
+
+    assert len(views) == 2, views
+    assert not any(v.get("is_front") for v in views), views
+    context = ai_review._context(dwg.facts_from_dxf(path))
+    assert "정면도를 특정하지 못했습니다" in context, context
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

@@ -730,6 +730,58 @@ def _cluster_views(msp, mm_per_unit):
             for i, v in enumerate(views, 1)]
 
 
+# 정면도를 고를 때 쓰는 값. KS 는 "대상물의 형상을 가장 잘 나타내는 주
+# 투상도(정면도)에 치수를 집중하여 기입한다" 고 한다. 그래서 치수가 가장
+# 많이 붙은 뷰를 정면도로 본다. 다만 표가 갈리면 고르지 않는다 — 정면도를
+# 잘못 짚으면 제3각법 판정이 통째로 뒤집힌다.
+FRONT_MIN_DIMS = 5
+FRONT_MIN_VOTES = 3
+FRONT_MARGIN = 2.0
+
+
+def _mark_front_view(msp, views, mm_per_unit):
+    """치수가 가장 많이 붙은 뷰를 정면도로 표시한다.
+
+    형상 개수로 고르면 안 된다. 실제 도면에서 형상이 가장 많은 덩어리는
+    등각투상도였고 거기 붙은 치수는 0개였다. 치수 집중은 같은 도면에서
+    30개 중 24개를 정면도에 몰아 줬다."""
+    if not views:
+        return
+    votes = [0] * len(views)
+    total = 0
+    for e in msp:
+        if e.dxftype() not in ("DIMENSION", "LEADER"):
+            continue
+        try:
+            b = bbox.extents([e])
+        except Exception:
+            continue
+        if not b.has_data:
+            continue
+        total += 1
+        x, y = b.center.x * mm_per_unit, b.center.y * mm_per_unit
+        inside = [i for i, v in enumerate(views)
+                  if v.get("x_mm") is not None
+                  and abs(x - v["x_mm"]) <= v["w_mm"] / 2
+                  and abs(y - v["y_mm"]) <= v["h_mm"] / 2]
+        if inside:
+            votes[inside[0]] += 1
+            continue
+        near = [i for i, v in enumerate(views) if v.get("x_mm") is not None]
+        if near:
+            votes[min(near, key=lambda j: math.hypot(x - views[j]["x_mm"],
+                                                     y - views[j]["y_mm"]))] += 1
+    for v, c in zip(views, votes):
+        v["dim_count"] = c
+    if total < FRONT_MIN_DIMS:
+        return
+    order = sorted(range(len(views)), key=lambda i: -votes[i])
+    best = votes[order[0]]
+    second = votes[order[1]] if len(order) > 1 else 0
+    if best >= FRONT_MIN_VOTES and best >= max(second * FRONT_MARGIN, second + 1):
+        views[order[0]]["is_front"] = True
+
+
 def _view_box(ins, mm_per_unit):
     """뷰 블록이 도면 어디에 얼마만 한 크기로 놓였는지 밀리미터로 잰다.
 
@@ -910,6 +962,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
 
     if not views:
         views = _cluster_views(msp, K)
+    _mark_front_view(msp, views, K)
 
     sheet = {"name": "Model", "title_block": title_block,
              "border": border,

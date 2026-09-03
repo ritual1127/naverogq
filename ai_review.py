@@ -324,8 +324,21 @@ def _context(facts):
                     + "x 는 오른쪽이, y 는 위쪽이 큽니다):")
         for v in placed[:12]:
             size = (f", 크기 {v['w_mm']}×{v['h_mm']}" if v.get("w_mm") else "")
+            dims = (f", 붙은 치수 {v['dim_count']}개"
+                    if v.get("dim_count") else "")
+            mark = " ← 정면도로 보임" if v.get("is_front") else ""
             bits.append(f"- {v.get('name') or '이름없음'}: "
-                        f"중심 ({v['x_mm']}, {v['y_mm']}){size}")
+                        f"중심 ({v['x_mm']}, {v['y_mm']}){size}{dims}{mark}")
+        # 정면도를 모르면 제3각법 배치는 판단할 수 없다. 기준이 없으면 좌표
+        # 세 개는 그냥 점 세 개다. 모르는 채로 짚으면 배치가 멀쩡한 도면을
+        # 위반이라고 하거나 그 반대가 된다.
+        front = next((v for v in placed if v.get("is_front")), None)
+        if front:
+            bits.append(f"정면도는 치수가 가장 많이 붙은 {front['name']} 로 "
+                        "봅니다(추정). 이 뷰를 기준으로 배치를 판단하세요.")
+        else:
+            bits.append("정면도를 특정하지 못했습니다. 제3각법 배치"
+                        "(THIRD_ANGLE)는 판단하지 마세요.")
     else:
         names = [v.get("name") for v in views if v.get("name")]
         if names:
