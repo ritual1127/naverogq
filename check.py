@@ -31,6 +31,8 @@ def analyze(path: str, enabled: Iterable[str] | None = None,
 
 
 def _report(path):
+    import ai_review
+
     facts, findings, summary = analyze(path)
     print(f"\n=== {facts.get('file')}  [{facts.get('kind')}] ===")
     sc = facts.get("scorecard")
@@ -48,7 +50,8 @@ def _report(path):
           "| 설계자:", props.get("designer") or "-")
     if facts.get("standard"):
         print("  표준:", facts["standard"],
-              "| 투상법:", "제1각법" if facts.get("first_angle") else "제3각법")
+              "| 투상법:", ai_review._projection_line(
+                  facts.get("first_angle")).split(": ", 1)[1])
     for sh in facts.get("sheets", []):
         print(f"  [{sh['name']}] 표제란={sh['title_block']} 뷰={len(sh['views'])} "
               f"치수={len(sh['dims'])} 미치수원={len(sh['undimensioned'])}")

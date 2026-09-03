@@ -620,6 +620,21 @@ def test_front_view_is_left_unset_when_the_drawing_has_no_dimensions():
     assert "정면도를 특정하지 못했습니다" in context, context
 
 
+def test_projection_is_not_claimed_when_the_file_does_not_say():
+    """투상법을 모르면 모른다고 적는다.
+
+    DXF 헤더에 투상법이 없어서 first_angle 은 늘 None 인데, None 이 거짓으로
+    취급돼 모든 도면에 '제3각법' 이라고 AI 에게 단언하고 있었다. 제1각법으로
+    그려서 오작인 도면까지 제3각법이라고 알려준 셈이다."""
+    import ai_review
+
+    unknown = ai_review._projection_line(None)
+    assert "알 수 없음" in unknown, unknown
+    assert "제3각법" not in unknown.split("—")[0], unknown
+    assert ai_review._projection_line(True) == "투상법(파일 속성): 제1각법"
+    assert ai_review._projection_line(False) == "투상법(파일 속성): 제3각법"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

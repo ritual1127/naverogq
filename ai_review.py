@@ -131,7 +131,8 @@ SYSTEM = """\
 - `FRONT_VIEW` — 정면도로 고른 면이 부적절
 - `VIEW_MISSING` — 형상을 표현할 투상도가 없거나 모자람
 - `VIEW_EXTRA` — 불필요하거나 중복된 투상도
-- `THIRD_ANGLE` — 제3각법 배치 위반 (평면도·우측면도 자리)
+- `THIRD_ANGLE` — 제3각법 위반. 표제란 옆 투상법 기호가 제1각법이거나,
+  평면도·우측면도가 제3각법 자리에 있지 않은 경우
 - `SECTION_DETAIL` — 단면도·상세도가 없거나 절단선·해칭·문자 표기가 틀림
 - `LAYOUT` — 배치가 치우치거나 겹치는 등 도면 공간 활용
 
@@ -303,12 +304,23 @@ def _without_additional_properties(node):
     return node
 
 
+def _projection_line(first_angle):
+    """투상법을 아는 척하지 않는다.
+
+    DXF 헤더에는 투상법이 없고 dwg.py 도 이 값을 채우지 못한다. 그런데
+    None 이 거짓으로 취급돼서, 모든 도면에 "제3각법" 이라고 AI 에게 단언하고
+    있었다. 제1각법으로 그려서 오작인 도면도 제3각법이라고 알려준 셈이다."""
+    if first_angle is None:
+        return ("투상법(파일 속성): 알 수 없음 — 표제란 옆 투상법 기호"
+                "(원뿔 두 개)를 그림에서 직접 확인하세요")
+    return "투상법(파일 속성): " + ("제1각법" if first_angle else "제3각법")
+
+
 def _context(facts):
     sh = (facts.get("sheets") or [{}])[0]
     views = sh.get("views", [])
     bits = [f"파일 종류: {facts.get('kind')}",
-            f"투상법(파일 속성): "
-            f"{'제1각법' if facts.get('first_angle') else '제3각법'}",
+            _projection_line(facts.get("first_angle")),
             f"뷰 개수(CAD 판독): {len(views)}"]
     guessed = any(v.get("detected") == "cluster" for v in views)
     if guessed:
