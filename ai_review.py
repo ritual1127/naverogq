@@ -310,12 +310,18 @@ def _context(facts):
             f"투상법(파일 속성): "
             f"{'제1각법' if facts.get('first_angle') else '제3각법'}",
             f"뷰 개수(CAD 판독): {len(views)}"]
+    guessed = any(v.get("detected") == "cluster" for v in views)
+    if guessed:
+        # 뷰 경계를 CAD 가 알려주지 않아 형상 뭉치로 나눈 것이다. 이 사실을
+        # 숨기면 AI 가 뷰 개수를 확정된 값으로 믿고 감점한다.
+        bits[-1] = (f"뷰 개수(형상 뭉치로 추정, 틀릴 수 있음): {len(views)}")
     # 좌표를 같이 넘긴다. 뷰가 어디에 놓였는지는 CAD 파일에 숫자로 들어 있는데,
     # 이걸 안 주면 AI 가 150 DPI 그림을 보고 배치를 짐작해야 한다.
     placed = [v for v in views if v.get("x_mm") is not None]
     if placed:
-        bits.append("뷰 위치·크기(mm, CAD 에서 직접 잰 값. x 는 오른쪽이, "
-                    "y 는 위쪽이 큽니다):")
+        bits.append(("뷰 위치·크기(mm, 형상 뭉치로 추정. " if guessed else
+                     "뷰 위치·크기(mm, CAD 에서 직접 잰 값. ")
+                    + "x 는 오른쪽이, y 는 위쪽이 큽니다):")
         for v in placed[:12]:
             size = (f", 크기 {v['w_mm']}×{v['h_mm']}" if v.get("w_mm") else "")
             bits.append(f"- {v.get('name') or '이름없음'}: "

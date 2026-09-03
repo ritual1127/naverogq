@@ -524,6 +524,38 @@ def test_view_coordinates_reach_the_ai_context():
     assert "(100.0, 200.0)" in context, context
 
 
+def test_views_are_clustered_when_the_cad_file_has_no_view_blocks():
+    """뷰 블록이 없는 도면에서도 형상 뭉치로 뷰 경계를 찾는다.
+
+    실제 도면 6장 중 뷰 블록을 가진 것은 1장뿐이었다. 나머지는 모델 공간에
+    형상이 평평하게 깔려 있어 투상도 검사가 통째로 꺼져 있었다."""
+    import ezdxf
+    import dwg
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    # 도면 윤곽선. 시트를 가로지르므로 뷰 세 개를 한 덩어리로 이어선 안 된다.
+    msp.add_lwpolyline([(0, 0), (420, 0), (420, 297), (0, 297)], close=True)
+    for cx, cy in ((100, 100), (100, 200), (250, 100)):
+        for dx, dy in ((-15, -15), (15, -15), (-15, 15), (15, 15), (0, 0)):
+            msp.add_circle((cx + dx, cy + dy), 5)
+
+    path = os.path.join(tempfile.mkdtemp(), "noblocks.dxf")
+    doc.saveas(path)
+    views = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]["views"]
+
+    assert len(views) == 3, [(v["x_mm"], v["y_mm"], v["w_mm"]) for v in views]
+    assert all(v["detected"] == "cluster" for v in views), views
+    spot = sorted((v["x_mm"], v["y_mm"]) for v in views)
+    assert spot == [(100.0, 100.0), (100.0, 200.0), (250.0, 100.0)], spot
+    assert all(v["w_mm"] == 40.0 and v["h_mm"] == 40.0 for v in views), views
+
+    import ai_review
+    context = ai_review._context(dwg.facts_from_dxf(path))
+    assert "형상 뭉치로 추정" in context, context
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

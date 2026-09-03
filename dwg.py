@@ -613,6 +613,123 @@ def detect_mm_per_unit(doc, msp):
     return 1.0, "mm으로 가정"
 
 
+# 뷰 뭉치를 찾을 때 쓰는 값. 뷰끼리는 이 정도는 떨어져 있고, 이보다 작은
+# 덩어리는 뷰가 아니라 주서나 기호로 본다.
+VIEW_GAP_MM = 8.0
+VIEW_MIN_MM = 30.0
+VIEW_MIN_SHAPES = 5
+# 도면 윤곽선과 표제란 테두리는 시트를 가로질러서, 그냥 두면 모든 뷰가 한
+# 덩어리로 이어진다. 도면 전체의 이만큼을 덮는 형상은 뷰가 아니라 양식으로 본다.
+VIEW_FRAME_SPAN = 0.6
+# 뷰 하나가 격자를 이만큼 넘게 차지하면 단위 판정이 틀어진 것이다. 세다가
+# 멈추지 않도록 그런 형상은 건너뛴다.
+VIEW_MAX_CELLS = 4096
+
+_SHAPE_TYPES = {"LINE", "CIRCLE", "ARC", "ELLIPSE", "SPLINE", "LWPOLYLINE",
+                "POLYLINE", "HATCH", "SOLID"}
+
+
+def _shape_boxes(msp, gap):
+    """뷰가 될 만한 형상들의 경계 상자를 모은다.
+
+    치수선과 문자는 뷰 바깥으로 뻗어 나가 옆 뷰까지 이어 붙이므로 뺀다.
+    윤곽선처럼 시트를 가로지르는 것도 뺀다."""
+    try:
+        sheet = bbox.extents(msp)
+        span = max(sheet.size.x, sheet.size.y) if sheet.has_data else 0.0
+    except Exception:
+        span = 0.0
+    out = []
+    for e in msp:
+        if e.dxftype() not in _SHAPE_TYPES:
+            continue
+        try:
+            b = bbox.extents([e])
+        except Exception:
+            continue
+        if not b.has_data:
+            continue
+        if span and max(b.size.x, b.size.y) >= span * VIEW_FRAME_SPAN:
+            continue
+        if (b.size.x / gap + 1) * (b.size.y / gap + 1) > VIEW_MAX_CELLS:
+            continue
+        out.append((b.extmin.x, b.extmin.y, b.extmax.x, b.extmax.y))
+    return out, span
+
+
+def _cluster_views(msp, mm_per_unit):
+    """뷰 블록이 없는 도면에서 형상 뭉치로 뷰 경계를 추정한다.
+
+    Inventor 로 그린 도면은 뷰가 블록으로 나뉘어 있지만, 다른 도구로 그리면
+    모델 공간에 형상이 평평하게 깔려서 뷰 경계를 알 방법이 없었다. 실제
+    도면 6장 중 뷰를 아는 것이 1장뿐이라 투상도 관련 검사가 대부분 꺼져
+    있었다. 뷰끼리는 빈 공간으로 떨어져 있으므로, 격자에 올려 이어진
+    덩어리를 세면 뷰가 나온다.
+
+    추정값이라 뷰 블록에서 읽은 것과 섞이지 않게 detected 를 붙여 둔다."""
+    gap = VIEW_GAP_MM / mm_per_unit
+    if not (gap > 0):
+        return []
+    boxes, span = _shape_boxes(msp, gap)
+    if not boxes:
+        return []
+
+    cells = {}
+    for i, (x0, y0, x1, y1) in enumerate(boxes):
+        for cx in range(int(x0 // gap), int(x1 // gap) + 1):
+            for cy in range(int(y0 // gap), int(y1 // gap) + 1):
+                cells.setdefault((cx, cy), []).append(i)
+
+    parent = list(range(len(boxes)))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    # 같은 칸이거나 맞닿은 칸이면 한 뷰로 본다.
+    for (cx, cy), ids in cells.items():
+        for j in ids[1:]:
+            union(ids[0], j)
+        for dx, dy in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            for j in cells.get((cx + dx, cy + dy), ()):
+                union(ids[0], j)
+
+    groups = {}
+    for i in range(len(boxes)):
+        groups.setdefault(find(i), []).append(boxes[i])
+
+    views = []
+    for g in groups.values():
+        if len(g) < VIEW_MIN_SHAPES:
+            continue
+        x0 = min(b[0] for b in g)
+        y0 = min(b[1] for b in g)
+        x1 = max(b[2] for b in g)
+        y1 = max(b[3] for b in g)
+        if span and max(x1 - x0, y1 - y0) >= span * VIEW_FRAME_SPAN:
+            # 시트를 거의 다 덮는 덩어리는 뷰가 아니다. 형상 몇 개가 도면
+            # 곳곳에 흩어져 있으면 격자에서 하나로 이어지는데, 그대로 두면
+            # 762mm 짜리 '뷰' 가 AI 참고 정보로 넘어간다.
+            continue
+        w, h = (x1 - x0) * mm_per_unit, (y1 - y0) * mm_per_unit
+        if min(w, h) < VIEW_MIN_MM:
+            continue
+        views.append({"shapes": len(g),
+                      "x_mm": round((x0 + x1) / 2 * mm_per_unit, 1),
+                      "y_mm": round((y0 + y1) / 2 * mm_per_unit, 1),
+                      "w_mm": round(w, 1), "h_mm": round(h, 1)})
+    views.sort(key=lambda v: (-v["y_mm"], v["x_mm"]))
+    return [{"name": f"추정 뷰{i}", "scale": None, "detected": "cluster", **v}
+            for i, v in enumerate(views, 1)]
+
+
 def _view_box(ins, mm_per_unit):
     """뷰 블록이 도면 어디에 얼마만 한 크기로 놓였는지 밀리미터로 잰다.
 
@@ -790,6 +907,9 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         hits = sum(1 for t in texts if _TITLE_TEXT_RE.search(t))
         if hits >= MIN_TITLE_TEXT_HITS:
             title_block = "표제란(문자)"
+
+    if not views:
+        views = _cluster_views(msp, K)
 
     sheet = {"name": "Model", "title_block": title_block,
              "border": border,
