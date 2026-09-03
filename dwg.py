@@ -613,6 +613,29 @@ def detect_mm_per_unit(doc, msp):
     return 1.0, "mm으로 가정"
 
 
+def _view_box(ins, mm_per_unit):
+    """뷰 블록이 도면 어디에 얼마만 한 크기로 놓였는지 밀리미터로 잰다.
+
+    제3각법 배치인지, 뷰가 한쪽으로 치우쳤는지는 그림을 봐야 아는 게 아니라
+    좌표를 비교하면 나오는 값이다. 이걸 안 넘기면 AI 가 150 DPI 그림을 보고
+    위치를 짐작해야 하고, 그래서 같은 도면을 다시 채점할 때마다 배치 판정이
+    달라졌다. 블록 안까지 펼쳐 재는 데 실패하면 삽입점만이라도 넘긴다."""
+    try:
+        box = bbox.extents([ins])
+        if box.has_data:
+            center = box.center
+            return {"x_mm": round(center.x * mm_per_unit, 1),
+                    "y_mm": round(center.y * mm_per_unit, 1),
+                    "w_mm": round(box.size.x * mm_per_unit, 1),
+                    "h_mm": round(box.size.y * mm_per_unit, 1)}
+    except Exception:
+        pass
+    p = ins.dxf.insert
+    return {"x_mm": round(p.x * mm_per_unit, 1),
+            "y_mm": round(p.y * mm_per_unit, 1),
+            "w_mm": None, "h_mm": None}
+
+
 def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     doc = readfile(path)
     msp = doc.modelspace()
@@ -745,11 +768,13 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
 
     props = _props_from_titles(titles)
     view_names = []
+    views = []
     border = None
     for ins in msp.query("INSERT"):
         name = ins.dxf.name
         if _VIEW_BLOCK_RE.search(name):
             view_names.append(name)
+            views.append({"name": name, "scale": None, **_view_box(ins, K)})
         elif border is None and _ANON_BLOCK_RE.match(name):
             border = name
     if border is None and rects:
@@ -768,7 +793,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
 
     sheet = {"name": "Model", "title_block": title_block,
              "border": border,
-             "views": [{"name": name, "scale": None} for name in view_names],
+             "views": views,
              "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,

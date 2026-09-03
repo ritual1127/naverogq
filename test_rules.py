@@ -487,6 +487,43 @@ def test_synthetic_sheet_is_clean_and_defects_are_caught():
             assert make_drawings.DEFECTS[defect] <= got, (defect, sorted(got))
 
 
+def test_view_coordinates_reach_the_ai_context():
+    """뷰 좌표를 뽑아서 AI 참고 정보까지 실어 보낸다.
+
+    제3각법 배치와 공간 활용은 좌표 비교로 답이 나오는데, 예전에는 뷰 이름만
+    넘기고 좌표를 버려서 AI 가 150 DPI 그림을 보고 위치를 짐작해야 했다."""
+    import ezdxf
+    import ai_review
+    import dwg
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    # 제3각법: 평면도가 정면도 위(y 가 큼), 우측면도가 정면도 오른쪽(x 가 큼).
+    for name, (x, y) in (("부품_시트_뷰1", (100, 100)),
+                         ("부품_시트_뷰2", (100, 200)),
+                         ("부품_시트_뷰3", (200, 100))):
+        block = doc.blocks.new(name)
+        block.add_circle((0, 0), 20)
+        msp.add_blockref(name, (x, y))
+
+    path = os.path.join(tempfile.mkdtemp(), "views.dxf")
+    doc.saveas(path)
+    views = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]["views"]
+
+    assert len(views) == 3, views
+    spot = {v["name"]: (v["x_mm"], v["y_mm"]) for v in views}
+    assert spot["부품_시트_뷰1"] == (100.0, 100.0), spot
+    assert spot["부품_시트_뷰2"][1] > spot["부품_시트_뷰1"][1], "평면도가 위"
+    assert spot["부품_시트_뷰3"][0] > spot["부품_시트_뷰1"][0], "우측면도가 오른쪽"
+    # 블록 안까지 펼쳐 재야 크기가 나온다. 삽입점만 읽으면 40mm 가 안 나온다.
+    assert all(v["w_mm"] == 40.0 and v["h_mm"] == 40.0 for v in views), views
+
+    context = ai_review._context(dwg.facts_from_dxf(path))
+    assert "뷰 위치·크기" in context, context
+    assert "(100.0, 200.0)" in context, context
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

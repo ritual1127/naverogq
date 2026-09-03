@@ -139,8 +139,13 @@ verdict 에는 **투상도 항목 총평을 한국어 한 문장**으로 씁니�
 적지 마세요.
 
 원칙:
-- 이미지에서 **실제로 보이는 것**만 근거로 삼으세요. 흐릿해서 판단이 서지 않으면
-  감점하지 말고 info로 남기세요. 확신 없는 감점은 학습자를 잘못된 방향으로 보냅니다.
+- 이미지에서 **실제로 보이는 것**과 아래 참고 정보의 **수치**만 근거로 삼으세요.
+  흐릿해서 판단이 서지 않으면 감점하지 말고 info로 남기세요. 확신 없는 감점은
+  학습자를 잘못된 방향으로 보냅니다.
+- 뷰 위치·크기가 참고 정보에 있으면 제3각법 배치(THIRD_ANGLE)와 공간 활용
+  (LAYOUT)은 **그 수치로 판단하세요.** CAD 파일에서 직접 잰 값이라 그림보다
+  정확합니다. 제3각법이면 평면도가 정면도보다 y 가 크고, 우측면도가 정면도보다
+  x 가 큽니다.
 - fix에는 Inventor에서 취할 구체적 동작을 적으세요.
   예: "배치 > 투상도 로 정면도 위쪽에 평면도를 추가하세요."
 - 결함이 없으면 deductions를 빈 배열로 두고 30점을 주세요.
@@ -305,9 +310,20 @@ def _context(facts):
             f"투상법(파일 속성): "
             f"{'제1각법' if facts.get('first_angle') else '제3각법'}",
             f"뷰 개수(CAD 판독): {len(views)}"]
-    names = [v.get("name") for v in views if v.get("name")]
-    if names:
-        bits.append("뷰 이름: " + ", ".join(names[:12]))
+    # 좌표를 같이 넘긴다. 뷰가 어디에 놓였는지는 CAD 파일에 숫자로 들어 있는데,
+    # 이걸 안 주면 AI 가 150 DPI 그림을 보고 배치를 짐작해야 한다.
+    placed = [v for v in views if v.get("x_mm") is not None]
+    if placed:
+        bits.append("뷰 위치·크기(mm, CAD 에서 직접 잰 값. x 는 오른쪽이, "
+                    "y 는 위쪽이 큽니다):")
+        for v in placed[:12]:
+            size = (f", 크기 {v['w_mm']}×{v['h_mm']}" if v.get("w_mm") else "")
+            bits.append(f"- {v.get('name') or '이름없음'}: "
+                        f"중심 ({v['x_mm']}, {v['y_mm']}){size}")
+    else:
+        names = [v.get("name") for v in views if v.get("name")]
+        if names:
+            bits.append("뷰 이름: " + ", ".join(names[:12]))
     return "\n".join(bits)
 
 
