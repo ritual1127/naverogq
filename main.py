@@ -148,6 +148,27 @@ def site_stats():
     return stats.summary()
 
 
+def _done(request, response):
+    """검사 시작(check/sample)과 결과가 나온 것은 다른 수다. _run 이 예외를
+    던지면 여기까지 오지 않으므로 이 수는 실제로 결과를 본 횟수다."""
+    stats.bump(request, "done")
+    return response
+
+
+EVENT_KINDS = {"recheck"}
+
+
+@app.post("/api/event")
+def event(body: dict, request: Request):
+    """화면이 보내는 이벤트. 지금은 재검사 하나뿐이다. 종류 이름만 받고
+    파일명이나 도면 내용은 받지 않는다."""
+    kind = (body or {}).get("kind", "")
+    if kind not in EVENT_KINDS:
+        raise HTTPException(400, "셀 수 없는 이벤트입니다.")
+    stats.bump(request, kind)
+    return {"ok": True}
+
+
 @app.post("/api/analyze-sample")
 def analyze_sample(body: dict, request: Request):
     name = os.path.basename((body or {}).get("name", ""))
@@ -160,7 +181,7 @@ def analyze_sample(body: dict, request: Request):
     job = uuid.uuid4().hex[:12]
     os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
     stats.bump(request, "sample")
-    return _run(job, path, name, _enabled(body))
+    return _done(request, _run(job, path, name, _enabled(body)))
 
 
 @app.post("/api/analyze-path")
@@ -182,7 +203,7 @@ def analyze_path(body: dict, request: Request):
     job = uuid.uuid4().hex[:12]
     os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
     stats.bump(request, "check")
-    return _run(job, path, os.path.basename(path), _enabled(body))
+    return _done(request, _run(job, path, os.path.basename(path), _enabled(body)))
 
 
 def _enabled(src):
@@ -226,7 +247,7 @@ def analyze(request: Request,
     if ext == ".zip":
         path, name = _unzip(path, workdir)
     stats.bump(request, "check")
-    return _run(job, path, name, _enabled({"checks": checks}))
+    return _done(request, _run(job, path, name, _enabled({"checks": checks})))
 
 
 class _TooBig(Exception):

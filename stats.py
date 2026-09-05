@@ -158,7 +158,10 @@ SUMMARY_SQL = """SELECT
  (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='check'),
  (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='sample'),
  (SELECT COUNT(DISTINCT day) FROM hits),
- (SELECT COALESCE(MIN(day),?1) FROM hits)"""
+ (SELECT COALESCE(MIN(day),?1) FROM hits),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE day>=?2 AND kind='recheck'),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='recheck'),
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='done')"""
 
 DAILY_SQL = ("SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v, "
              "SUM(CASE WHEN kind IN ('check','sample') THEN n ELSE 0 END) c "
@@ -169,14 +172,17 @@ def _summary_d1(today, days):
     monday = today - datetime.timedelta(days=today.weekday())
     first = (today - datetime.timedelta(days=days - 1)).isoformat()
     row = _d1(SUMMARY_SQL, (today.isoformat(), monday.isoformat()))[0][0]
-    tv, tc, wv, wc, wr, vis, chk, smp, nday, since = list(row.values())
+    (tv, tc, wv, wc, wr, vis, chk, smp, nday, since,
+     wrc, rc, dn) = list(row.values())
     daily = _d1(DAILY_SQL, (first,))[0]
     return {
         "available": True, "store": "d1",
         "today": {"visitors": tv or 0, "checks": tc or 0},
         "week": {"since": monday.isoformat(), "visitors": wv or 0,
-                 "checks": wc or 0, "recheckers": wr or 0},
+                 "checks": wc or 0, "recheckers": wr or 0,
+                 "rechecks": wrc or 0},
         "total": {"visits": vis or 0, "checks": chk or 0, "samples": smp or 0,
+                  "rechecks": rc or 0, "done": dn or 0,
                   "days": nday or 0, "since": since or today.isoformat()},
         "daily": [{"day": r["day"], "visitors": r["v"] or 0, "checks": r["c"] or 0}
                   for r in daily],
@@ -226,11 +232,16 @@ def summary(today=None, days=14):
                     f"SELECT COUNT(*) FROM (SELECT visitor, SUM(n) s FROM hits "
                     f"WHERE day>=? AND kind IN ({marks}) "
                     f"GROUP BY visitor HAVING s >= 2)", (week, *CHECK_KINDS)),
+                # 화면이 '지난번과 비교'를 실제로 띄운 횟수
+                "rechecks": one("SELECT SUM(n) FROM hits WHERE day>=? "
+                                "AND kind='recheck'", (week,)),
             },
             "total": {
                 "visits": one("SELECT SUM(n) FROM hits WHERE kind='visit'"),
                 "checks": one("SELECT SUM(n) FROM hits WHERE kind='check'"),
                 "samples": one("SELECT SUM(n) FROM hits WHERE kind='sample'"),
+                "rechecks": one("SELECT SUM(n) FROM hits WHERE kind='recheck'"),
+                "done": one("SELECT SUM(n) FROM hits WHERE kind='done'"),
                 "days": one("SELECT COUNT(DISTINCT day) FROM hits"),
                 "since": (con.execute("SELECT MIN(day) FROM hits").fetchone()[0]
                           or day),
