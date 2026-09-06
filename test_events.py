@@ -1,13 +1,7 @@
 """계측 이벤트가 실제로 세어지는지 본다. 이게 0이면 북극성 지표가 영원히 0이다."""
-import os
-import tempfile
+from fastapi.testclient import TestClient
 
-os.environ["CADLENS_STAT_DB"] = os.path.join(tempfile.mkdtemp(), "stats.db")
-os.environ["CADLENS_STAT_SALT"] = "test"
-
-from fastapi.testclient import TestClient      # noqa: E402
-
-import main                                    # noqa: E402
+import main
 
 client = TestClient(main.app)
 

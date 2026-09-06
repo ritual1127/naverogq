@@ -436,6 +436,10 @@ def test_stats_counts_by_ip():
             self.client = None
 
     with tempfile.TemporaryDirectory() as tmp:
+        # conftest 가 깔아 둔 임시 DB 를 지우지 말고 되돌려 놓는다. 지우면 뒤에
+        # 오는 시험이 진짜 통계 DB 를 쓰게 돼서 방문자 수가 쌓인다.
+        kept = {k: os.environ.get(k)
+                for k in ("CADLENS_STAT_DB", "CADLENS_STAT_SALT")}
         os.environ["CADLENS_STAT_DB"] = os.path.join(tmp, "stats.db")
         os.environ["CADLENS_STAT_SALT"] = "test-salt"
         stats = importlib.reload(_stats)
@@ -462,7 +466,11 @@ def test_stats_counts_by_ip():
             # 주가 바뀌면 같은 IP 도 다른 사람이 된다
             assert stats.visitor_id("203.0.113.9", day) !=                    stats.visitor_id("203.0.113.9", day + datetime.timedelta(days=1))
         finally:
-            del os.environ["CADLENS_STAT_DB"], os.environ["CADLENS_STAT_SALT"]
+            for k, v in kept.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
             importlib.reload(_stats)
 
 
@@ -633,6 +641,36 @@ def test_projection_is_not_claimed_when_the_file_does_not_say():
     assert "제3각법" not in unknown.split("—")[0], unknown
     assert ai_review._projection_line(True) == "투상법(파일 속성): 제1각법"
     assert ai_review._projection_line(False) == "투상법(파일 속성): 제3각법"
+
+
+def test_gdt_font_letters_are_read_as_geometric_tolerance():
+    """GDT 글꼴로 찍은 기하공차를 읽는다.
+
+    실기 도면은 기하공차를 유니코드(⏥ ⌭)가 아니라 GDT 전용 글꼴(AIGDT___.TTF)로
+    알파벳 한 글자를 찍어 만든다. 글자만 보면 그냥 'b' 라서, 실제 도면을 넣으면
+    기하공차가 하나도 없다고 보고 도면마다 오작(DQ_NO_GEOMETRIC_TOL)이 떴다.
+    같은 글꼴로 찍히는 지름 기호(⌀)만 있고 공차값도 데이텀도 없으면 공차칸이 아니다."""
+    import ezdxf
+
+    import dwg
+
+    doc = ezdxf.new(setup=True)
+    doc.styles.add("GDT", font="AIGDT___.TTF")
+    msp = doc.modelspace()
+    msp.add_text("b", height=3, dxfattribs={"style": "GDT"}).set_placement((10, 50))
+    msp.add_text("0.013", height=3).set_placement((16, 50))
+    msp.add_text("A", height=3).set_placement((26, 50))
+    msp.add_text("o", height=3, dxfattribs={"style": "GDT"}).set_placement((10, 20))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "gdt.dxf")
+        doc.saveas(path)
+        sheet = dwg.facts_from_dxf(path)["sheets"][0]
+
+    tols = sheet["geometric_tols"]
+    assert len(tols) == 1, tols          # 지름 기호 하나는 공차칸이 아니다
+    assert tols[0]["tolerance"] == "0.013", tols
+    assert tols[0]["datums"] == ["A"], tols
 
 
 if __name__ == "__main__":

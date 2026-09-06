@@ -805,6 +805,51 @@ def _view_box(ins, mm_per_unit):
             "w_mm": None, "h_mm": None}
 
 
+# 기하공차 기호를 유니코드(⏥ ⊥ ⌭)로 적는 도면도 있지만, 실제 실기 도면은
+# GDT 전용 글꼴(gdt.shx · AIGDT___.TTF)로 알파벳 한 글자를 찍어 기호를 만든다.
+# 글자만 보면 그냥 'b' 라서 못 알아본다. 그래서 글꼴 이름으로 가려낸다.
+GDT_FONT_RE = re.compile(r"gdt", re.I)
+# 공차칸(기호 · 값 · 데이텀)은 한 줄에 나란히 놓인다. 같은 줄로 볼 높이 차이와
+# 오른쪽으로 훑을 거리 (mm).
+FCF_ROW_MM = 2.5
+FCF_SPAN_MM = 45.0
+_FCF_VALUE_RE = re.compile(r"^[⌀%\w.]*\d")
+# 데이텀은 A 한 글자거나 A-B 처럼 두 개를 묶은 공통 데이텀이다.
+_FCF_DATUM_RE = re.compile(r"^[A-Z](?:-[A-Z])?$")
+
+
+def _gdt_styles(doc):
+    out = set()
+    for st in doc.styles:
+        font = f"{st.dxf.get('font', '') or ''} {st.dxf.get('bigfont', '') or ''}"
+        if GDT_FONT_RE.search(font):
+            out.add(st.dxf.name)
+    return out
+
+
+def _gdt_frames(glyphs, plain, mm_per_unit):
+    """GDT 글꼴 글자 옆에 붙은 공차값·데이텀을 모아 공차칸 하나로 만든다.
+
+    글자만 있고 값도 데이텀도 없으면 공차칸이 아니다. 지름(⌀)이나 최대실체
+    같은 부가 기호도 같은 글꼴로 찍히기 때문이다."""
+    row = FCF_ROW_MM / mm_per_unit if mm_per_unit else FCF_ROW_MM
+    span = FCF_SPAN_MM / mm_per_unit if mm_per_unit else FCF_SPAN_MM
+    used, frames = set(), []
+    for gx, gy, gtext in sorted(glyphs):
+        if any(abs(gy - uy) <= row and abs(gx - ux) <= span for ux, uy in used):
+            continue
+        near = [t for x, y, t in plain
+                if abs(y - gy) <= row and gx - row <= x <= gx + span]
+        value = next((t for t in near if _FCF_VALUE_RE.match(t)), None)
+        datums = [t for t in near if _FCF_DATUM_RE.match(t)]
+        if not value and not datums:
+            continue
+        used.add((gx, gy))
+        frames.append({"tolerance": value, "datums": datums,
+                       "text": " ".join([gtext] + near)})
+    return frames
+
+
 def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     doc = readfile(path)
     msp = doc.modelspace()
@@ -814,6 +859,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     dims, circles, dim_centers, titles, texts = [], [], [], {}, []
     surfaces, geo_tols, rects, centerlines, symbol_zones = [], [], [], 0, []
     short_lines = []
+    gdt_styles = _gdt_styles(doc)
+    gdt_glyphs, plain_texts = [], []
 
     for lay in layouts:
         try:
@@ -879,6 +926,18 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                     if not value or not value.strip():
                         continue
                     value = value.strip()
+                    if len(value) <= 12:
+                        try:
+                            ins = e.dxf.insert
+                            spot = (ins.x, ins.y)
+                        except Exception:
+                            spot = None
+                        if spot and e.dxf.get("style", "") in gdt_styles:
+                            gdt_glyphs.append((spot[0], spot[1], value))
+                            symbol_zones.append(_zone(e, t))
+                            continue
+                        if spot:
+                            plain_texts.append((spot[0], spot[1], value))
                     raw = e.text if t == "MTEXT" else value
                     g = _geometric_tol(raw)
                     if g:
@@ -905,6 +964,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                 continue
             if attrs:
                 titles.setdefault(ins.dxf.name, {}).update(attrs)
+
+    geo_tols += _gdt_frames(gdt_glyphs, plain_texts, K)
 
     grid_cell = max(10.0 / K, 1e-9)
     line_grid = _short_line_grid(short_lines, grid_cell)
