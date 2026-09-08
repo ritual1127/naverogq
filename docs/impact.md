@@ -18,7 +18,7 @@ README의 `임팩트` 절을 자세히 적은 문서입니다.
 
 | 무엇 | 값 | 어디서 나온 숫자인가 |
 |---|---|---|
-| 검사 항목 | 24개 | `exam.py`의 `CHECKS` |
+| 검사 항목 | 31개 | `exam.py`의 `CHECKS` |
 | 기준 도면 정확도 | 18장 중 18장 일치 | [`accuracy.md`](accuracy.md) |
 | 문제를 찾은 비율 / 헛지적 | 100% (17건 중 17건) / 0건 | `bench.py`로 자동 측정 |
 | 자동 테스트 | 코드를 고칠 때마다 GitHub Actions에서 실행 | `.github/workflows/tests.yml` |
