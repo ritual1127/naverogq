@@ -1025,8 +1025,22 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         views = _cluster_views(msp, K)
     _mark_front_view(msp, views, K)
 
+    fields = _title_fields(plain_texts, K)
+    # 도면틀도 표제란도 없으면 그려진 것의 범위가 곧 도면 크기라고 볼 수 없다.
+    # 그럴 때는 크기를 재지 않는다 — 모르는 것을 재면 없는 오작을 만든다.
+    if border or title_block:
+        sheet_name, sheet_w, sheet_h = _sheet_size(doc, rects, K)
+    else:
+        sheet_name, sheet_w, sheet_h = None, None, None
+
     sheet = {"name": "Model", "title_block": title_block,
              "border": border,
+             "fields": fields,
+             "sheet_name": sheet_name,
+             "width_cm": sheet_w / 10 if sheet_w else None,
+             "height_cm": sheet_h / 10 if sheet_h else None,
+             "is_isometric": any(_ISO_3D_RE.search(t) for t in texts),
+             "view_scales": _view_scales(texts),
              "views": views,
              "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned,
@@ -1038,7 +1052,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     return {
         "kind": "dwg", "file": source_name or os.path.basename(path),
         "props": props, "sheets": [sheet],
-        "first_angle": None, "dxf": path,
+        "first_angle": _first_angle(texts, fields), "dxf": path,
         "notes_text": [t for t in texts if _is_note(t)],
         "title_attributes": titles,
         "unit_mm_per_drawing_unit": K, "unit_source": unit_why,
@@ -1052,6 +1066,157 @@ _TITLE_KEYS = {
     "revision": ("REVISION", "REV", "REV_NO", "리비전_번호"),
     "description": ("DESCRIPTION", "TITLE", "제목"),
 }
+
+
+_STD_SHEETS = (("A0", 1189.0, 841.0), ("A1", 841.0, 594.0), ("A2", 594.0, 420.0),
+               ("A3", 420.0, 297.0), ("A4", 297.0, 210.0))
+SHEET_MATCH_TOL_MM = 3.0
+MIN_SHEET_MM = 100.0
+FIELD_ROW_MM = 4.0             # 같은 칸으로 볼 수 있는 위아래 차이
+FIELD_RIGHT_MM = 60.0          # 라벨 오른쪽 이 안에 값이 있으면 그 라벨의 값이다
+FIELD_BELOW_MM = 14.0
+
+_FIELD_LABEL_RE = re.compile(
+    r"^(척\s*도|각\s*법|투\s*상\s*법|재\s*질|재\s*료|질\s*량|중\s*량|품\s*명|도\s*명|"
+    r"품\s*번|수\s*량|비\s*고|과\s*제\s*명|SCALE|MATERIAL|MASS|WEIGHT)$", re.I)
+_FIELD_INLINE_RE = re.compile(
+    r"^(척\s*도|각\s*법|투\s*상\s*법|재\s*질|재\s*료|질\s*량|중\s*량|"
+    r"SCALE|MATERIAL|MASS|WEIGHT)\s*[:：]?\s*(\S.*)$", re.I)
+_FIELD_KEY = {"척도": "scale", "scale": "scale", "각법": "projection",
+              "투상법": "projection", "재질": "material", "재료": "material",
+              "material": "material", "질량": "mass", "중량": "mass",
+              "mass": "mass", "weight": "mass"}
+_SCALE_VALUE_RE = re.compile(r"^(\d+(?:\.\d+)?\s*:\s*\d+(?:\.\d+)?|NS)$", re.I)
+# 앞에 숫자·콜론·점이 붙은 1은 각법 표기가 아니다 (`1:1 각법`의 그 1).
+_FIRST_ANGLE_RE = re.compile(r"(?<![\d:.\-])(?:제\s*)?1\s*각\s*법|first\s*angle", re.I)
+_THIRD_ANGLE_RE = re.compile(r"(?<![\d:.\-])(?:제\s*)?3\s*각\s*법|third\s*angle", re.I)
+_MASS_VALUE_RE = re.compile(r"^\d+(?:\.\d+)?\s*(?:g|kg|그램)?$", re.I)
+# KS 재료 기호. SM45C · GC250 · SCM415 · SS400 · SUS304 · FC250 · PBC2 …
+# 한글로 적는 사람도 있어 흔한 재료 이름은 값으로 인정한다(기호로 쓰라는 지적은
+# 채점 기준이 할 일이고, 우리는 "칸이 비었다"만 말한다).
+_MATERIAL_VALUE_RE = re.compile(
+    r"^[A-Z][A-Z0-9\-]{1,11}$|^(주철|주강|황동|청동|연강|탄소강|합금강|"
+    r"스테인리스|알루미늄|알루미늄합금|동|강)$")
+_ISO_3D_RE = re.compile(r"등\s*각|렌더링|ISOMETRIC", re.I)
+# `E-E ( 1 : 1 )`, `단면도 A-A (2:1)` 처럼 뷰 이름표 뒤에 붙는 척도.
+_VIEW_SCALE_RE = re.compile(r"\(\s*(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)\s*\)")
+
+
+def _view_scales(texts):
+    """뷰 이름표에 적힌 척도들. `단면도 A-A (2:1)` → `2:1`."""
+    out = []
+    for text in texts:
+        m = _VIEW_SCALE_RE.search(text)
+        if m and len(text) <= 40:
+            out.append({"label": text.strip(),
+                        "scale": f"{float(m.group(1)):g}:{float(m.group(2)):g}"})
+    return out
+
+
+def _norm_label(text):
+    return re.sub(r"\s+", "", text).lower()
+
+
+def _title_fields(plain, K):
+    """표제란의 '라벨 - 값' 짝을 읽는다.
+
+    한 문자에 `척도 1:1`로 붙어 있는 도면도 있고, 칸이 나뉘어 `척도`와 `1:1`이
+    따로 놓인 도면도 있다(Inventor로 뽑은 실기 도면은 대개 따로다). 둘 다 본다."""
+    fields, labels = {}, []
+    for x, y, raw in plain:
+        text = raw.strip()
+        inline = _FIELD_INLINE_RE.match(text)
+        if inline:
+            key = _FIELD_KEY.get(_norm_label(inline.group(1)))
+            if key:
+                fields.setdefault(key, inline.group(2).strip())
+            continue
+        if _FIELD_LABEL_RE.match(text):
+            key = _FIELD_KEY.get(_norm_label(text))
+            if key:
+                labels.append((x, y, key))
+
+    values = [(x, y, t.strip()) for x, y, t in plain
+              if t.strip() and not _FIELD_LABEL_RE.match(t.strip())]
+    for lx, ly, key in labels:
+        if key in fields:
+            continue
+        best = None
+        for vx, vy, val in values:
+            dx, dy = (vx - lx) * K, (vy - ly) * K
+            if abs(dy) <= FIELD_ROW_MM and 0 < dx <= FIELD_RIGHT_MM:
+                dist = dx
+            elif abs(dx) <= FIELD_RIGHT_MM / 3 and -FIELD_BELOW_MM <= dy < 0:
+                dist = FIELD_RIGHT_MM + abs(dy)
+            else:
+                continue
+            if best is None or dist < best[0]:
+                best = (dist, val)
+        if best:
+            fields[key] = best[1]
+
+    # 값이 그 칸의 값처럼 안 생겼으면 버린다. 옆 칸 글자를 값으로 읽는 것보다
+    # 모른다고 두는 편이 낫다.
+    if fields.get("scale") and not _SCALE_VALUE_RE.match(fields["scale"]):
+        fields.pop("scale")
+    if fields.get("mass") and not _MASS_VALUE_RE.match(fields["mass"]):
+        fields.pop("mass")
+    if fields.get("material") and not _MATERIAL_VALUE_RE.match(fields["material"]):
+        # 빈 재질 칸은 아래 칸 글자를 물어 온다. `1:1`을 재료로 읽느니 비워 둔다.
+        fields.pop("material")
+    return fields
+
+
+def _first_angle(texts, fields):
+    """제1각법이면 True, 제3각법이면 False, 표기를 못 찾으면 None.
+
+    문자를 하나씩 본다. 이어 붙여서 보면 표제란의 `척도` `1:1` `각법`이 한 줄이
+    되어 `1 각법`으로 읽히고, 제3각법 도면이 제1각법 오작으로 찍힌다."""
+    mark = re.sub(r"\s+", "", fields.get("projection", ""))
+    if mark in ("1", "3"):            # 칸에 숫자만 적는 도면틀이 있다
+        return mark == "1"
+    found = set()
+    for text in (mark, *texts):
+        if not text:
+            continue
+        if _THIRD_ANGLE_RE.search(text):
+            found.add(3)
+        if _FIRST_ANGLE_RE.search(text):
+            found.add(1)
+    if not found:
+        return None
+    # 둘 다 보이면 제3각법 표기를 믿는다. 오작을 잘못 붙이는 쪽이 더 위험하다.
+    return 3 not in found
+
+
+def _sheet_size(doc, rects, K):
+    """도면 영역 (이름, 폭mm, 높이mm). 표준 크기에 안 맞으면 이름이 None."""
+    cands = []
+    for rect in rects:
+        size = _rect_size(rect)
+        if size and size[0] * K >= MIN_SHEET_MM and size[1] * K >= MIN_SHEET_MM:
+            cands.append((size[0] * K, size[1] * K))
+    # 윤곽선을 찾았으면 그게 도면 크기다. 헤더의 도면 한계·범위는 CAD가 넣어 둔
+    # 기본값일 수 있어서(새 도면이면 A3), 윤곽선이 없을 때만 본다.
+    if not cands:
+        for lo, hi in (("$LIMMIN", "$LIMMAX"), ("$EXTMIN", "$EXTMAX")):
+            try:
+                a, b = doc.header.get(lo), doc.header.get(hi)
+                w, h = (b[0] - a[0]) * K, (b[1] - a[1]) * K
+            except Exception:
+                continue
+            if w >= MIN_SHEET_MM and h >= MIN_SHEET_MM:
+                cands.append((w, h))
+    cands.sort(key=lambda wh: -wh[0] * wh[1])
+    for w, h in cands:
+        for name, sw, sh in _STD_SHEETS:
+            fit = ((abs(w - sw) <= SHEET_MATCH_TOL_MM
+                    and abs(h - sh) <= SHEET_MATCH_TOL_MM)
+                   or (abs(w - sh) <= SHEET_MATCH_TOL_MM
+                       and abs(h - sw) <= SHEET_MATCH_TOL_MM))
+            if fit:
+                return name, w, h
+    return (None, cands[0][0], cands[0][1]) if cands else (None, None, None)
 
 
 def _props_from_titles(titles):

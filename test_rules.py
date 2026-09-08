@@ -1,3 +1,4 @@
+import json
 import re
 import os
 import tempfile
@@ -679,3 +680,216 @@ if __name__ == "__main__":
         t()
         print(f"  ok  {t.__name__}")
     print(f"\n{len(tests)} checks passed")
+
+
+def _sheet_facts(fields=None, **sheet):
+    base = {"name": "Model", "title_block": "TITLE", "border": "윤곽선",
+            "fields": dict(fields or {}), "sheet_name": "A2",
+            "views": [], "dims": [], "undimensioned": [],
+            "surface_symbols": [], "geometric_tols": [],
+            "counts": {"SurfaceTextureSymbols": 3, "FeatureControlFrames": 1,
+                       "Centerlines": 2, "Centermarks": 0}}
+    base.update(sheet)
+    return {"kind": "dwg", "file": "t.dxf", "props": {}, "sheets": [base],
+            "first_angle": False, "notes_text": [], "title_attributes": {}}
+
+
+def test_title_block_fields_are_read_label_by_value():
+    import dwg
+
+    # 실기 도면은 라벨과 값이 다른 칸에 따로 놓인다 (Inventor 도면틀).
+    plain = [(370, 21, "척도"), (395, 21, "1:1"), (370, 14, "각법"),
+             (395, 14, "3각법"), (350, 56, "재질"), (350, 50, "SCM415")]
+    got = dwg._title_fields(plain, 1.0)
+    assert got["scale"] == "1:1"
+    assert got["projection"] == "3각법"
+    assert got["material"] == "SCM415"
+
+    # 한 문자에 붙어 있는 도면도 있다 (합성 도면·AutoCAD 양식).
+    inline = dwg._title_fields([(300, 24, "척도 1:1"), (250, 24, "제3각법")], 1.0)
+    assert inline["scale"] == "1:1"
+
+    # 값처럼 안 생긴 것은 버린다. 옆 칸 글자를 값으로 읽느니 모르는 게 낫다.
+    assert "scale" not in dwg._title_fields([(370, 21, "척도"), (395, 21, "본체")], 1.0)
+
+
+def test_first_angle_from_drawing_text():
+    import dwg
+
+    assert dwg._first_angle(["제3각법"], {}) is False
+    assert dwg._first_angle(["제1각법"], {}) is True
+    assert dwg._first_angle(["3각법"], {}) is False
+    assert dwg._first_angle([], {"projection": "3"}) is False
+    assert dwg._first_angle([], {"projection": "1"}) is True
+    assert dwg._first_angle(["본체", "1:1"], {}) is None
+
+    # 표제란은 칸마다 문자가 따로다. 이어 붙이면 `1:1` 과 `각법` 이 붙어 `1 각법`
+    # 이 되고, 제3각법 도면이 제1각법 오작으로 찍힌다. 실제로 그렇게 났었다.
+    title = ["척도", "1:1", "각법", "제3각법", "재질", "SM45C"]
+    assert dwg._first_angle(title, {"scale": "1:1", "projection": "제3각법"}) is False
+    assert dwg._first_angle(["척도 1:1", "각법"], {}) is None
+    assert dwg._first_angle(["척도 1:1 각법 제3각법"], {}) is False
+
+
+def test_sheet_size_matches_standard_paper():
+    import ezdxf
+    import dwg
+
+    def size_of(w, h):
+        doc = ezdxf.new("R2013")
+        doc.header["$INSUNITS"] = 4
+        msp = doc.modelspace()
+        msp.add_lwpolyline([(0, 0), (w, 0), (w, h), (0, h)], close=True)
+        rects = [e for e in msp if dwg._is_border(e)]
+        return dwg._sheet_size(doc, rects, 1.0)[0]
+
+    assert size_of(594, 420) == "A2"
+    assert size_of(420, 297) == "A3"
+    assert size_of(297, 420) == "A3", "세로 도면도 같은 크기다"
+    assert size_of(500, 300) is None, "표준에 없는 크기는 이름을 붙이지 않는다"
+
+
+FORM_CODES = {"EX_NO_SHEET_SCALE", "EX_NO_MATERIAL", "EX_SCALE_NOT_ONE",
+              "EX_NO_PROJECTION_MARK", "EX_NO_MASS", "EX_SHEET_SIZE",
+              "EX_VIEW_SCALE_MIXED", "DQ_SHEET_SIZE", "DQ_PROJECTION"}
+
+
+def form_codes(facts):
+    return codes(exam.grade(facts)[0]) & FORM_CODES
+
+
+def test_sheet_form_checks_fire_only_on_what_is_missing():
+    facts = _sheet_facts({"scale": "1:1", "material": "SM45C"})
+    assert form_codes(facts) == set(), "다 갖춘 표제란은 조용해야 한다"
+
+    assert form_codes(_sheet_facts({"material": "SM45C"})) == {"EX_NO_SHEET_SCALE"}
+    assert form_codes(_sheet_facts({"scale": "1:1"})) == {"EX_NO_MATERIAL"}
+    assert form_codes(_sheet_facts({"scale": "2:1", "material": "SM45C"})) ==         {"EX_SCALE_NOT_ONE"}
+
+    no_mark = _sheet_facts({"scale": "1:1", "material": "SM45C"})
+    no_mark["first_angle"] = None
+    assert form_codes(no_mark) == {"EX_NO_PROJECTION_MARK"}
+
+    first = _sheet_facts({"scale": "1:1", "material": "SM45C"})
+    first["first_angle"] = True
+    assert "DQ_PROJECTION" in form_codes(first), "제1각법은 오작이다"
+
+    # 표제란이 통째로 없으면 EX_NO_TITLEBLOCK 만 말한다. 같은 말을 여러 번 하지 않는다.
+    bare = _sheet_facts({}, title_block=None, border=None, sheet_name=None)
+    assert form_codes(bare) == set(), "표제란이 없으면 표제란 항목을 따로 세지 않는다"
+
+
+def test_isometric_sheet_needs_mass_and_allows_ns_scale():
+    iso = _sheet_facts({"scale": "NS", "material": "SM45C"}, is_isometric=True)
+    assert form_codes(iso) == {"EX_NO_MASS"}, "3D는 NS 척도가 맞고 질량만 빠졌다"
+
+    with_mass = _sheet_facts({"scale": "NS", "material": "SM45C", "mass": "128.4"},
+                             is_isometric=True)
+    assert form_codes(with_mass) == set()
+
+
+def test_sheet_size_verdicts():
+    full = {"scale": "1:1", "material": "SM45C"}
+    assert form_codes(_sheet_facts(full, sheet_name="A3")) == {"EX_SHEET_SIZE"},         "A3는 출력 크기라 경고까지만 한다"
+    assert "DQ_SHEET_SIZE" in form_codes(_sheet_facts(full, sheet_name="A4")),         "A4로 제도한 것은 오작이다"
+    assert form_codes(_sheet_facts(full, sheet_name=None)) == set(),         "크기를 모르면 아무 말도 하지 않는다"
+
+
+def test_inventor_files_get_export_instructions():
+    import check
+
+    for ext in (".idw", ".ipt", ".iam"):
+        try:
+            check.analyze("도면" + ext)
+        except ValueError as e:
+            assert "DWG/DXF" in str(e) and ext in str(e)
+            if ext != ".idw":
+                assert "도면(.idw)" in str(e), "3D 파일은 먼저 도면을 만들어야 한다"
+        else:
+            raise AssertionError(f"{ext} 는 막혀야 한다")
+
+
+def test_view_scale_mixed_ignores_detail_views():
+    import dwg
+
+    got = dwg._view_scales(["단면도 A-A (1:1)", "C ( 5 : 1 )", "커버 (2:1)",
+                            "주서 1. 일반공차 KS B ISO 2768-m (1:1)"])
+    assert {v["scale"] for v in got} == {"1:1", "5:1", "2:1"}
+
+    mixed = _sheet_facts({"scale": "1:1", "material": "SM45C"},
+                         view_scales=[{"label": "커버 (2:1)", "scale": "2:1"}])
+    assert "EX_VIEW_SCALE_MIXED" in form_codes(mixed), \
+        "전체 1:1인데 뷰 하나만 2:1인 것은 인터뷰에서 나온 실제 실수다"
+
+    detail = _sheet_facts({"scale": "1:1", "material": "SM45C"},
+                          view_scales=[{"label": "C ( 5 : 1 )", "scale": "5:1"},
+                                       {"label": "상세도 B (2:1)", "scale": "2:1"}])
+    assert form_codes(detail) == set(), "상세도·확대도는 척도가 달라도 맞다"
+
+
+def test_ai_moves_to_the_next_grader_when_the_first_one_fails(monkeypatch):
+    """Gemini 가 503 을 주면 투상도 30점이 통째로 비었다. 키가 있는 다음
+    채점기로 넘어가야 한다 — 폴백을 넷이나 붙인 이유가 이것이다."""
+    import ai_review
+
+    called = []
+
+    def boom(*a, **k):
+        called.append("gemini")
+        raise RuntimeError("503 UNAVAILABLE")
+
+    def ok(*a, **k):
+        called.append("mistral")
+        return json.dumps({"deductions": [{"title": "투상도 누락", "detail": "d",
+                                           "fix": "f", "deduct": 8,
+                                           "severity": "error"}]})
+
+    monkeypatch.setattr(ai_review, "providers", lambda: ["gemini", "mistral"])
+    monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
+    monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
+    monkeypatch.setattr(ai_review, "_cache_put", lambda path, data: None)
+    monkeypatch.setattr(ai_review, "_enrich", lambda data, ask, timeout: None)
+    monkeypatch.setattr(ai_review, "_ask_gemini", boom)
+    monkeypatch.setattr(ai_review, "_ask_mistral", ok)
+
+    out = ai_review.judge({"dxf": __file__}, timeout=1)
+    assert called == ["gemini", "mistral"], called
+    assert out and out["findings"][0]["code"] == "AI_PROJECTION"
+    assert out["findings"][0]["deduct"] == 8
+    assert ai_review.MISTRAL_MODEL in json.dumps(out, ensure_ascii=False)
+
+
+def test_ai_gives_up_only_after_every_grader_failed(monkeypatch):
+    import ai_review
+
+    tried = []
+
+    def boom(name):
+        def f(*a, **k):
+            tried.append(name)
+            raise RuntimeError("429")
+        return f
+
+    monkeypatch.setattr(ai_review, "providers",
+                        lambda: ["gemini", "cloudflare", "mistral", "groq"])
+    monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
+    monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
+    for name in ("gemini", "cloudflare", "mistral", "groq"):
+        monkeypatch.setattr(ai_review, f"_ask_{name}", boom(name))
+
+    assert ai_review.judge({"dxf": __file__}, timeout=1) is None
+    assert tried == ["gemini", "cloudflare", "mistral", "groq"], tried
+
+
+def test_material_field_does_not_borrow_the_cell_below():
+    import dwg
+
+    # 재질 칸이 비면 아래 칸 글자를 물어 온다. `1:1`을 재료로 읽으면 재료 누락을
+    # 영영 못 잡는다.
+    empty = dwg._title_fields([(300, 30, "재질"), (300, 20, "척도"),
+                               (320, 20, "1:1")], 1.0)
+    assert "material" not in empty
+
+    for code in ("GC250", "SM45C", "SCM415", "SUS304", "주철"):
+        got = dwg._title_fields([(300, 30, "재질"), (320, 30, code)], 1.0)
+        assert got.get("material") == code, code

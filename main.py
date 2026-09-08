@@ -223,6 +223,8 @@ def analyze(request: Request,
     ext = os.path.splitext(name)[1].lower()
     openable = _openable()
     if ext not in openable and ext != ".zip":
+        if ext in check.INVENTOR_EXT:
+            raise HTTPException(400, check.inventor_help(ext))
         extra = ""
         if ext == ".dwg":
             extra = (" 이 서버에는 DWG 변환기가 없습니다. CAD에서 "

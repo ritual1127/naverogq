@@ -48,29 +48,38 @@ def _importable(*names):
     return True
 
 
-def provider():
-    forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
+# 순서가 곧 우선순위다. Groq 를 뒤에 두는 것은 무료 한도가 분당 8,000 토큰이라
+# 도면 한 장에 그 대부분이 나가기 때문이다.
+PROVIDER_ORDER = ("gemini", "cloudflare", "mistral", "groq")
+MODEL_OF = {"gemini": GEMINI_MODEL, "cloudflare": CLOUDFLARE_MODEL,
+            "mistral": MISTRAL_MODEL, "groq": GROQ_MODEL}
+
+
+def providers():
+    """쓸 수 있는 채점기를 우선순위 순으로 준다.
+
+    키가 있는지만 보는 목록이다. 실제로 앞이 막혔는지는 불러 봐야 알기 때문에
+    `judge()`가 이 순서대로 진짜 요청을 넣어 보고 실패하면 다음으로 넘어간다."""
     if not _importable("pymupdf"):
-        return None
+        return []
     ready = {
         "gemini": bool(_gemini_key()) and _importable("google.genai"),
         "cloudflare": bool(_cloudflare_creds()) and _importable("requests"),
         "groq": bool(_groq_key()) and _importable("requests"),
         "mistral": bool(_mistral_key()) and _importable("requests"),
     }
+    forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
     if forced:
-        return forced if ready.get(forced) else None
-    # 순서가 곧 우선순위다. 앞이 막히면 뒤로 넘어간다. Groq 를 뒤에 두는 것은
-    # 무료 한도가 분당 8,000 토큰이라 도면 한 장에 그 대부분이 나가기 때문이다.
-    return next((n for n in ("gemini", "cloudflare", "mistral", "groq")
-                 if ready[n]), None)
+        return [forced] if ready.get(forced) else []
+    return [n for n in PROVIDER_ORDER if ready[n]]
+
+
+def provider():
+    return next(iter(providers()), None)
 
 
 def active_model():
-    return {"gemini": GEMINI_MODEL,
-            "cloudflare": CLOUDFLARE_MODEL,
-            "groq": GROQ_MODEL,
-            "mistral": MISTRAL_MODEL}.get(provider())
+    return MODEL_OF.get(provider())
 
 
 def is_available():
@@ -518,18 +527,31 @@ CACHE_DIR = os.path.join(
     "cad-checker", "aicache")
 
 
-def _cache_key(png, model):
+def _cache_key(blob, model):
     h = hashlib.sha256()
     h.update(model.encode())
     h.update(b"\0")
     h.update(SYSTEM.encode())
     h.update(b"\0")
-    h.update(png)
+    h.update(blob)
     return h.hexdigest()[:32] + ".json"
 
 
-def _cache_path(png, model):
-    return os.path.join(CACHE_DIR, _cache_key(png, model))
+def _cache_path(blob, model):
+    return os.path.join(CACHE_DIR, _cache_key(blob, model))
+
+
+def _drawing_blob(dxf_path):
+    """캐시 열쇠로 쓸 도면 내용.
+
+    그림(PNG)으로 열쇠를 만들면 캐시가 한 번도 안 맞는다. 같은 도면을 두 번
+    그려도 픽셀이 조금씩 달라져서(2,400×1,238 중 1,664픽셀) 해시가 매번 바뀌기
+    때문이다. 그래서 도면 파일 내용으로 연다 — 같은 파일이면 같은 열쇠다."""
+    try:
+        with open(dxf_path, "rb") as fh:
+            return fh.read()
+    except OSError:
+        return None
 
 
 def _cache_get(path):
@@ -555,9 +577,11 @@ def _cache_put(path, data):
 
 
 def judge(facts, timeout=120.0):
-    name = provider()
+    """투상도 30점을 채점한다. 쓸 수 있는 채점기를 우선순위대로 실제로 다
+    시도한다 — 앞이 503·429로 막혀도 뒤가 살아 있으면 채점이 이어진다."""
+    chain = providers()
     dxf = facts.get("dxf")
-    if not name or not dxf or not os.path.exists(dxf):
+    if not chain or not dxf or not os.path.exists(dxf):
         return None
 
     try:
@@ -565,44 +589,56 @@ def judge(facts, timeout=120.0):
     except Exception:
         return None
 
-    model = active_model()
-    cached = _cache_path(png, model)
-    hit = _cache_get(cached)
-    ask = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
-           "groq": _ask_groq, "mistral": _ask_mistral}[name]
-    if hit is not None:
+    asks = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
+            "groq": _ask_groq, "mistral": _ask_mistral}
+    blob = _drawing_blob(dxf) or png
+
+    # 같은 도면을 이미 채점해 뒀으면 어느 채점기 것이든 그대로 쓴다.
+    for name in chain:
+        model = MODEL_OF[name]
+        cached = _cache_path(blob, model)
+        hit = _cache_get(cached)
+        if hit is None:
+            continue
         # 채점은 됐는데 답변이나 번역만 실패한 판이 캐시에 남아 있으면 그
         # 상태로 굳는다. 캐시를 쓰되 빠진 부분은 이번에 채워 다시 저장한다.
-        if _fill_missing(hit, ask, timeout):
+        if _fill_missing(hit, asks[name], timeout):
             _cache_put(cached, hit)
         else:
             print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
         return _to_findings(hit, model)
 
     prompt = PROMPT + _context(facts)
-    try:
-        text = ask(png, prompt, timeout)
-    except Exception as e:
-        print(f"[ai] {type(e).__name__}: {str(e)[:300]}", flush=True)
-        return None
-    if not text:
-        return None
+    for name in chain:
+        model = MODEL_OF[name]
+        ask = asks[name]
+        try:
+            text = ask(png, prompt, timeout)
+        except Exception as e:
+            print(f"[ai] {name} {type(e).__name__}: {str(e)[:300]}", flush=True)
+            continue
+        if not text:
+            print(f"[ai] {name} 빈 응답", flush=True)
+            continue
+        try:
+            data = json.loads(text)
+        except ValueError:
+            print(f"[ai] {name} 응답이 JSON 이 아님", flush=True)
+            continue
+        if not isinstance(data, dict):
+            continue
 
-    try:
-        data = json.loads(text)
-    except ValueError:
-        return None
-    if not isinstance(data, dict):
-        return None
-
-    # 빈 자리채움 항목은 여기서 한 번만 걸러낸다. 번역과 화면 표시가 같은
-    # 목록을 봐야 항목 순서가 어긋나지 않는다.
-    data["deductions"] = [d for d in (data.get("deductions") or [])
-                          if isinstance(d, dict) and (d.get("title")
-                                                      or d.get("detail"))]
-    _enrich(data, ask, timeout)
-    _cache_put(cached, data)
-    return _to_findings(data, model)
+        # 빈 자리채움 항목은 여기서 한 번만 걸러낸다. 번역과 화면 표시가 같은
+        # 목록을 봐야 항목 순서가 어긋나지 않는다.
+        data["deductions"] = [d for d in (data.get("deductions") or [])
+                              if isinstance(d, dict) and (d.get("title")
+                                                          or d.get("detail"))]
+        _enrich(data, ask, timeout)
+        _cache_put(_cache_path(blob, model), data)
+        if name != chain[0]:
+            print(f"[ai] {chain[0]} 실패 → {name}({model})로 채점", flush=True)
+        return _to_findings(data, model)
+    return None
 
 
 def _fill_missing(data, ask, timeout):

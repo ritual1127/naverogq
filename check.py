@@ -4,6 +4,25 @@ from typing import Any
 
 DXF_EXT = {".dxf", ".dwg"}
 SUPPORTED = sorted(DXF_EXT)
+# Inventor 원본 파일은 공개된 형식이 아니라 서버에서 못 연다. 무슨 파일인지는
+# 알아보고, 어떻게 내보내면 되는지까지 알려 준다.
+INVENTOR_EXT = {".idw": "도면", ".ipt": "부품", ".iam": "조립품", ".ipn": "프레젠테이션"}
+INVENTOR_HELP = (
+    "Inventor {what} 파일({ext})은 그대로 못 읽습니다. {how} "
+    "여러 장이면 저장소의 idw2dxf.py 로 한 번에 바꿀 수 있습니다.")
+_INVENTOR_HOW = {
+    ".idw": ("Inventor 에서 이 도면을 열고 '파일 > 내보내기 > DWG/DXF' 로 "
+             "저장한 뒤 그 파일을 올려 주세요."),
+}
+_INVENTOR_HOW_3D = ("먼저 Inventor 에서 도면(.idw)을 만들고, "
+                    "'파일 > 내보내기 > DWG/DXF' 로 저장한 뒤 그 파일을 올려 주세요. "
+                    "CADLens 는 3D 모델이 아니라 도면을 채점합니다.")
+
+
+def inventor_help(ext: str) -> str:
+    return INVENTOR_HELP.format(what=INVENTOR_EXT[ext], ext=ext,
+                                how=_INVENTOR_HOW.get(ext, _INVENTOR_HOW_3D))
+
 
 Facts = dict[str, Any]
 Finding = dict[str, Any]
@@ -17,6 +36,8 @@ def analyze(path: str, enabled: Iterable[str] | None = None,
     enabled=None turns every check on. With use_ai off the projection-layout
     judgement is skipped and that rubric item stays "needs human review"."""
     ext = os.path.splitext(path)[1].lower()
+    if ext in INVENTOR_EXT:
+        raise ValueError(inventor_help(ext))
     if ext not in DXF_EXT:
         raise ValueError(f"지원하지 않는 확장자: {ext or '(없음)'}. "
                          f"지원 형식: {', '.join(SUPPORTED)}")

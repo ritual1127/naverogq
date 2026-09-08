@@ -1,7 +1,7 @@
 """공개문제 형식을 본뜬 합성 도면을 찍어 낸다.
 
 **사람이 그린 도면이 아니다.** 실기 공개문제(동력전달장치류)의 *형식* —
-A3 도면틀 · 표제란 · 부품란 · 제3각법 · 정면/평면/측면과 단면 · 끼워맞춤 ·
+A2 도면틀 · 표제란 · 부품란 · 제3각법 · 정면/평면/측면과 단면 · 끼워맞춤 ·
 표면거칠기 · 데이텀과 기하공차 · 주서 — 을 코드로 만든 것이다.
 `bench.py` 의 기준 도면 18장이 너무 단순해서 늘린 것이고,
 [P04](plan/문제점/P04-표본도면.md) 의 "실제 수험생 도면" 을 대신하지 못한다.
@@ -21,7 +21,8 @@ import random
 
 import ezdxf
 
-SHEET = (420.0, 297.0)          # A3, exam.REQUIRED_SHEET
+SHEET = (594.0, 420.0)          # A2 — 공개문제 요구 도면 영역 (출력만 A3)
+DX = SHEET[0] - 420.0           # 표제란·부품란은 오른쪽 아래에 붙인다
 NOTES = ("1. 일반공차 - 가) 가공부: KS B ISO 2768-m\n"
          "         나) 주조부: KS B ISO 8062-CT12\n"
          "2. 도시되고 지시없는 모떼기는 1x45°, 필렛과 라운드는 R3\n"
@@ -51,10 +52,10 @@ def _sheet(doc, msp, scale="1:1"):
     msp.add_lwpolyline([(10, 10), (w - 10, 10), (w - 10, h - 10), (10, h - 10)],
                        close=True)
     # 제3각법 기호 — 이게 없으면 채점자가 각법을 못 본다
-    msp.add_text("제3각법", height=3.5).set_placement((300, 24))
-    msp.add_circle((330, 25), 4)
-    msp.add_circle((330, 25), 2)
-    msp.add_text(f"척도 {scale}", height=3.5).set_placement((355, 24))
+    msp.add_text("제3각법", height=3.5).set_placement((300 + DX, 24))
+    msp.add_circle((330 + DX, 25), 4)
+    msp.add_circle((330 + DX, 25), 2)
+    msp.add_text(f"척도 {scale}", height=3.5).set_placement((355 + DX, 24))
 
 
 def _title_block(doc, msp, part_no, material, name):
@@ -63,19 +64,21 @@ def _title_block(doc, msp, part_no, material, name):
         for i, tag in enumerate(("PART_NUMBER", "MATERIAL", "DESIGNER",
                                  "DESCRIPTION")):
             blk.add_attdef(tag, (0, -i * 5))
-    msp.add_auto_blockref("TITLE", (300, 18), {
+    msp.add_auto_blockref("TITLE", (300 + DX, 18), {
         "PART_NUMBER": str(part_no), "MATERIAL": material,
         "DESIGNER": "", "DESCRIPTION": name})
     # 표제란 칸 선
-    msp.add_lwpolyline([(295, 12), (410, 12), (410, 40), (295, 40)], close=True)
+    msp.add_lwpolyline([(295 + DX, 12), (410 + DX, 12), (410 + DX, 40),
+                    (295 + DX, 40)], close=True)
 
 
 def _part_list(msp, parts):
     """부품란 — 품번 · 품명 · 재질 · 수량. 칸마다 문자를 따로 쓴다.
     한 줄로 이어 쓰면 우리 파서가 주서로 오인한다(실제 CAD 도 칸마다 문자다)."""
     top = 60.0
-    msp.add_lwpolyline([(295, 40), (410, 40), (410, top), (295, top)], close=True)
-    cols = (297.0, 312.0, 350.0, 385.0)
+    msp.add_lwpolyline([(295 + DX, 40), (410 + DX, 40), (410 + DX, top),
+                    (295 + DX, top)], close=True)
+    cols = (297.0 + DX, 312.0 + DX, 350.0 + DX, 385.0 + DX)
     for x, head in zip(cols, ("품번", "품명", "재질", "수량")):
         msp.add_text(head, height=2.5).set_placement((x, top - 4))
     for i, (name, mat) in enumerate(parts):

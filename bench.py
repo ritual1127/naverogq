@@ -25,7 +25,8 @@ def _new():
     doc.header["$INSUNITS"] = 4
     doc.layers.add("CENTER_LINES", linetype="CENTER")
     msp = doc.modelspace()
-    msp.add_lwpolyline([(0, 0), (420, 0), (420, 297), (0, 297)], close=True)
+    # A2 — 공개문제 요구 도면 영역. 출력만 A3다.
+    msp.add_lwpolyline([(0, 0), (594, 0), (594, 420), (0, 420)], close=True)
     return doc, msp
 
 
