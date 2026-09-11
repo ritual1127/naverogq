@@ -86,6 +86,10 @@ def is_available():
     return provider() is not None
 
 
+RENDER_MARGIN_MM = 5.0
+MIN_RENDER_DPI = 40
+
+
 def render_png(dxf_path):
     """도면을 AI에게 보여줄 그림으로 만든다.
 
@@ -93,25 +97,48 @@ def render_png(dxf_path):
     도면이 백지로 나온다. 페이지 크기를 도면 범위에서 자동으로 잡는데, 범위가
     0.12(미터 단위 도면)이면 사방 5mm 여백에 그림이 통째로 먹혀 버린다.
     실제로 선이 6,373개 들어 있는 도면이 201바이트짜리 빈 그림이 됐고,
-    AI는 도면이 아니라 백지를 보고 '투상도가 하나도 없다'고 채점했다."""
-    import ezdxf
+    AI는 도면이 아니라 백지를 보고 '투상도가 하나도 없다'고 채점했다.
+
+    그림이 너무 커지지 않게 막는 방법이 두 가지인데, **페이지를 잘라서는 안 된다.**
+    예전에는 페이지 크기를 406mm(2400px / 150DPI)로 제한했는데, 그 제한은
+    도면을 축소하는 게 아니라 넘는 부분을 **잘라 냈다.** 요구 도면 영역인 A2가
+    594mm 라서 실제 도면이 전부 걸렸다 — 실제 수험생 도면 30장을 재 보니
+    AI 에게 간 그림은 도면 넓이의 29~51% 뿐이었고, 잘려 나간 쪽에 표제란과
+    투상도가 들어 있었다. 투상도 30점을 그 조각으로 채점하고 있었던 것이다.
+    그래서 페이지는 도면 전체로 두고, 픽셀이 넘치면 DPI 를 낮춘다."""
+    from ezdxf import bbox
     from ezdxf.addons.drawing import Frontend, RenderContext
     from ezdxf.addons.drawing import layout as dlayout
     from ezdxf.addons.drawing import pymupdf as dpymupdf
 
     import dwg
 
-    limit_mm = MAX_PIXELS / RENDER_DPI * 25.4
-    doc = ezdxf.readfile(dxf_path)
+    doc = dwg.readfile(dxf_path)
     msp = doc.modelspace()
     mm_per_unit, _ = dwg.detect_mm_per_unit(doc, msp)
     backend = dpymupdf.PyMuPdfBackend()
     Frontend(RenderContext(doc), backend).draw_layout(msp, finalize=True)
-    page = dlayout.Page(0, 0, dlayout.Units.mm, dlayout.Margins.all(5),
-                        max_width=limit_mm, max_height=limit_mm)
+    page = dlayout.Page(0, 0, dlayout.Units.mm,
+                        dlayout.Margins.all(RENDER_MARGIN_MM))
     settings = dlayout.Settings(fit_page=False, scale=mm_per_unit)
-    return backend.get_pixmap_bytes(page, fmt="png", dpi=RENDER_DPI,
+    return backend.get_pixmap_bytes(page, fmt="png",
+                                    dpi=_fitting_dpi(msp, mm_per_unit),
                                     settings=settings)
+
+
+def _fitting_dpi(msp, mm_per_unit):
+    """도면 전체가 MAX_PIXELS 안에 들어가는 DPI. 작은 도면은 그대로 150."""
+    from ezdxf import bbox
+
+    try:
+        size = bbox.extents(msp).size
+        span_mm = max(size.x, size.y) * mm_per_unit + 2 * RENDER_MARGIN_MM
+    except Exception:
+        return RENDER_DPI
+    if span_mm <= 0:
+        return RENDER_DPI
+    return max(MIN_RENDER_DPI,
+               min(RENDER_DPI, int(MAX_PIXELS / (span_mm / 25.4))))
 
 
 SYSTEM = """\
