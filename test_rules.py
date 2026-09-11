@@ -598,8 +598,56 @@ def test_front_view_is_the_one_the_dimensions_cluster_on():
     busiest = max(views, key=lambda v: v.get("shapes") or 0)
     assert not busiest.get("is_front"), "형상이 가장 많은 뷰가 정면도는 아니다"
 
+    # 뷰 셋이 정면도 · 그 위 · 그 오른쪽에 놓였으니 제3각법 배치다. 좌표로
+    # 가려 낸 것이라 AI 에게 짐작시키지 않고 이름과 판정을 같이 넘긴다.
+    assert front[0].get("role") == "정면도", front
+    assert {v.get("role") for v in views} == {"정면도", "평면도", "우측면도"}, views
+
     context = ai_review._context(dwg.facts_from_dxf(path))
-    assert "← 정면도로 보임" in context, context
+    assert "← 정면도" in context, context
+    assert "제3각법 배치 확인됨" in context, context
+
+
+def test_third_angle_layout_is_read_from_coordinates():
+    """제3각법 배치를 좌표로 가린다. 뒤집어 그리면 제1각법으로 본다.
+
+    투상도 30점의 한 축인데 지금까지 AI 에게 통째로 맡겨 왔다. 정면도를 못
+    고르면 AI 에게 '판단하지 마세요' 라고 보내서, 실제 도면 30장 중 22장에서
+    이 배점이 비어 있었다."""
+    import ezdxf
+
+    import dwg
+
+    def sheet(spots, name):
+        doc = ezdxf.new("R2013", setup=True)
+        doc.header["$INSUNITS"] = 4
+        msp = doc.modelspace()
+        msp.add_lwpolyline([(0, 0), (420, 0), (420, 297), (0, 297)], close=True)
+        for cx, cy in spots:
+            for dx, dy in ((-15, -15), (15, -15), (-15, 15), (15, 15), (0, 0)):
+                msp.add_circle((cx + dx, cy + dy), 5)
+        # 치수는 정면도(첫 자리)에 몰아 준다 — KS 가 그렇게 기입하라고 한다.
+        for i in range(6):
+            msp.add_linear_dim(base=(spots[0][0], spots[0][1] - 40 - i * 6),
+                               p1=(spots[0][0] - 15, spots[0][1] - 30),
+                               p2=(spots[0][0] + 15, spots[0][1] - 30)).render()
+        path = os.path.join(tempfile.mkdtemp(), name + ".dxf")
+        doc.saveas(path)
+        return (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]
+
+    # 정면도 (150,120) · 평면도 위 · 우측면도 오른쪽
+    third = sheet([(150, 120), (150, 230), (280, 120)], "third")
+    assert third["layout"]["verdict"] == "third", third["layout"]
+
+    # 같은 도면을 뒤집어 그린 것 — 평면도 아래, 우측면도 왼쪽
+    first = sheet([(280, 230), (280, 120), (150, 230)], "first")
+    assert first["layout"]["verdict"] == "first", first["layout"]
+
+    # 제3각법 도면에는 이 지적이 붙지 않고, 뒤집힌 도면에만 붙는다.
+    import exam
+    codes = lambda s: {f["code"] for f in exam.grade({"sheets": [s]})[0]}
+    assert "EX_LAYOUT_FIRST_ANGLE" not in codes(third)
+    assert "EX_LAYOUT_FIRST_ANGLE" in codes(first)
 
 
 def test_front_view_is_left_unset_when_the_drawing_has_no_dimensions():

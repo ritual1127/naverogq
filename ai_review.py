@@ -352,6 +352,35 @@ def _projection_line(first_angle):
     return "투상법(파일 속성): " + ("제1각법" if first_angle else "제3각법")
 
 
+def _layout_line(layout, placed):
+    """제3각법 배치를 좌표로 이미 판정했으면 그 결과를 못 박아 준다.
+
+    예전에는 정면도를 못 고르면 "판단하지 마세요" 라고만 보냈고, 실제 도면
+    30장 중 22장이 그랬다. 배점이 가장 큰 항목의 한 축이 사실상 비어 있었던
+    것이다. 지금은 dwg.analyze_layout 이 좌표로 정면도와 이웃 자리를 정하므로,
+    AI 가 150DPI 그림을 보고 다시 짐작하게 두지 않는다."""
+    if not layout:
+        front = next((v for v in placed if v.get("is_front")), None)
+        if front:
+            return (f"정면도는 치수가 가장 많이 붙은 {front['name']} 로 "
+                    "봅니다(추정). 이 뷰를 기준으로 배치를 판단하세요.")
+        return ("정면도를 특정하지 못했습니다. 제3각법 배치"
+                "(THIRD_ANGLE)는 판단하지 마세요.")
+    if layout["verdict"] == "third":
+        return ("제3각법 배치 확인됨 — 정면도를 기준으로 평면도가 위, "
+                "우측면도가 오른쪽에 놓인 것을 **좌표로 확인했습니다.** "
+                "배치는 맞으므로 THIRD_ANGLE 로 감점하지 마세요. "
+                "줄이 안 맞는다고 적힌 뷰는 같은 장에 그린 다른 부품이거나 "
+                "상세도라서 제3각법 판단 대상이 아닙니다.")
+    if layout["verdict"] == "first":
+        return ("제1각법 배치로 보입니다 — 정면도에 줄이 맞는 뷰가 아래·왼쪽"
+                "에만 있습니다(좌표로 잰 값). 그림에서 표제란 옆 투상법 기호를 "
+                "직접 확인하고, 제1각법이 맞으면 THIRD_ANGLE 로 지적하세요.")
+    return ("뷰가 정면도 위·아래·좌·우에 섞여 있어 제3각법인지 좌표로는 "
+            "가릴 수 없습니다. 같은 장에 다른 부품이 있거나 저면도를 쓴 "
+            "도면입니다. 확신이 서지 않으면 THIRD_ANGLE 로 감점하지 마세요.")
+
+
 def _context(facts):
     sh = (facts.get("sheets") or [{}])[0]
     views = sh.get("views", [])
@@ -374,19 +403,12 @@ def _context(facts):
             size = (f", 크기 {v['w_mm']}×{v['h_mm']}" if v.get("w_mm") else "")
             dims = (f", 붙은 치수 {v['dim_count']}개"
                     if v.get("dim_count") else "")
-            mark = " ← 정면도로 보임" if v.get("is_front") else ""
+            role = f" ← {v['role']}" if v.get("role") else (
+                " ← 정면도로 보임" if v.get("is_front") else
+                " ← 정면도와 줄이 안 맞음(다른 부품이거나 상세도)")
             bits.append(f"- {v.get('name') or '이름없음'}: "
-                        f"중심 ({v['x_mm']}, {v['y_mm']}){size}{dims}{mark}")
-        # 정면도를 모르면 제3각법 배치는 판단할 수 없다. 기준이 없으면 좌표
-        # 세 개는 그냥 점 세 개다. 모르는 채로 짚으면 배치가 멀쩡한 도면을
-        # 위반이라고 하거나 그 반대가 된다.
-        front = next((v for v in placed if v.get("is_front")), None)
-        if front:
-            bits.append(f"정면도는 치수가 가장 많이 붙은 {front['name']} 로 "
-                        "봅니다(추정). 이 뷰를 기준으로 배치를 판단하세요.")
-        else:
-            bits.append("정면도를 특정하지 못했습니다. 제3각법 배치"
-                        "(THIRD_ANGLE)는 판단하지 마세요.")
+                        f"중심 ({v['x_mm']}, {v['y_mm']}){size}{dims}{role}")
+        bits.append(_layout_line(sh.get("layout"), placed))
     else:
         names = [v.get("name") for v in views if v.get("name")]
         if names:

@@ -103,6 +103,7 @@ CHECKS = [
     ("EX_NO_MATERIAL", "재료 기호 기입 없음", "MATERIAL", True),
     ("EX_NO_MASS", "3D 등각투상도 부품란에 질량 없음", "MATERIAL", True),
 
+    ("EX_LAYOUT_FIRST_ANGLE", "뷰 배치가 제1각법으로 보임", "PROJECTION_LAYOUT", True),
     ("EX_FEW_VIEWS", "투상도 개수 부족", "PROJECTION_LAYOUT", True),
     ("EX_NO_CENTERLINE", "중심선·중심마크 없음", "PROJECTION_LAYOUT", True),
     ("EX_VIEW_NO_LABEL", "상세도·단면도에 문자 표기 없음", "PROJECTION_LAYOUT", True),
@@ -453,6 +454,21 @@ def _projection(facts):
     sh = _sheet_of(facts)
     counts, views = sh.get("counts", {}), sh.get("views", [])
     out = []
+    layout = sh.get("layout") or {}
+    # 배치를 좌표로 재서 제1각법 자리에만 뷰가 있으면 알린다. 표제란 각법 칸이
+    # 비어 있어도 잡히는 유일한 경로다. 다만 저면도·좌측면도만 쓴 제3각법
+    # 도면도 같은 모양이 되므로 오작(실격)으로는 보지 않는다 — 실격을 잘못
+    # 부르는 것이 이 서비스에서 가장 나쁜 오류다.
+    if layout.get("verdict") == "first" and facts.get("first_angle") is not False:
+        out.append(_f(
+            "EX_LAYOUT_FIRST_ANGLE", SEV_ERROR, "뷰 배치가 제1각법으로 보입니다",
+            f"정면도({layout.get('front')})에 줄이 맞는 투상도가 "
+            f"{', '.join(layout.get('spots') or [])} 쪽에만 있습니다. "
+            "제3각법이면 평면도가 위, 우측면도가 오른쪽입니다. "
+            "요구 투상법과 다르면 오작(실격)입니다.",
+            "배치 > 투상도 로 평면도를 정면도 위, 우측면도를 정면도 오른쪽에 "
+            "놓으세요. 저면도·좌측면도만 쓴 것이라면 그대로 두어도 됩니다.",
+            "PROJECTION_LAYOUT", 6, {"front": layout.get("front")}))
     if len(views) < 2 and sh.get("views_known", True):
         out.append(_f(
             "EX_FEW_VIEWS", SEV_ERROR, f"투상도가 {len(views)}개뿐",

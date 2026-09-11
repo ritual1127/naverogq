@@ -831,6 +831,104 @@ def _mark_front_view(msp, views, mm_per_unit):
         views[order[0]]["is_front"] = True
 
 
+# 두 뷰가 한 줄에 놓였다고 볼 겹침 비율과, 이웃으로 볼 최대 간격(큰 쪽 크기의 배수).
+VIEW_ALIGN_OVERLAP = 0.5
+VIEW_ALIGN_GAP = 2.5
+# 작은 뷰는 배수만으로 재면 이웃을 놓친다 (40mm 뷰 둘이 110mm 떨어져 있으면
+# 2.5배인 100mm 를 넘는다). A2 한 장에서 같은 부품의 투상도는 이 안에 모인다.
+VIEW_ALIGN_FLOOR = 120.0
+_THIRD_SPOTS = {"above", "right"}
+_FIRST_SPOTS = {"below", "left"}
+# 제3각법에서 그 자리에 놓이는 뷰 이름. 제1각법이면 위아래·좌우가 뒤집힌다.
+_SPOT_NAME_THIRD = {"above": "평면도", "below": "저면도",
+                    "right": "우측면도", "left": "좌측면도"}
+
+
+def _span(v, axis):
+    c = v["x_mm"] if axis == "x" else v["y_mm"]
+    s = v["w_mm"] if axis == "x" else v["h_mm"]
+    return c - s / 2, c + s / 2
+
+
+def _overlap(a, b, axis):
+    a0, a1 = _span(a, axis)
+    b0, b1 = _span(b, axis)
+    inner = min(a1 - a0, b1 - b0)
+    if inner <= 0:
+        return 0.0
+    return max(0.0, min(a1, b1) - max(a0, b0)) / inner
+
+
+def _spot(front, v):
+    """front 기준으로 v 가 어느 자리에 놓였나. 줄이 안 맞으면 None.
+
+    줄이 안 맞는 뷰는 같은 부품의 투상도가 아니다 — 실기 도면은 한 장에
+    본체·축·커버를 같이 그리므로 이것을 투상도로 세면 배치 판정이 뒤집힌다."""
+    for axis, near, far, plus, minus in (("x", "y", "h", "above", "below"),
+                                         ("y", "x", "w", "right", "left")):
+        if _overlap(front, v, axis) < VIEW_ALIGN_OVERLAP:
+            continue
+        if _overlap(front, v, near) >= VIEW_ALIGN_OVERLAP:
+            continue
+        key = near + "_mm"
+        gap = abs(v[key] - front[key]) - (v[far + "_mm"] + front[far + "_mm"]) / 2
+        if gap > max(VIEW_ALIGN_GAP * max(v[far + "_mm"], front[far + "_mm"]),
+                     VIEW_ALIGN_FLOOR):
+            return None
+        return plus if v[key] > front[key] else minus
+    return None
+
+
+def analyze_layout(views):
+    """뷰 좌표만으로 정면도를 고르고 이웃 뷰가 제3각법 자리에 있는지 본다.
+
+    투상도 30점 중 '제3각법 배치'는 그림을 봐야 아는 게 아니라 좌표를 비교하면
+    나오는 값이다. 지금까지는 AI 에게 통째로 맡겨 왔고, 정면도를 못 고르면
+    (실제 도면 30장 중 22장이 그랬다) AI 에게 "배치는 판단하지 마세요" 라고
+    보내 그 배점이 사실상 비어 있었다.
+
+    정면도는 '줄이 맞는 이웃이 가장 많은 뷰, 같으면 치수가 많은 뷰' 로 고른다.
+    치수만으로 고르면 뷰 세 개가 비슷할 때 못 고른다.
+
+    판정은 한쪽으로만 몰릴 때만 한다. 이웃이 제3각법 자리(위·오른쪽)에만 있으면
+    `third`, 제1각법 자리(아래·왼쪽)에만 있으면 `first`, 섞여 있으면 `unknown`
+    이다. 섞이는 것은 보통 같은 장에 다른 부품이 있거나 저면도를 쓴 도면이라
+    단정하면 안 된다. 실제 도면 30장에서 third 24장 · unknown 6장 · first 0장이
+    나왔고 멀쩡한 도면을 first 로 부른 적은 없다."""
+    placed = [v for v in views if v.get("x_mm") is not None and v.get("w_mm")]
+    if len(placed) < 2:
+        return None
+    ranked = []
+    for cand in placed:
+        got = {id(v): s for v in placed if v is not cand
+               for s in [_spot(cand, v)] if s}
+        ranked.append(((len(got), cand.get("dim_count") or 0), cand, got))
+    ranked.sort(key=lambda r: r[0], reverse=True)
+    (best, front, spots), runner = ranked[0], ranked[1][0]
+    # 비기면 정면도를 고르지 않는다. DWG 를 변환한 도면은 DIMENSION 이 하나도
+    # 안 남아 뷰가 전부 동점이 되는데, 그때 아무 뷰나 정면도로 찍으면 위아래가
+    # 뒤집혀 멀쩡한 제3각법 도면을 제1각법이라고 부르게 된다.
+    if not spots or best == runner or best[1] == 0:
+        return None
+    for v in placed:
+        v["spot"] = spots.get(id(v))
+    front["is_front"] = True
+    for v in placed:
+        if v is not front:
+            v.pop("is_front", None)
+    seen = set(spots.values())
+    verdict = ("third" if seen <= _THIRD_SPOTS else
+               "first" if seen <= _FIRST_SPOTS else "unknown")
+    if verdict == "third":
+        for v in placed:
+            if v.get("spot"):
+                v["role"] = _SPOT_NAME_THIRD[v["spot"]]
+        front["role"] = "정면도"
+    return {"verdict": verdict, "front": front.get("name"),
+            "spots": sorted(seen),
+            "aligned": len(spots), "views": len(placed)}
+
+
 def _view_box(ins, mm_per_unit):
     """뷰 블록이 도면 어디에 얼마만 한 크기로 놓였는지 밀리미터로 잰다.
 
@@ -1078,6 +1176,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     if not views:
         views = _cluster_views(msp, K)
     _mark_front_view(msp, views, K)
+    layout = analyze_layout(views)
 
     fields = _title_fields(plain_texts, K)
     # 도면틀도 표제란도 없으면 그려진 것의 범위가 곧 도면 크기라고 볼 수 없다.
@@ -1096,6 +1195,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "is_isometric": any(_ISO_3D_RE.search(t) for t in texts),
              "view_scales": _view_scales(texts),
              "views": views,
+             "layout": layout,
              "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,
