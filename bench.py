@@ -7,6 +7,7 @@ import tempfile
 import ezdxf
 
 import check
+import exam
 
 MIN_RECALL = 0.90
 MIN_PRECISION = 0.90
@@ -177,7 +178,13 @@ def load_labeled(path):
             for name, codes in spec.items()]
 
 
-def run(cases):
+def run(cases, only=None):
+    """only 를 주면 그 검사 항목만 잰다.
+
+    실제 수험생 도면은 24개 항목을 전부 사람이 달기 어렵다. 눈으로 확실히
+    가릴 수 있는 항목만 라벨을 달고 그것만 재려면, 나머지 항목의 지적을
+    '오탐'으로 세지 않아야 한다. 안 그러면 라벨을 안 단 항목 때문에
+    정확도가 실제보다 낮게 나온다."""
     rows, tp, fp, fn = [], 0, 0, 0
     for name, path, expected in cases:
         try:
@@ -186,6 +193,9 @@ def run(cases):
             err = None
         except Exception as e:
             got, err = set(), f"{type(e).__name__}: {e}"
+        if only:
+            got &= only
+            expected &= only
         hit, miss, extra = expected & got, expected - got, got - expected
         # 못 연 도면은 숫자에서 뺀다. 안 그러면 파일 이름을 틀린 것이
         # 검출률이 낮은 것처럼 보인다.
@@ -244,7 +254,16 @@ def main():
                     help="{파일명: [기대 코드]} 형태의 JSON. 없으면 합성 기준 도면 사용")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--out")
+    ap.add_argument("--only", help="이 검사 항목만 잰다 (쉼표로 구분). "
+                                   "라벨을 일부 항목만 단 실제 도면을 잴 때 쓴다")
     args = ap.parse_args()
+    only = ({c.strip() for c in args.only.split(",") if c.strip()}
+            if args.only else None)
+    if only:
+        unknown = only - exam.ALL_CHECK_IDS
+        if unknown:
+            print(f"FAIL: 없는 검사 항목 {sorted(unknown)}", file=sys.stderr)
+            return 1
 
     with tempfile.TemporaryDirectory() as tmp:
         cases = load_labeled(args.labels) if args.labels else fixtures(tmp)
@@ -252,9 +271,13 @@ def main():
             print(f"FAIL: {args.labels} 에 도면이 한 장도 없다. "
                   f"0장으로는 정확도를 잴 수 없다.", file=sys.stderr)
             return 1
-        rows, m = run(cases)
+        rows, m = run(cases, only)
 
     report = markdown(rows, m)
+    if only:
+        report = (f"측정한 검사 항목 {len(only)}개: "
+                  + ", ".join(f"`{c}`" for c in sorted(only))
+                  + "\n\n" + report)
     print(report)
     if args.out:
         with open(args.out, "w", encoding="utf-8") as fh:
