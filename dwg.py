@@ -417,12 +417,24 @@ _VIEW_LABEL_RE = re.compile(
     r"^(정면도|평면도|배면도|저면도|좌측면도|우측면도|측면도|입면도|등각투상도|"
     r"단면도|부분\s*단면도|회전\s*단면도|상세도|확대도|"
     r"section|detail|view)\b", re.I)
+# Inventor 가 붙이는 뷰 이름표는 낱말이 아니라 글자로 시작한다 —
+# `A-A ( 1 : 1 ) / .` · `B ( 2 : 1 ) / .` · `단면A-A` · `확대도-B`.
+# 위 목록으로는 안 걸리고 12자가 넘어 주서로 세고 있었다. 실제 수험생 도면
+# 30장 중 8장에서 이것 때문에 "주서 없음"(8점)을 놓쳤다.
+_VIEW_TAG_RE = re.compile(
+    r"^(?:단면|상세|확대)?\s*도?\s*-?\s*[A-Z](?:\s*-\s*[A-Z])?\s*"
+    r"(?:\(\s*[\d.]+\s*:\s*[\d.]+\s*\))?\s*[/.\s]*$")
+# 글자도 숫자도 없이 괄호·쉼표뿐인 것은 주서가 아니다. 표면거칠기 비교표의
+# 빈 칸 `(      ,      ,      )` 이 주서로 세어지고 있었다.
+_HAS_WORD_RE = re.compile(r"[0-9A-Za-z가-힣]")
 MIN_NOTE_LEN = 12
 
 
 def _is_note(text):
     t = (text or "").strip()
-    if not t or _VIEW_LABEL_RE.match(t):
+    if not t or not _HAS_WORD_RE.search(t):
+        return False
+    if _VIEW_LABEL_RE.match(t) or _VIEW_TAG_RE.match(t):
         return False
     return "\n" in t or len(t) >= MIN_NOTE_LEN or bool(_NOTE_KEYWORD_RE.search(t))
 
@@ -449,6 +461,43 @@ def _rect_size(entity):
 
 def _is_border(entity):
     return _rect_size(entity) is not None
+
+
+BORDER_MIN_EDGE_MM = 150.0     # 이보다 짧은 변은 윤곽선이 아니다
+BORDER_AXIS_TOL_MM = 0.2       # 축에 나란하다고 볼 기울기
+
+
+def _line_border(lines, K):
+    """축에 나란한 선 네 개로 그린 윤곽선의 (폭mm, 높이mm). 아니면 None.
+
+    실기 도면의 윤곽선은 닫힌 폴리선이 아니라 **선 네 개**다. 실제 수험생 도면
+    30장에서 닫힌 사각형 윤곽선은 한 장도 없었고, 그 바람에 윤곽선을 못 찾아
+    (1) 모든 도면에 "표제란·도면양식 없음"이 떴고 (2) 도면 크기를 아예 재지
+    않아 A2 요구 판정이 통째로 빠졌다.
+
+    바깥쪽 끝의 가로선 두 개·세로선 두 개가 실제로 사각형을 이룰 때만 인정한다.
+    긴 형상선이 섞여 사각형이 안 맞으면 None 을 돌려 예전처럼 조용히 넘어간다."""
+    tol = BORDER_AXIS_TOL_MM / K if K else BORDER_AXIS_TOL_MM
+    edge = BORDER_MIN_EDGE_MM / K if K else BORDER_MIN_EDGE_MM
+    hor, ver = [], []
+    for x1, y1, x2, y2 in lines:
+        if abs(y1 - y2) <= tol and abs(x1 - x2) >= edge:
+            hor.append((y1, min(x1, x2), max(x1, x2)))
+        elif abs(x1 - x2) <= tol and abs(y1 - y2) >= edge:
+            ver.append((x1, min(y1, y2), max(y1, y2)))
+    if len(hor) < 2 or len(ver) < 2:
+        return None
+    x0, x1 = min(v[0] for v in ver), max(v[0] for v in ver)
+    y0, y1 = min(h[0] for h in hor), max(h[0] for h in hor)
+
+    def spans(edges, at, lo, hi):
+        return any(abs(e[0] - at) <= tol and e[1] <= lo + tol and e[2] >= hi - tol
+                   for e in edges)
+
+    if not all((spans(hor, y0, x0, x1), spans(hor, y1, x0, x1),
+                spans(ver, x0, y0, y1), spans(ver, x1, y0, y1))):
+        return None
+    return (x1 - x0) * K, (y1 - y0) * K
 
 
 def _drawn_span(rects, circles):
@@ -858,7 +907,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     K, unit_why = detect_mm_per_unit(doc, msp)
     dims, circles, dim_centers, titles, texts = [], [], [], {}, []
     surfaces, geo_tols, rects, centerlines, symbol_zones = [], [], [], 0, []
-    short_lines = []
+    short_lines, long_lines = [], []
     gdt_styles = _gdt_styles(doc)
     gdt_glyphs, plain_texts = [], []
 
@@ -876,8 +925,11 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
             if t == "LINE":
                 try:
                     s, o = e.dxf.start, e.dxf.end
-                    if math.hypot(o.x - s.x, o.y - s.y) * K <= MAX_SYMBOL_LEG_MM:
+                    span = math.hypot(o.x - s.x, o.y - s.y) * K
+                    if span <= MAX_SYMBOL_LEG_MM:
                         short_lines.append((s.x, s.y, o.x, o.y))
+                    elif span >= BORDER_MIN_EDGE_MM:
+                        long_lines.append((s.x, s.y, o.x, o.y))
                 except Exception:
                     pass
             if t == "TOLERANCE":
@@ -1014,6 +1066,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         if any(w >= span_x * BORDER_MIN_SPAN and h >= span_y * BORDER_MIN_SPAN
                for w, h in (z for z in (_rect_size(r) for r in rects) if z)):
             border = "윤곽선"
+    if border is None and _line_border(long_lines, K):
+        border = "윤곽선(선 4개)"
 
     title_block = (list(titles) or [None])[0]
     if not title_block:
