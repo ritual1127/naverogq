@@ -29,6 +29,7 @@ CADLens의 지적은 임의 기준이 아니라 KS 제도 규격과 전산응용
 | 코드 | 지적 내용 | 근거 | 구현 |
 |---|---|---|---|
 | `EX_NO_DIMS` | 치수가 하나도 없음 | KS B ISO 129-1 치수 기입의 일반 원칙 | `exam._dimensions` |
+| `EX_VIEW_NO_DIMS` | 정면도에 줄이 맞는 투상도인데 치수가 하나도 없음 | KS B ISO 129-1 치수 기입 — 각 투상도에 그 뷰에서만 보이는 치수를 적는다. 채점 기준의 '치수 누락' | `exam._dimensions` |
 | `EX_DIM_MISSING` | 치수가 붙지 않은 원·구멍 | KS B ISO 129-1 — 형상을 규정하는 데 필요한 치수는 누락될 수 없음 | `exam._dimensions`, 검출은 `dwg.facts_from_dxf` |
 
 원·구멍은 지름 치수가 붙었는지를 치수 정의점과 원 중심의 일치로 판정합니다.
@@ -52,6 +53,7 @@ CADLens의 지적은 임의 기준이 아니라 KS 제도 규격과 전산응용
 |---|---|---|---|
 | `EX_SURFACE_EMPTY` | 기호만 있고 거칠기 값이 없음 | KS B ISO 1302 — 기호에는 요구 값이 따라야 함 | `exam._surface` |
 | `EX_SURFACE_UNIFORM` | 모든 면이 같은 거칠기 | KS B 0161 — 기능에 따라 다듬질 정도를 구분 | `exam._surface` |
+| `EX_NO_ROUGH_TABLE` | 거칠기 기호는 있는데 다듬질 구분을 정의하는 비교표가 없음 | KS A ISO 1302 표면 성상 표시 — 기호가 뜻하는 값을 도면에서 정의해야 한다. 채점 기준의 표면거칠기 항목 | `exam._surface` |
 | `EX_SURFACE_FEW` | 가공면 대비 기호 수가 부족 | KS B ISO 1302 — 가공면에는 기호 기입 | `exam._surface` |
 
 DXF에서는 `√`, `Ra/Rz/Ry` 값, 다듬질 기호(w/x/y/z)를 문자에서 인식합니다
@@ -72,15 +74,38 @@ DXF에서는 `TOLERANCE` 엔티티와 GDT 문자열(`{\Fgdt;…}%%v0.011%%vA`)�
 
 | 코드 | 지적 내용 | 근거 | 구현 |
 |---|---|---|---|
+| `EX_NO_SPEC_TABLE` | 부품란에 기어·스프링이 있는데 요목표가 없음 | 공개문제 요구사항 — 기어·스프링은 잇수·모듈·압력각 등을 요목표로 적는다. KS B ISO 1328-1 · KS B 2401 | `exam._spec_table` |
 | `EX_NO_NOTES` | 주서가 없음 | KS B ISO 2768-1 — 일반공차는 도면에 명시해야 적용됨 | `exam._notes` |
 | `EX_NOTE_ITEM` | 주서에 일반공차·표면거칠기·모떼기 문구 누락 | KS B ISO 2768-1, KS B ISO 13715 모서리 지시 | `exam._notes` |
+| `EX_SHEET_SIZE` | 도면 영역이 요구 크기(A2)와 다름 | KS A ISO 5457 제도 용지 · 공개문제 요구사항 'A2 용지에 제도' | `exam._disqualifiers` |
+| `EX_NO_PROJECTION_MARK` | 표제란에 각법 표기가 없음 | KS A ISO 128-30 투상법 — 도면에 투상법을 표시한다 | `exam._sheet_form` |
+| `EX_NO_SHEET_SCALE` | 표제란에 척도 표기가 없음 | KS A ISO 5455 척도 · KS A ISO 7200 표제란 기재 항목 | `exam._sheet_form` |
+| `EX_SCALE_NOT_ONE` | 부품도 척도가 1:1 이 아님 | 공개문제 요구사항 — 부품도 척도 1:1 (3D 등각투상도는 NS) | `exam._sheet_form` |
+| `EX_VIEW_SCALE_MIXED` | 뷰마다 척도가 다름 | KS A ISO 5455 — 전체와 다른 척도는 그 뷰 옆에 적는다. 확대·상세도는 예외 | `exam._sheet_form` |
 | `EX_NO_TITLEBLOCK` | 표제란·도면 양식이 없음 | KS A ISO 7200 표제란 항목, KS B ISO 5457 도면 양식 | `exam._notes` |
 
 ## 재료 선택과 처리 (7점)
 
 | 코드 | 지적 내용 | 근거 | 구현 |
 |---|---|---|---|
+| `EX_NO_MATERIAL` | 표제란·부품란에 재료 기호가 없음 | KS D 재료 기호 · 채점 기준의 '올바른 재료 선택' | `exam._sheet_form` |
+| `EX_NO_MASS` | 3D 등각투상도 부품란 비고에 질량이 없음 | 공개문제 요구사항 — 질량을 g 단위로 소수점 첫째자리까지 적는다 | `exam._sheet_form` |
 | `EX_NO_HEAT` | 열처리·표면처리 지시가 없음 | KS D 재료 기호 및 열처리 표기 관행, 채점 기준의 재료 항목 | `exam._material` |
+
+## 도면 배치와 외관 (10점)
+
+공개된 채점 기준표의 8번 항목입니다. 세부 항목이 `각 부품의 균형 배치 5점` ·
+`용도에 맞는 선 굵기 3점` · `문자의 선 굵기 및 크기 2점` 인데, 이 중 **균형 배치는
+규칙으로 만들지 않았습니다.** 실제 도면 30장에서 치우침을 재 보니 표제란이 오른쪽
+아래를 차지해 멀쩡한 도면이 전부 왼쪽으로 치우쳐 나왔습니다(x -0.10 ~ -0.31).
+정상과 불량이 안 갈려서 그 5점은 투상도 AI 판정에 남겼습니다.
+
+| 코드 | 지적 내용 | 근거 | 구현 |
+|---|---|---|---|
+| `EX_LINEWEIGHT_FLAT` | 외형선과 치수·중심선의 굵기 비가 2배 미만 | KS B 0001 / KS A ISO 128-20 — 가는 선 : 굵은 선 : 아주 굵은 선 = 1 : 2 : 4 | `exam._appearance` |
+| `EX_LINEWEIGHT_NONE` | 레이어에 선 굵기가 하나도 지정되지 않음 | 같음. 굵기를 안 정하면 출력에서 전부 같은 굵기로 나온다 | `exam._appearance` |
+| `EX_TEXT_SIZE` | 치수 문자 크기가 3.15·3.5mm 가 아님 | KS A 0107 문자 크기 호칭(2.24·3.15·4.5·6.3·9)과 ISO 계열(2.5·3.5·5·7·10) | `exam._appearance` |
+| `EX_OUTSIDE_FRAME` | 윤곽선 밖에 그려진 요소 | 수험자 유의사항 — 도면 범위 밖 요소가 출력에 섞이지 않게 | `exam._appearance` |
 
 ## 투상도 선택과 배열 (30점)
 
@@ -92,6 +117,8 @@ AI 판정으로 따로 다룹니다.
 |---|---|---|---|
 | `EX_FEW_VIEWS` | 투상도 개수 부족 | KS A ISO 128-30 투상법 — 형상을 규정할 만큼의 투상도 필요 | `exam._projection` |
 | `EX_NO_CENTERLINE` | 원·대칭 형상에 중심선·중심마크 없음 | KS A ISO 128-20/24 선의 종류 — 중심선은 가는 1점 쇄선 | `exam._projection` |
+| `EX_LAYOUT_FIRST_ANGLE` | 정면도에 줄이 맞는 투상도가 아래·왼쪽에만 있음 | KS A ISO 128-30 투상법 — 제3각법은 평면도가 위, 우측면도가 오른쪽 | `dwg.analyze_layout` · `exam._projection` |
+| `EX_NO_SECTION` | 은선만 있고 단면(해칭)이 없음 | KS A ISO 128-40 단면 표시 — 내부 형상은 은선보다 단면도로 나타낸다. 채점 항목 '올바른 단면도 수' | `exam._projection` |
 | `EX_VIEW_NO_LABEL` | 단면도·상세도에 문자 표기 없음 | KS A ISO 128-40 단면 표시, 128-34 부분 확대도 | `exam._projection` |
 | `EX_VIEW_NO_SCALE` | 전체 척도와 다른 뷰에 척도 표기 없음 | KS A ISO 5455 척도 | `exam._projection` |
 | `AI_PROJECTION` | 투상도 선택·배열 AI 판정 | 채점 기준의 투상도 30점 항목 | `ai_review.judge` |

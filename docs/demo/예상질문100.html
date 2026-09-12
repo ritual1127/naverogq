@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>CADLens 예상 질의응답 100</title>
+<style>
+@page { size: A4; margin: 9mm 9mm 8mm 9mm; }
+* { box-sizing: border-box; }
+body { font-family: "맑은 고딕","Malgun Gothic",sans-serif; font-size: 8.4pt; line-height: 1.34; margin:0; color:#111; }
+h1 { font-size: 13pt; margin:0 0 1.2mm 0; }
+.sub { font-size: 7.6pt; color:#333; margin-bottom:2mm; padding-bottom:1.4mm; border-bottom:0.8pt solid #333; }
+.cols { column-count: 2; column-gap: 6mm; column-fill: auto; }
+h2 { font-size: 8.8pt; margin:2.2mm 0 1.1mm 0; padding:0.7mm 1.2mm; background:#222; color:#fff; break-after:avoid; break-inside:avoid; }
+.qa { margin:0 0 1.3mm 0; break-inside: avoid; }
+.q { font-weight:700; }
+.q b { display:inline-block; min-width:5.4mm; }
+.a { color:#222; }
+.a::before { content:"— "; color:#777; }
+.note { margin-top:1.6mm; font-size:7.6pt; color:#444; border-top:0.7pt solid #999; padding-top:1mm; }
+</style></head><body>
+<h1>CADLens · 데모데이 예상 질의응답 100 <span style="font-size:8pt;font-weight:400;">— 2026-09-09 · 팀 네이놈 · 구미전자공고</span></h1>
+<div class="sub"><b>원칙</b> — 모르는 건 모른다고, 안 되는 건 안 된다고 답한다. 아래 답은 저장소 기록(README · docs/accuracy.md · docs/impact.md · plan/문제점 P01~P21)에 있는 사실만 적었다. 없는 숫자는 비워 뒀다. <b>답변 분담</b> — 지표: 안대열 · 코드/AI: 박지완 · 사용자·인터뷰: 장우영·김승준.</div>
+<div class="cols">
+
+<h2>A. 문제와 사용자 (1–12)</h2>
+<div class="qa"><div class="q"><b>1.</b> 뭘 만들었나요?</div><div class="a">전산응용기계제도기능사 실기 도면(DWG·DXF)을 올리면 31개 항목을 검사해 빠진 것을 도면 위에 번호로 찍어 주는 웹 서비스입니다. 90점 중 60점은 규칙 코드, 30점은 AI가 채점합니다.</div></div>
+<div class="qa"><div class="q"><b>2.</b> 왜 이 문제를 골랐나요?</div><div class="a">팀원이 직접 겪었습니다. 못 그려서 떨어지는 게 아니라 다 그려 놓고 표기를 빠뜨려서 떨어집니다. 그중 몇 개는 감점이 아니라 바로 오작(실격)입니다.</div></div>
+<div class="qa"><div class="q"><b>3.</b> 사용자는 누구인가요?</div><div class="a">이 종목 실기 준비생입니다. 대부분 특성화고·마이스터고 학생이라 미성년자가 주 사용자라는 전제로 설계했습니다.</div></div>
+<div class="qa"><div class="q"><b>4.</b> 문제가 얼마나 큰가요?</div><div class="a">실기 응시가 5년째 연 3천 명대, 합격률 45~53%라 매년 1,500~1,700명이 떨어집니다. Q-Net 통계를 나무위키 정리표에서 옮긴 값이라 저희가 직접 계산한 숫자는 아닙니다.</div></div>
+<div class="qa"><div class="q"><b>5.</b> 사용자 검증은 했나요?</div><div class="a">대면 인터뷰 5건(1인 약 30분, 구미전자공고 자동화관)과 웹 폼 1건입니다. 5명 모두 이미 시간이나 돈을 쓰고 있었고 그중 4명은 실제 지출(교재·강의·출력·학원)이 있었습니다.</div></div>
+<div class="qa"><div class="q"><b>6.</b> 인터뷰에서 예상이 틀린 게 있었나요?</div><div class="a">있습니다. "채점 뒤에야 안다"고 봤는데 5명 중 4명은 제출 전에 스스로나 옆 사람이 찾았습니다. 진짜 손해는 고치는 데 든 시간(11·11·11·24·85분)이었습니다.</div></div>
+<div class="qa"><div class="q"><b>7.</b> 그럼 제품 방향이 바뀌나요?</div><div class="a">값어치가 "빠진 걸 알려 주는 것"보다 "더 일찍 알려 주는 것"에 있다고 봤습니다. 아직 제품에 반영하지는 못했고 발전 계획에 남겨 뒀습니다.</div></div>
+<div class="qa"><div class="q"><b>8.</b> 경쟁 상대는 누구인가요?</div><div class="a">다른 검사 도구가 아니라 옆자리 친구와 종이 한 장입니다. 인터뷰에서 아무도 "프로그램으로 확인한다"고 하지 않았습니다.</div></div>
+<div class="qa"><div class="q"><b>9.</b> 학원·인강과 뭐가 다른가요?</div><div class="a">대체하려는 게 아닙니다. 사람이 반복하는 확인만 걷어내고, "왜 이 면을 정면도로 골랐나" 같은 건 여전히 사람 몫입니다.</div></div>
+<div class="qa"><div class="q"><b>10.</b> 도면을 대신 그려 주면 더 좋지 않나요?</div><div class="a">일부러 안 합니다. 대신 그려 주면 실기 공부가 안 됩니다. 지적과 고치는 법까지만 합니다.</div></div>
+<div class="qa"><div class="q"><b>11.</b> 실제로 쓸까요?</div><div class="a">아직 모릅니다. 홍보를 안 했고 실사용 데이터가 없습니다. 정확도를 먼저 올리고 나서 확인할 계획입니다.</div></div>
+<div class="qa"><div class="q"><b>12.</b> 현직 선생님 자문은 받았나요?</div><div class="a">구미전자공업고 김민정 선생님께 받아 검사 항목과 지적 문구에 반영했습니다. 다만 채점자 쪽 질문 셋(자주 나오는 실수·한 반 채점 시간·배부 목록)은 아직 답을 못 받아 대조표가 비어 있습니다(P12).</div></div>
+
+<h2>B. 제품과 기능 (13–27)</h2>
+<div class="qa"><div class="q"><b>13.</b> 어떻게 쓰나요?</div><div class="a">웹에 들어가 도면을 끌어다 놓으면 끝입니다. 설치도 회원가입도 없습니다.</div></div>
+<div class="qa"><div class="q"><b>14.</b> 지원 형식은?</div><div class="a">DWG·DXF, zip 묶음입니다. Inventor의 ipt·idw·iam은 아직 안 됩니다.</div></div>
+<div class="qa"><div class="q"><b>15.</b> 검사 항목은 몇 개인가요?</div><div class="a">규칙 검사 31개와 실격 판정 5가지입니다. 2026-09-08에 7개를 새로 붙였습니다 — 도면 영역 크기·각법 표기·표제란 척도·부품도 척도·뷰별 척도 섞임·재료 기호·3D 질량.</div></div>
+<div class="qa"><div class="q"><b>16.</b> 배점은 어떻게 되나요?</div><div class="a">투상도 30(AI)·치수 15·끼워맞춤 10·표면거칠기 10·기하공차 10·주서/표제란 8·재료/열처리 7, 합계 90점입니다.</div></div>
+<div class="qa"><div class="q"><b>17.</b> 채점 기준은 어디서 가져왔나요?</div><div class="a">KS 규격과 공개된 채점 기준만 봤습니다. 비공개 채점표를 베낀 적은 없고, 항목별 근거는 docs/rule_standards.md에 정리했습니다.</div></div>
+<div class="qa"><div class="q"><b>18.</b> 이 점수가 공식 점수인가요?</div><div class="a">아닙니다. 한국산업인력공단·Q-Net과 아무 관계가 없는 보조 도구입니다. 화면에도 그렇게 적어 뒀습니다.</div></div>
+<div class="qa"><div class="q"><b>19.</b> 결과 화면에 뭐가 나오나요?</div><div class="a">점수, 실격/오류/경고/참고로 나눈 지적 목록, 도면 위 번호 마커, 지적별 질문 버튼 3개입니다.</div></div>
+<div class="qa"><div class="q"><b>20.</b> 질문 버튼은 뭔가요?</div><div class="a">"왜 감점이야" "어디를 눌러" "고친 뒤 확인은" 셋입니다. 채점할 때 답을 미리 만들어 두어 버튼을 눌러도 서버를 다시 부르지 않습니다.</div></div>
+<div class="qa"><div class="q"><b>21.</b> 왜 자유 질문은 못 하게 했나요?</div><div class="a">주 사용자가 미성년자라 AI를 도면 채점 역할에 묶어 두는 편이 안전하고, 정해진 질문만 쓰면 답을 캐시해 무료 할당량도 아낍니다.</div></div>
+<div class="qa"><div class="q"><b>22.</b> 재검사 비교가 뭔가요?</div><div class="a">고쳐서 다시 올리면 고쳐짐/그대로/새로 생김과 점수 변화를 보여 줍니다.</div></div>
+<div class="qa"><div class="q"><b>23.</b> 얼마나 걸리나요?</div><div class="a">규칙 검사는 1초 미만, AI까지 포함하면 몇 초입니다. 같은 도면이면 저장해 둔 AI 답을 씁니다.</div></div>
+<div class="qa"><div class="q"><b>24.</b> 다국어 지원은?</div><div class="a">한국어·영어·일본어·중국어입니다. 도면마다 문장이 달라 AI로 번역하는데, Groq 경로일 때는 분당 토큰 한도 때문에 항목 이름과 일반 안내만 나올 때가 있습니다.</div></div>
+<div class="qa"><div class="q"><b>25.</b> 모바일에서도 되나요?</div><div class="a">열리기는 하지만 도면을 확대해 보는 화면이라 PC 기준으로 만들었습니다.</div></div>
+<div class="qa"><div class="q"><b>26.</b> 설치형·오프라인 버전은?</div><div class="a">없습니다. 다만 코드가 MIT로 공개돼 있어 Docker로 직접 띄울 수는 있습니다.</div></div>
+<div class="qa"><div class="q"><b>27.</b> 일부러 안 만든 것은?</div><div class="a">회원가입·로그인, 채팅·댓글·프로필, 3D 파싱, 다른 종목 확장, 반 단위 화면, 도면 자동 수정입니다. MVP 범위표에 이유까지 적어 뒀습니다.</div></div>
+
+<h2>C. 기술과 구조 (28–45)</h2>
+<div class="qa"><div class="q"><b>28.</b> 어떤 기술로 만들었나요?</div><div class="a">Python 3.13·FastAPI·ezdxf·PyMuPDF·Pillow, Docker로 Render에 배포합니다. 웹 화면은 HTML·CSS·JS 한 파일입니다.</div></div>
+<div class="qa"><div class="q"><b>29.</b> 왜 React를 안 썼나요?</div><div class="a">화면이 한 장이라 빌드 과정 없이 파일 하나만 열면 되게 하고 싶었습니다.</div></div>
+<div class="qa"><div class="q"><b>30.</b> DWG는 어떻게 읽나요?</div><div class="a">서버 안에 설치한 LibreDWG(dwg2dxf)로 DXF로 바꿉니다. 변환하려고 도면을 외부로 보내지 않습니다.</div></div>
+<div class="qa"><div class="q"><b>31.</b> 도면에서 무엇을 뽑나요?</div><div class="a">치수와 치수 문자, 거칠기 기호·값, 기하공차(TOLERANCE 엔티티·GDT 글꼴 문자)와 데이텀, 중심선, 표제란, 윤곽선입니다.</div></div>
+<div class="qa"><div class="q"><b>32.</b> 규칙 채점은 어떻게 하나요?</div><div class="a">exam.py의 조건식입니다. AI를 부르지 않아 같은 도면이면 항상 같은 결과가 나옵니다.</div></div>
+<div class="qa"><div class="q"><b>33.</b> 도면 그림은 어떻게 만드나요?</div><div class="a">PyMuPDF로 PNG를 그려 화면 미리보기와 AI 입력에 같이 씁니다. 지적 좌표에 번호 마커를 찍습니다.</div></div>
+<div class="qa"><div class="q"><b>34.</b> 같은 도면을 또 올리면?</div><div class="a">저장해 둔 AI 응답을 그대로 씁니다. 09-08까지는 열쇠를 그림 해시로 만들어 <b>캐시가 한 번도 안 맞았고</b>(같은 도면도 렌더가 미세하게 달라짐), 도면 파일 내용으로 바꿔 고쳤습니다 — 같은 도면 두 번째 검사가 7.2초에서 1.5초, 점수도 같습니다(P21).</div></div>
+<div class="qa"><div class="q"><b>35.</b> 서버 비용은?</div><div class="a">Render 서버 1대와 AI 무료 티어로 돌아갑니다. 지금 규모에서는 실질 비용이 거의 없습니다.</div></div>
+<div class="qa"><div class="q"><b>36.</b> 동시 접속이 몰리면?</div><div class="a">부하 시험을 안 해 봤습니다. 몇 명까지 버티는지 지금은 답할 수 없습니다.</div></div>
+<div class="qa"><div class="q"><b>37.</b> 테스트는 어떻게 하나요?</div><div class="a">pytest 자동 테스트를 커밋마다 GitHub Actions에서 돌리고, bench.py --check로 정확도가 기준 아래로 떨어지면 실패하게 해 뒀습니다.</div></div>
+<div class="qa"><div class="q"><b>38.</b> 큰 도면도 되나요?</div><div class="a">선 6,373개짜리 실제 DWG는 처리했습니다. 상한이 어디인지는 재 본 적 없습니다.</div></div>
+<div class="qa"><div class="q"><b>39.</b> 다른 CAD가 만든 파일은?</div><div class="a">한 번 통째로 터진 적이 있습니다(P11). 예외 처리를 고쳐 지금은 한 요소가 이상해도 검사 전체가 멈추지 않습니다.</div></div>
+<div class="qa"><div class="q"><b>40.</b> 마커 위치는 정확한가요?</div><div class="a">엔티티 좌표를 그대로 씁니다. 다만 뷰 경계를 알 수 없는 순수 DXF에서는 위치가 대략적일 수 있습니다.</div></div>
+<div class="qa"><div class="q"><b>41.</b> 도면 단위는 어떻게 처리하나요?</div><div class="a">$INSUNITS로 밀리미터로 환산합니다. 처음엔 이걸 안 해서 미터·인치 도면이 백지로 렌더됐습니다(P01, 해결).</div></div>
+<div class="qa"><div class="q"><b>42.</b> 변환이나 AI가 실패하면?</div><div class="a">DWG 변환이 안 되면 "DXF로 내보내 올려 달라"고 안내하고, AI 네 경로가 다 막히면 30점을 "사람 확인 필요"로 비웁니다.</div></div>
+<div class="qa"><div class="q"><b>43.</b> 코드는 공개돼 있나요?</div><div class="a">GitHub에 MIT로 공개돼 있습니다. 틀린 게 있으면 누구든 지적할 수 있게 하려는 목적입니다.</div></div>
+<div class="qa"><div class="q"><b>44.</b> AI가 짜 준 코드는 얼마나 되나요?</div><div class="a">초안은 상당 부분 Claude Code와 GPT로 썼습니다. 항목 선정·KS 규격 대조·배점·검증은 사람이 했고, AI가 쓴 것도 전부 사람이 확인한 뒤 넣었습니다.</div></div>
+<div class="qa"><div class="q"><b>45.</b> 다른 사람이 그대로 돌려볼 수 있나요?</div><div class="a">Dockerfile이 있어 로컬에서 같은 환경으로 띄울 수 있습니다. AI 키가 없으면 규칙 60점만 돕니다.</div></div>
+
+<h2>D. AI 활용 (46–60)</h2>
+<div class="qa"><div class="q"><b>46.</b> 왜 AI가 필요한가요?</div><div class="a">"정면도를 잘 골랐나", "뷰가 균형 있게 놓였나"는 조건식으로 적을 수 없습니다. 눈으로 봐야 하고, 하필 배점이 가장 큰 30점이 여기입니다.</div></div>
+<div class="qa"><div class="q"><b>47.</b> 어떤 모델을 쓰나요?</div><div class="a">Gemini 3.6 Flash가 1순위, 막히면 Cloudflare Workers AI(Llama 4 Scout) → Mistral Small → Groq(Qwen3.6) 순서입니다.</div></div>
+<div class="qa"><div class="q"><b>48.</b> 왜 네 곳이나 붙였나요?</div><div class="a">한 곳의 무료 할당량이 마르면 배점 최대 항목이 통째로 멈춥니다. 네 경로가 같은 프롬프트와 같은 JSON 스키마를 써서 어디로 가도 결과 형식이 같습니다. 다만 이 폴백이 <b>키가 없을 때만</b> 돌고 실행 중 503·429에는 안 돌던 버그가 있어 09-08에 고쳤습니다(P20).</div></div>
+<div class="qa"><div class="q"><b>49.</b> Gemini를 1순위로 둔 이유는?</div><div class="a">무료 티어가 있고, 이미지 입력과 JSON 스키마 강제가 되며, 응답이 빨라 검사 대기시간에 맞았습니다.</div></div>
+<div class="qa"><div class="q"><b>50.</b> 모델을 직접 학습시켰나요?</div><div class="a">아닙니다. 라벨 붙은 도면 자체가 없어서 학습할 데이터가 없습니다.</div></div>
+<div class="qa"><div class="q"><b>51.</b> AI 점수가 매번 같나요?</div><div class="a">아닙니다. 같은 도면을 5번 채점했더니 0·0·5·9·18점, 표준편차 7.5점이었습니다. 열려 있는 문제입니다(P02).</div></div>
+<div class="qa"><div class="q"><b>52.</b> 왜 흔들리나요?</div><div class="a">무엇을 지적하는지는 일정한데 감점 폭이 흔들립니다. 프롬프트가 준 범위(8~12점)를 벗어난 판정이 나온 적도 있습니다.</div></div>
+<div class="qa"><div class="q"><b>53.</b> 어떻게 줄일 계획인가요?</div><div class="a">한 지적이 30점을 다 깎지 못하게 상한(12점)을 걸었고, 뷰 개수·제3각법 배치처럼 좌표로 계산 가능한 것은 규칙으로 옮기려 합니다. 여러 번 물어 중앙값을 쓰는 방법은 비용이 늘어 보류입니다.</div></div>
+<div class="qa"><div class="q"><b>54.</b> AI 쪽에서 찾은 가장 큰 버그는?</div><div class="a">AI가 백지를 채점하고 있었습니다. 도면 범위를 그대로 밀리미터로 봐서 201바이트짜리 빈 그림을 보냈습니다. 고쳤지만 편차는 줄지 않았고, 원인이 프롬프트·모델 쪽임이 드러났습니다.</div></div>
+<div class="qa"><div class="q"><b>55.</b> 같은 지적인데 문구가 달라지지 않나요?</div><div class="a">달라졌습니다("투상도 전체 누락"/"완전 누락"). 사용자에게 다른 지적처럼 보여서 제목을 고정하도록 고쳤습니다(P03).</div></div>
+<div class="qa"><div class="q"><b>56.</b> AI가 틀리게 감점하면?</div><div class="a">"확실하지 않으면 감점하지 말고 참고로 남겨라"를 프롬프트에 넣었고, 스키마를 벗어난 응답은 버리고 "사람 확인 필요"로 둡니다.</div></div>
+<div class="qa"><div class="q"><b>57.</b> 환각은 어떻게 검증하나요?</div><div class="a">지금은 사람이 도면을 열어 대조하는 것뿐입니다. AI 오답 사례집은 아직 못 만들었고 발전 계획에 있습니다.</div></div>
+<div class="qa"><div class="q"><b>58.</b> 사용자는 AI 채점인 걸 아나요?</div><div class="a">AI가 매긴 항목에 AI 표시가 붙고, 확정 점수가 아니라고 화면과 공개 고지에 적어 뒀습니다.</div></div>
+<div class="qa"><div class="q"><b>59.</b> 프롬프트 주입 위험은?</div><div class="a">사용자가 문장을 넣을 곳이 없고 입력은 도면 그림 한 장이라 경로가 좁습니다. 도면 안 문자를 통한 주입까지 시험해 보지는 않았습니다.</div></div>
+<div class="qa"><div class="q"><b>60.</b> AI가 다 죽으면 서비스가 멈추나요?</div><div class="a">규칙 60점과 실격 판정은 그대로 돕니다. 30점은 비우고 AI가 꺼져 있다고 표시합니다. 없는 점수를 채우지 않습니다.</div></div>
+
+<h2>E. 정확도와 검증 (61–73)</h2>
+<div class="qa"><div class="q"><b>61.</b> 정확도가 몇 %인가요?</div><div class="a">합성 기준 도면 100장에서 완전 일치 100장, 검출률·정확도 각각 100%(결함 106건 중 106건)입니다.</div></div>
+<div class="qa"><div class="q"><b>62.</b> 그 100%를 믿어도 되나요?</div><div class="a">아니요. 도면을 만든 사람과 검사 규칙을 만든 사람이 같습니다. "우리가 심은 결함을 우리 규칙이 잡는다"는 뜻이지 현장 정확도가 아닙니다.</div></div>
+<div class="qa"><div class="q"><b>63.</b> 실제 수험생 도면으로는 몇 %인가요?</div><div class="a">숫자가 없습니다. 가진 실기 도면이 2장뿐이고 라벨 파일이 비어 있어 측정 자체를 못 돌립니다.</div></div>
+<div class="qa"><div class="q"><b>64.</b> 왜 실제 도면이 없나요?</div><div class="a">인터뷰 5건은 받았지만 도면은 못 받았습니다. 미성년자 자료라 동의 절차부터 필요합니다. 이게 지금 저희가 제일 막힌 곳입니다(P04·P10).</div></div>
+<div class="qa"><div class="q"><b>65.</b> 실제 도면에서 무슨 일이 있었나요?</div><div class="a">가진 도면 9장이 전부 오작으로 찍혔습니다. 실기 도면은 기하공차를 전용 글꼴(AIGDT)로 알파벳 한 글자를 찍어 만드는데, 글자만 읽으면 b라서 못 알아봤습니다(P17). 고친 뒤 2장이 오작에서 빠졌습니다.</div></div>
+<div class="qa"><div class="q"><b>66.</b> 그걸 왜 넉 달이나 몰랐나요?</div><div class="a">합성 도면은 저희가 유니코드 기호로 그렸기 때문입니다. 합성 도면 숫자만으로는 안 된다는 걸 이 사건이 보여 줍니다.</div></div>
+<div class="qa"><div class="q"><b>67.</b> 헛지적 사례도 있나요?</div><div class="a">있었습니다. 실기 도면 2장에서 끼워맞춤 기호가 없다고 잘못 지적했습니다. 실제 CAD가 쓰는 Ø&lt;&gt;H7 서식을 못 읽어서였고 고쳤습니다.</div></div>
+<div class="qa"><div class="q"><b>68.</b> 아직 못 잡는 게 뭔가요?</div><div class="a">선으로만 그린 거칠기 기호, 직접 그린 기하공차 기입틀, 이름이 CENTER 계열이 아닌 중심선, 선 4개로 그린 윤곽선입니다.</div></div>
+<div class="qa"><div class="q"><b>69.</b> 원리상 못 잡는 것은?</div><div class="a">A4로 출력해 잘리는 것, 파일 저장 실패 같은 것입니다. DXF 안에 없는 정보라 범위 밖으로 뒀습니다.</div></div>
+<div class="qa"><div class="q"><b>70.</b> 인터뷰에서 나온 실수는 다 잡나요?</div><div class="a">다섯 명 중 둘만 온전히 잡습니다. 전체 1:1인데 한 뷰만 2:1인 경우는 2:1이 표준 척도라 안 걸리고, 프린터 설정은 범위 밖입니다.</div></div>
+<div class="qa"><div class="q"><b>71.</b> 멀쩡한 도면을 실격 처리하면 위험하지 않나요?</div><div class="a">가장 위험한 종류로 보고 있습니다. 반대로 실격 도면을 통과시킨 적도 있어(축 표시 X·Y·Z를 거칠기 기호로 오인) 그것부터 고쳤습니다. 지금은 판별이 안 되면 "없다"고 하지 않고 검사를 건너뜁니다.</div></div>
+<div class="qa"><div class="q"><b>72.</b> 정확도는 어떻게 재나요?</div><div class="a">정답 라벨이 붙은 도면을 실제 분석 경로로 통과시켜 지적 목록을 정답과 비교합니다(bench.py). 부분 정답은 후하게 쳐주지 않습니다.</div></div>
+<div class="qa"><div class="q"><b>73.</b> 실제 정확도는 언제 나오나요?</div><div class="a">라벨 붙은 학생 도면이 들어와야 합니다. 날짜를 못 박겠습니다. 그래서 오늘 도면을 동의받아 모으는 방법을 여쭙고 싶습니다.</div></div>
+
+<h2>F. 지표와 임팩트 (74–82)</h2>
+<div class="qa"><div class="q"><b>74.</b> 사용자가 몇 명인가요?</div><div class="a">의미 있는 숫자가 없습니다. 홍보를 안 했습니다. 접속 수와 검사 횟수는 서버가 직접 세서 화면 아래에 그대로 공개합니다.</div></div>
+<div class="qa"><div class="q"><b>75.</b> 왜 홍보를 안 했나요?</div><div class="a">정확도 검증 전에 사람을 데려오면 저희 실수가 그대로 수험생 도면으로 옮겨 갑니다. 순서를 바꾸지 않기로 했습니다.</div></div>
+<div class="qa"><div class="q"><b>76.</b> 북극성 지표는?</div><div class="a">주간 재검사 사용자 수, 즉 고쳐서 다시 올린 사람입니다. 지금 0명, 8주 뒤 주 20명이 목표입니다.</div></div>
+<div class="qa"><div class="q"><b>77.</b> 왜 그 지표인가요?</div><div class="a">다시 올렸다는 건 지적을 이해하고 실제로 고쳤다는 뜻이라, 방문 수보다 저희가 쓸모 있었는지를 잘 보여 줍니다.</div></div>
+<div class="qa"><div class="q"><b>78.</b> 그 숫자는 정확한가요?</div><div class="a">아직 아닙니다. "재검사한 사람"이 재검사가 아닌 것도 세고 있었고 지금 부분만 고쳤습니다(P16).</div></div>
+<div class="qa"><div class="q"><b>79.</b> 그럼 측정한 건 뭔가요?</div><div class="a">검사 항목 31개, 합성 도면 100장 완전 일치, 헛지적 0건, AI 점수 편차 폭 18점, 자동 테스트 40개를 커밋마다 실행입니다.</div></div>
+<div class="qa"><div class="q"><b>80.</b> 학습 시간 단축이나 합격률 개선은요?</div><div class="a">못 쟀습니다. 실사용자와 비교군이 있어야 하는 숫자라 지금은 만들 수 없습니다. 지어내지 않겠습니다.</div></div>
+<div class="qa"><div class="q"><b>81.</b> 개인정보 없이 어떻게 세나요?</div><div class="a">IP를 그 주에만 쓰는 값과 함께 해시해 앞 16자만 남기고 원본은 저장하지 않습니다.</div></div>
+<div class="qa"><div class="q"><b>82.</b> 8주 목표 대비 지금 어디인가요?</div><div class="a">4주차입니다. 규칙 검사·AI 채점·도면 위 마커·질문 버튼·재검사 비교는 돌아갑니다. 남은 건 실제 도면 정확도와 AI 편차입니다.</div></div>
+
+<h2>G. 사업화 (83–89)</h2>
+<div class="qa"><div class="q"><b>83.</b> 수익 모델이 뭔가요?</div><div class="a">지금은 없습니다. 매출 0이고 결제 구조도 안 붙였습니다.</div></div>
+<div class="qa"><div class="q"><b>84.</b> 그럼 제일 현실적인 건?</div><div class="a">학교에 파는 방식입니다. 반 단위 화면으로 선생님 채점 시간을 줄여 주고 연 단위로 계약하는 구조인데, 미성년자에게 직접 결제를 붙이지 않아도 됩니다.</div></div>
+<div class="qa"><div class="q"><b>85.</b> 개인 유료화는?</div><div class="a">기본 검사는 계속 무료로 두고 상세 첨삭·기록 보관·PDF 리포트만 유료로 생각합니다. 결제는 보호자나 학교 계정으로만 열어야 합니다.</div></div>
+<div class="qa"><div class="q"><b>86.</b> 시장이 너무 작지 않나요?</div><div class="a">작습니다. 한 종목만 보면 연 3천 명대입니다. 그래서 인접 종목 확장을 전제로 봅니다.</div></div>
+<div class="qa"><div class="q"><b>87.</b> 다른 종목으로 넓힐 수 있나요?</div><div class="a">판정 함수 8개와 루브릭 7개를 4개 종목 출제기준에 대 봤더니 재사용률이 50~90%였습니다. 조사만 했고 구현은 안 했습니다.</div></div>
+<div class="qa"><div class="q"><b>88.</b> 지금 팔 수 있나요?</div><div class="a">못 팝니다. 실제 도면 정확도 검증, AI 점수 편차, GPL·AGPL 라이선스 정리, 미성년자 결제 규제가 먼저입니다.</div></div>
+<div class="qa"><div class="q"><b>89.</b> 사용자가 늘면 비용은?</div><div class="a">캐시가 있어 같은 도면은 AI 비용이 0이지만, 무료 티어를 넘기면 유료 전환이 필요합니다. 아직 그 지점을 계산해 두지 않았습니다.</div></div>
+
+<h2>H. 개인정보·안전·법 (90–96)</h2>
+<div class="qa"><div class="q"><b>90.</b> 개인정보를 받나요?</div><div class="a">가입·로그인이 없고 이름·연락처를 받지 않습니다. 쿠키와 외부 추적 코드도 없습니다.</div></div>
+<div class="qa"><div class="q"><b>91.</b> 올린 도면은 어떻게 되나요?</div><div class="a">최대 1시간 뒤 지웁니다. 다만 삭제가 정해진 주기가 아니라 다음 검사 요청 때 도는 구조라, 방문이 뜸하면 문구보다 늦게 지워질 수 있습니다(P15, 부분 해결).</div></div>
+<div class="qa"><div class="q"><b>92.</b> 도면이 외부로 나가나요?</div><div class="a">AI 채점 때 PNG 1장과 요약만 나갑니다. 원본 DWG·DXF는 나가지 않습니다. 표제란에 이름이 있으면 그림에 같이 찍히므로 지우고 올리라고 안내합니다.</div></div>
+<div class="qa"><div class="q"><b>93.</b> 도면을 학습에 쓰나요?</div><div class="a">저희는 쓰지 않고 팔지도 않습니다. 외부 API로 나가는 그림은 그 제공자 약관을 따릅니다.</div></div>
+<div class="qa"><div class="q"><b>94.</b> 미성년자 안전은?</div><div class="a">결제·광고·추적이 없고 채팅·댓글·프로필처럼 사용자끼리 만날 기능이 아예 없습니다. AI는 채점 역할로 고정하고 응답을 JSON 스키마로 묶었습니다.</div></div>
+<div class="qa"><div class="q"><b>95.</b> 라이선스 문제는 없나요?</div><div class="a">코드는 MIT지만 LibreDWG가 GPL-3.0, PyMuPDF가 AGPL-3.0입니다. NOTICE.md에 적어 뒀고, 소스를 안 열고 팔려면 이 둘을 먼저 정리해야 합니다.</div></div>
+<div class="qa"><div class="q"><b>96.</b> 사고가 있었나요?</div><div class="a">있었습니다. 인터뷰 대상자 실명이 공개 저장소에 올라갔습니다. 지금 파일은 다 가렸지만 커밋 히스토리에 남아 있어 아직 열린 문제입니다(P13).</div></div>
+
+<h2>I. 팀과 진행 (97–100)</h2>
+<div class="qa"><div class="q"><b>97.</b> 팀은 어떻게 나눴나요?</div><div class="a">4명(박지완·장우영·안대열·김승준)이고 담당을 무작위로 배정해 한 사람만 늘지 않게 했습니다. 계획과 실제로 한 사람이 다르면 다른 대로 적습니다.</div></div>
+<div class="qa"><div class="q"><b>98.</b> 기여가 한쪽에 몰리지 않았나요?</div><div class="a">몰렸습니다. 배정과 달리 한 사람이 당겨서 한 항목이 여럿입니다. 역할분담 문서에 누가 대신 했는지 그대로 적어 뒀습니다.</div></div>
+<div class="qa"><div class="q"><b>99.</b> 대회가 끝나도 계속하나요?</div><div class="a">계속할 계획입니다. 다음 목표는 실제 도면 정확도와 AI 점수 편차 두 가지입니다.</div></div>
+<div class="qa"><div class="q"><b>100.</b> 지금 가장 큰 리스크는?</div><div class="a">정확도 숫자가 전부 저희가 만든 도면에서 나왔다는 점입니다. 09-08에 코드를 되짚었더니 실격 검사 5개 중 3개가 DXF에서는 뜰 수조차 없었습니다(P19). 합성 도면만 보면 이런 것이 안 보입니다. 실제 도면을 넣자마자 9장 전부 오작이 났던 것이 그 증거입니다. 학생 도면을 동의받아 모으는 방법을 조언받고 싶습니다.</div></div>
+
+<div class="note"><b>답변 원칙</b> — ① 숫자를 말할 때는 어디서 나온 숫자인지 같이 말한다(합성 도면인지 실제 도면인지). ② 모르면 "안 재 봤습니다"라고 말하고 언제 잴지 덧붙인다. ③ 열린 문제는 P번호로 답한다 — P02 AI 편차 · P04 표본 도면 · P10 도면 확보 · P12 선생님 답변 · P13 실명 히스토리.</div>
+</div></body></html>

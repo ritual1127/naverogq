@@ -993,3 +993,21 @@ def test_web_screen_knows_every_check_and_rubric_item():
     for key in ("rub:[",):
         for row in re.findall(r"rub:\[(.*?)\]", page):
             assert len(row.split("','")) == len(rubric), (key, row)
+
+
+def test_every_check_has_a_written_basis():
+    """검사마다 어느 규격·채점 기준에서 나왔는지 문서에 적혀 있다.
+
+    근거 없이 지적하면 수험생이 그 지적을 믿을 수가 없다. 검사를 새로 만들고
+    `docs/rule_standards.md` 에 한 줄 안 적으면 이 시험이 잡는다."""
+    import re
+
+    import exam
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    page = open(os.path.join(here, "docs", "rule_standards.md"),
+                encoding="utf-8").read()
+    written = set(re.findall(r"\| `([A-Z_]+)`", page))
+    ids = {c for c, *_ in exam.CHECKS}
+    assert not ids - written, sorted(ids - written)
+    assert not written - ids, sorted(written - ids)

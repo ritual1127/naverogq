@@ -1,0 +1,336 @@
+<title>데모 영상 슬라이드</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --paper:#e9edf1; --panel:#f5f7f9; --ink:#16202b; --dim:#63727f;
+    --rule:#c2ccd6; --rule-soft:#d9e0e6; --accent:#0b6bb5; --warn:#8f5300;
+    --shadow:0 1px 0 rgba(22,32,43,.05), 0 12px 28px -18px rgba(22,32,43,.45);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0f151c; --panel:#151d26; --ink:#dfe7ef; --dim:#8494a3;
+      --rule:#2a3542; --rule-soft:#212b36; --accent:#3aa9ff; --warn:#f0a020;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 14px 30px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0f151c; --panel:#151d26; --ink:#dfe7ef; --dim:#8494a3;
+    --rule:#2a3542; --rule-soft:#212b36; --accent:#3aa9ff; --warn:#f0a020;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 14px 30px -18px rgba(0,0,0,.8);
+  }
+
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+    font-size:15px; line-height:1.6;
+    padding:28px 20px 72px;
+  }
+  .wrap{max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:26px}
+
+  .mono{font-family:"IBM Plex Mono","IBM Plex Sans KR",monospace; font-variant-numeric:tabular-nums}
+  .lbl{
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+  }
+
+  /* 표제란 — 도면 오른쪽 아래 그 칸 */
+  .titleblock{border:1.5px solid var(--rule); background:var(--panel)}
+  .titleblock .top{padding:18px 20px 16px; border-bottom:1px solid var(--rule)}
+  .titleblock h1{
+    font-size:26px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px;
+    text-wrap:balance;
+  }
+  .titleblock p{margin:0; color:var(--dim); font-size:13.5px; max-width:62ch}
+  .fields{display:grid; grid-template-columns:repeat(4,1fr)}
+  .fields div{padding:11px 20px; border-right:1px solid var(--rule-soft)}
+  .fields div:last-child{border-right:0}
+  .fields b{display:block; font-size:14px; font-weight:600; margin-top:3px}
+  .fields b.warn{color:var(--warn)}
+
+  .note{
+    border-left:2.5px solid var(--accent); padding:2px 0 2px 14px;
+    color:var(--dim); font-size:13.5px;
+  }
+  .note b{color:var(--ink); font-weight:600}
+
+  /* 슬라이드 프레임 */
+  .frames{display:flex; flex-direction:column; gap:22px}
+  .secline{display:flex; align-items:baseline; gap:12px; padding-bottom:2px;
+    border-bottom:1.5px solid var(--rule); margin-top:6px}
+  .secline b{font-size:17px; font-weight:700}
+  .secline:first-child{margin-top:0}
+  figure{margin:0; border:1.5px solid var(--rule); background:var(--panel); box-shadow:var(--shadow)}
+  figcaption{
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:14px;
+    padding:11px 14px; border-bottom:1px solid var(--rule);
+  }
+  .cap{display:flex; align-items:center; gap:10px}
+  .turns{display:flex; flex-direction:column; gap:5px; min-width:0}
+  .turns .turn{display:flex; align-items:baseline; gap:10px; min-width:0}
+  .no{
+    font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600;
+    color:var(--paper); background:var(--ink);
+    padding:3px 8px; letter-spacing:.06em;
+  }
+  .who{font-size:14.5px; font-weight:600}
+  .tc{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--dim)}
+  .who{width:4.2em; flex:none}
+  .turns .tc{width:6.6em; flex:none}
+  .say{
+    flex:1 1 auto; min-width:0; font-size:13px; color:var(--dim);
+    border-left:1px solid var(--rule); padding-left:12px;
+  }
+  button{
+    font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:500;
+    letter-spacing:.03em; color:var(--ink); background:transparent;
+    border:1.5px solid var(--rule); padding:6px 12px; cursor:pointer;
+    white-space:nowrap; transition:border-color .12s, color .12s;
+  }
+  button:hover:not(:disabled){border-color:var(--accent); color:var(--accent)}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  button:disabled{cursor:default; opacity:.45}
+  button.done{border-color:var(--accent); color:var(--accent)}
+  canvas{display:block; width:100%; height:auto; background:#0c1119}
+
+  footer{
+    border-top:1px solid var(--rule); padding-top:16px;
+    color:var(--dim); font-size:13px; display:flex; flex-direction:column; gap:7px;
+  }
+  footer code{
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px;
+    background:var(--panel); border:1px solid var(--rule-soft); padding:1px 5px;
+  }
+  a{color:var(--accent)}
+  @media (max-width:640px){
+    .fields{grid-template-columns:repeat(2,1fr)}
+    .fields div{border-bottom:1px solid var(--rule-soft)}
+    figcaption{grid-template-columns:1fr}
+    .turns .turn{flex-wrap:wrap; gap:4px 10px}
+    .say{flex-basis:100%; border-left:0; padding-left:0}
+    figcaption > button{justify-self:start}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <section class="titleblock">
+    <div class="top">
+      <h1>① 문제 · ③ 다음</h1>
+      <p>3분 데모 영상에서 글자만 나오는 두 절입니다. 가운데 ② 시연 120초는 화면 녹화라
+         슬라이드가 없습니다. 장마다 PNG 로 받아 편집기에 얹으세요.</p>
+    </div>
+    <div class="fields">
+      <div><span class="lbl">산출물</span><b>3분 데모 영상</b></div>
+      <div><span class="lbl">글자 절</span><b class="mono">①30초 + ③30초</b></div>
+      <div><span class="lbl">장수</span><b class="mono">4장 · 절마다 2장</b></div>
+      <div><span class="lbl">영상 마감</span><b class="mono warn">09-08 (화) 24:00</b></div>
+    </div>
+  </section>
+
+  <p class="note">
+    <b>① 은 저희가 겪은 일에서 시작해 인터뷰로 넘어갑니다</b> — 01 은 우리 얘기라 따옴표가
+    없고 02 만 있습니다. <b>③ 은 아쉬운 점을 먼저 말하고 숫자로 끝냅니다</b> — 워크샵이
+    요구한 두 가지입니다. 장마다 머리글 한 줄과 본문 두 줄뿐이고, 나머지는 말이 옮깁니다.
+  </p>
+
+  <div class="frames" id="frames"></div>
+
+  <footer>
+    <div>01 은 <code>docs/왜_만들었나.md</code> 의 만든 계기, 02 는 W2 인터뷰 원문입니다. 이름과 학교는 넣지 않았습니다.</div>
+    <div>03 의 <b>합성 도면 100장</b>은 <code>docs/accuracy.md</code>(2026-08-30 · 완전 일치 100장), 04 의 <b>0명 → 20명</b>은 W1 에서 정한 북극성 지표(<code>plan/w1/팀목표.md</code>)입니다.</div>
+    <div>내려받기가 막히면 <b>그림 위에서 오른쪽 클릭 → 이미지를 다른 이름으로 저장</b> 해도 같은 파일이 나옵니다.</div>
+    <div>PNG 는 1920×1080 입니다. 고칠 일이 있으면 <code>docs/demo/make_intro.py</code> 를 고쳐 pptx 도 같이 맞춥니다.</div>
+  </footer>
+
+</div>
+
+<script>
+// ── 슬라이드 원본. 좌표는 1920x1080 기준, pptx(make_intro.py)와 같은 자리다 ──
+const C = {bg:"#0c1119", text:"#e9eff7", muted:"#9fadc0", soft:"#7d8ba0",
+           cyan:"#3aa9ff", amber:"#f0a020", line:"#26303f"};
+const X = 130;                 // 왼쪽 여백
+const FONT = '"IBM Plex Sans KR","Malgun Gothic",sans-serif';
+
+// t=글자, s=크기(px), w=굵기, c=색. y 는 블록 맨 위, 줄 간격은 크기의 1.25배
+// gap 은 그 줄 앞에 더 띄우는 픽셀. 출처를 인용에 붙이면 인용 마지막 줄처럼 읽힌다
+const block = (y, lines) => ({y, lines});
+const rule  = (y, w, c) => ({y, w, c});
+
+const SLIDES = [
+  {
+    sec:"① 문제", secTc:"0:00 – 0:30",
+    n:"01", tc:"0:00 – 0:16", file:"문제30초_1_다그린줄알았습니다.png",
+    turns:[
+      {who:"장우영", tc:"0:00 – 0:09",
+       say:"저희가 겪은 일입니다. 다 그렸다고 생각했는데 치수 하나, 표면거칠기 하나가 계속 빠졌습니다."},
+      {who:"김승준", tc:"0:09 – 0:16",
+       say:"혼자 찾기가 어려워서 매번 선생님이나 친구한테 확인을 부탁했습니다."},
+    ],
+    blocks:[
+      block(300, [{t:"다 그린 줄 알았습니다", s:110, w:700, c:C.text}]),
+      block(570, [
+        {t:"치수 하나, 표면거칠기 하나가", s:62, w:400, c:C.text},
+        {t:"계속 빠져 있었습니다", s:62, w:400, c:C.text},
+      ]),
+    ],
+    rules:[rule(490, 180, C.cyan)],
+  },
+  {
+    sec:"① 문제", secTc:"0:00 – 0:30",
+    n:"02", tc:"0:16 – 0:30", file:"문제30초_2_저희만그런게아니었습니다.png",
+    turns:[
+      {who:"안대열", tc:"0:16 – 0:23",
+       say:"다섯 명을 만났더니 실수는 다 달랐는데 알게 된 방법이 같았습니다."},
+      {who:"박지완", tc:"0:23 – 0:30",
+       say:"다섯 중 셋이 남이 찾아 줘서 알았습니다. 혼자 준비하면 그 사람이 없습니다."},
+    ],
+    blocks:[
+      block(300, [{t:"저희만 그런 게 아니었습니다", s:110, w:700, c:C.amber}]),
+      block(570, [
+        {t:"“친구가 ‘여기 베어링 자리인데", s:62, w:400, c:C.text},
+        {t:"거칠기 없어도 돼?’라고 해서 알았어요.”", s:62, w:400, c:C.text},
+        {t:"메카트로닉스과 2학년", s:40, w:400, c:C.soft, gap:65},
+      ]),
+    ],
+    rules:[rule(490, 180, C.amber)],
+  },
+  {
+    sec:"③ 다음", secTc:"2:30 – 3:00",
+    n:"03", tc:"2:30 – 2:45", file:"다음30초_1_아직못쟀습니다.png",
+    turns:[
+      {who:"안대열", tc:"2:30 – 2:38",
+       say:"검출률 100% 는 저희가 만든 합성 도면 100장에서 나온 숫자입니다."},
+      {who:"박지완", tc:"2:38 – 2:45",
+       say:"받은 실기 도면이 두 장뿐이라 현장 정확도는 아직 못 쟀습니다."},
+    ],
+    blocks:[
+      block(300, [{t:"아직 못 쟀습니다", s:110, w:700, c:C.amber}]),
+      block(570, [
+        {t:"검출률 100% 는 우리가 만든", s:62, w:400, c:C.text},
+        {t:"합성 도면 100장에서 나온 숫자입니다", s:62, w:400, c:C.text},
+      ]),
+    ],
+    rules:[rule(490, 180, C.amber)],
+  },
+  {
+    sec:"③ 다음", secTc:"2:30 – 3:00",
+    n:"04", tc:"2:45 – 3:00", file:"다음30초_2_4주뒤만들숫자.png",
+    turns:[
+      {who:"장우영", tc:"2:45 – 2:52",
+       say:"남은 4주에 만들 숫자는 하나입니다. 주간 재검사 사용자 수입니다."},
+      {who:"김승준", tc:"2:52 – 3:00",
+       say:"고쳐서 다시 올린 사람입니다. 지금 0명이고 4주 뒤 주 20명을 만들겠습니다."},
+    ],
+    blocks:[
+      block(300, [{t:"4주 뒤 만들 숫자", s:110, w:700, c:C.text}]),
+      block(570, [
+        {t:"주간 재검사 사용자  0명 → 20명", s:76, w:700, c:C.cyan},
+        {t:"고쳐서 다시 올린 사람 수입니다", s:48, w:400, c:C.muted, gap:24},
+      ]),
+    ],
+    rules:[rule(490, 180, C.cyan)],
+  },
+];
+
+function draw(cv, sl){
+  const g = cv.getContext("2d");
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, 1920, 1080);
+
+  // 왼쪽 위 제품 표시. ③절 판(C1·C2)에 있는 것과 같은 자리다
+  g.textBaseline = "top";
+  g.font = `600 34px ${FONT}`;
+  g.fillStyle = C.cyan;
+  g.fillText("CADLens", X, 72);
+
+  for (const r of sl.rules){
+    g.fillStyle = r.c || C.line;
+    g.fillRect(X, r.y, r.w, 3);
+  }
+  for (const b of sl.blocks){
+    let y = b.y;
+    for (const ln of b.lines){
+      y += ln.gap || 0;
+      g.font = `${ln.w} ${ln.s}px ${FONT}`;
+      g.fillStyle = ln.c;
+      g.fillText(ln.t, X, y);
+      y += ln.s * 1.25;
+    }
+  }
+}
+
+// ── 화면 짓기 ────────────────────────────────────────────────────────
+const frames = document.getElementById("frames");
+let lastSec = null;
+const cards = SLIDES.map(sl => {
+  if (sl.sec !== lastSec){
+    lastSec = sl.sec;
+    const h = document.createElement("div");
+    h.className = "secline";
+    h.innerHTML = '<b></b><span class="tc"></span>';
+    h.querySelector("b").textContent = sl.sec;
+    h.querySelector(".tc").textContent = sl.secTc;
+    frames.appendChild(h);
+  }
+  const fig = document.createElement("figure");
+  fig.innerHTML =
+    '<figcaption>' +
+      '<div class="cap">' +
+        '<span class="no">' + sl.n + '</span>' +
+        '<span class="tc">' + sl.tc + '</span>' +
+      '</div>' +
+      '<div class="turns"></div>' +
+      '<button disabled>PNG 준비 중</button>' +
+    '</figcaption>' +
+    '<canvas width="1920" height="1080"></canvas>';
+  const turns = fig.querySelector(".turns");
+  for (const t of sl.turns){
+    const row = document.createElement("div");
+    row.className = "turn";
+    row.innerHTML = '<span class="who"></span><span class="tc"></span><span class="say"></span>';
+    row.querySelector(".who").textContent = t.who;
+    row.querySelector(".tc").textContent = t.tc;
+    row.querySelector(".say").textContent = '“' + t.say + '”';
+    turns.appendChild(row);
+  }
+  frames.appendChild(fig);
+  return {sl, cv: fig.querySelector("canvas"), btn: fig.querySelector("button")};
+});
+
+// 글꼴이 오기 전에 그리면 기본 글꼴로 그려진다. 온 뒤에 한 번 더 그린다
+function drawAll(){ for (const c of cards) draw(c.cv, c.sl); }
+drawAll();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawAll);
+
+// ── 내려받기 ─────────────────────────────────────────────────────────
+const png = cv => new Promise(res => cv.toBlob(res, "image/png"));
+
+(async () => {
+  const downloads = window.claude && await window.claude.use("downloads");
+  if (!downloads){
+    for (const c of cards){ c.btn.textContent = "오른쪽 클릭으로 저장"; }
+    return;
+  }
+  for (const c of cards){
+    c.btn.disabled = false;
+    c.btn.textContent = "PNG 내려받기";
+    c.btn.addEventListener("click", async () => {
+      const label = c.btn.textContent;
+      c.btn.disabled = true;
+      c.btn.textContent = "만드는 중…";
+      try {
+        await downloads.save({filename: c.sl.file, data: await png(c.cv)});
+        c.btn.textContent = "받았습니다";
+        c.btn.classList.add("done");
+      } catch (e) {
+        c.btn.textContent = e && e.code === "declined" ? label : "다시 시도";
+        c.btn.classList.remove("done");
+      } finally {
+        c.btn.disabled = false;
+      }
+    });
+  }
+})();
+</script>

@@ -1,0 +1,406 @@
+<title>데모 영상 대본</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --paper:#e9edf1; --panel:#f5f7f9; --ink:#16202b; --dim:#63727f;
+    --rule:#c2ccd6; --rule-soft:#d9e0e6; --accent:#0b6bb5; --warn:#8f5300;
+    --shadow:0 1px 0 rgba(22,32,43,.05), 0 12px 28px -18px rgba(22,32,43,.45);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0f151c; --panel:#151d26; --ink:#dfe7ef; --dim:#8494a3;
+      --rule:#2a3542; --rule-soft:#212b36; --accent:#3aa9ff; --warn:#f0a020;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 14px 30px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0f151c; --panel:#151d26; --ink:#dfe7ef; --dim:#8494a3;
+    --rule:#2a3542; --rule-soft:#212b36; --accent:#3aa9ff; --warn:#f0a020;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 14px 30px -18px rgba(0,0,0,.8);
+  }
+
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"IBM Plex Sans KR",-apple-system,"Malgun Gothic",sans-serif;
+    font-size:15px; line-height:1.65; padding:28px 20px 72px;
+  }
+  .wrap{max-width:840px; margin:0 auto; display:flex; flex-direction:column; gap:30px}
+  .mono{font-family:"IBM Plex Mono","IBM Plex Sans KR",monospace; font-variant-numeric:tabular-nums}
+  .lbl{
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+  }
+  h2{
+    font-size:13px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--dim); margin:0 0 14px; font-family:"IBM Plex Mono",monospace;
+  }
+  section{display:flex; flex-direction:column}
+
+  /* 표제란 */
+  .titleblock{border:1.5px solid var(--rule); background:var(--panel)}
+  .titleblock .top{padding:18px 20px 16px; border-bottom:1px solid var(--rule)}
+  .titleblock h1{font-size:26px; font-weight:700; letter-spacing:-.01em; margin:0 0 4px}
+  .titleblock p{margin:0; color:var(--dim); font-size:13.5px}
+  .fields{display:grid; grid-template-columns:repeat(4,1fr)}
+  .fields div{padding:11px 20px; border-right:1px solid var(--rule-soft)}
+  .fields div:last-child{border-right:0}
+  .fields b{display:block; font-size:14px; font-weight:600; margin-top:3px}
+  .fields b.warn{color:var(--warn)}
+
+  /* 시간 막대 — 30초를 실제 폭으로 본다 */
+  .bar{display:flex; height:34px; border:1.5px solid var(--rule); background:var(--panel)}
+  .bar.sl{height:30px; border-bottom:0}
+  .bar.sl span{color:var(--accent)}
+  .bar span{
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500;
+    border-right:1px solid var(--rule); color:var(--dim); min-width:0;
+  }
+  .bar span:last-child{border-right:0}
+  .bar b{color:var(--ink); font-weight:600}
+  .barnote{display:flex; justify-content:space-between; font-size:12px; color:var(--dim); margin-top:7px}
+
+  /* 차례 */
+  .turn{border:1.5px solid var(--rule); background:var(--panel); margin-bottom:16px}
+  .turn > .head{
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    padding:11px 16px; border-bottom:1px solid var(--rule);
+  }
+  .no{
+    font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600;
+    color:var(--paper); background:var(--ink); padding:3px 8px; letter-spacing:.06em;
+  }
+  .head .who{font-size:16px; font-weight:700}
+  .head .tc{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--dim)}
+  .head .len{
+    margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:12px;
+    color:var(--dim);
+  }
+  .turn .body{padding:16px 18px 18px}
+  .turn .slide{font-size:13px; color:var(--dim); margin:0 0 12px}
+  .turn .slide b{color:var(--ink); font-weight:600}
+  .line{
+    font-size:21px; font-weight:500; line-height:1.55; margin:0;
+    padding-left:16px; border-left:3px solid var(--accent); text-wrap:pretty;
+  }
+  .how{
+    margin:14px 0 0; font-size:13.5px; color:var(--dim);
+    padding-top:12px; border-top:1px solid var(--rule-soft);
+  }
+  .how b{color:var(--ink); font-weight:600}
+
+  /* 이어 읽기 */
+  .read{border:1.5px solid var(--rule); background:var(--panel); padding:20px 22px}
+  .read p{margin:0 0 13px; font-size:17px; line-height:1.75}
+  .read p:last-child{margin-bottom:0}
+  .read .nm{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+    color:var(--accent); letter-spacing:.06em; margin-right:8px;
+  }
+
+  ul{margin:0; padding-left:19px; display:flex; flex-direction:column; gap:9px}
+  li::marker{color:var(--dim)}
+  li b{font-weight:600}
+  .warnbox{
+    border:1.5px solid var(--warn); background:var(--panel); padding:14px 18px;
+    display:flex; flex-direction:column; gap:8px; font-size:14px;
+  }
+  .warnbox .lbl{color:var(--warn)}
+
+  table{border-collapse:collapse; width:100%; font-size:13.5px}
+  .scroll{overflow-x:auto; border:1.5px solid var(--rule); background:var(--panel)}
+  th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--rule-soft); vertical-align:top}
+  th{
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:500;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--dim);
+    border-bottom:1px solid var(--rule); white-space:nowrap;
+  }
+  tr:last-child td{border-bottom:0}
+  td.src{color:var(--dim); white-space:nowrap}
+  a{color:var(--accent)}
+  @media (max-width:640px){
+    .fields{grid-template-columns:repeat(2,1fr)}
+    .fields div{border-bottom:1px solid var(--rule-soft)}
+    .bar span{font-size:10px}
+    .line{font-size:19px}
+  }
+</style>
+
+<div class="wrap">
+
+  <section class="titleblock">
+    <div class="top">
+      <h1>① 문제 · ③ 다음 대본</h1>
+      <p>글자만 나오는 두 절입니다. 절마다 슬라이드 두 장, 장마다 두 사람이 말합니다.</p>
+    </div>
+    <div class="fields">
+      <div><span class="lbl">두 절</span><b class="mono">30초 + 30초</b></div>
+      <div><span class="lbl">말하는 시간</span><b class="mono">26.4 + 23.8초</b></div>
+      <div><span class="lbl">읽는 속도</span><b class="mono">4.7음절 / 초</b></div>
+      <div><span class="lbl">영상 마감</span><b class="mono warn">09-08 (화) 24:00</b></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>① 문제 — 30초를 폭으로 보면</h2>
+    <div class="bar sl">
+      <span style="flex:16"><b>슬라이드 01</b> · 다 그린 줄 알았습니다</span>
+      <span style="flex:14"><b>슬라이드 02</b> · 저희만 그런 게 아니었습니다</span>
+    </div>
+    <div class="bar">
+      <span style="flex:9"><b>장우영</b></span>
+      <span style="flex:7"><b>김승준</b></span>
+      <span style="flex:7"><b>안대열</b></span>
+      <span style="flex:7"><b>박지완</b></span>
+    </div>
+    <div class="barnote">
+      <span class="mono">0:00</span>
+      <span>말 26.4초 · 남는 3.6초는 글자를 눈으로 읽는 시간</span>
+      <span class="mono">0:30</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>③ 다음 — 30초를 폭으로 보면</h2>
+    <div class="bar sl">
+      <span style="flex:15"><b>슬라이드 03</b> · 아직 못 쟀습니다</span>
+      <span style="flex:15"><b>슬라이드 04</b> · 4주 뒤 만들 숫자</span>
+    </div>
+    <div class="bar">
+      <span style="flex:8"><b>안대열</b></span>
+      <span style="flex:7"><b>박지완</b></span>
+      <span style="flex:7"><b>장우영</b></span>
+      <span style="flex:8"><b>김승준</b></span>
+    </div>
+    <div class="barnote">
+      <span class="mono">2:30</span>
+      <span>말 23.8초 · 워크샵이 요구한 두 가지 — 아쉬운 점 하나, 4주 뒤 숫자</span>
+      <span class="mono">3:00</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>① 문제 — 차례</h2>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 01</span><span class="who">장우영</span>
+        <span class="tc">0:00 – 0:09</span>
+        <span class="len mono">38음절 · 8.1초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 01 — <b>다 그린 줄 알았습니다</b></p>
+        <p class="line">저희가 겪은 일입니다. 다 그렸다고 생각했는데 치수 하나, 표면거칠기 하나가 계속 빠졌습니다.</p>
+        <p class="how"><b>읽는 법</b> — "저희가 겪은 일입니다" 뒤에 한 박자 쉽니다.
+          이 절이 남 얘기가 아니라 <b>우리 얘기라는 것을 여기서 못 박습니다.</b></p>
+      </div>
+    </div>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 01</span><span class="who">김승준</span>
+        <span class="tc">0:09 – 0:16</span>
+        <span class="len mono">30음절 · 6.4초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 01 — 같은 장. 여기서 넘기지 않습니다</p>
+        <p class="line">혼자 찾기가 어려워서 매번 선생님이나 친구한테 확인을 부탁했습니다.</p>
+        <p class="how"><b>이 문장이 제품의 이유입니다.</b> 사람한테 부탁하던 것을 도구가 대신하는 게
+          CADLens 입니다. ② 시연이 바로 이 문장의 답이라 <b>천천히</b> 말합니다.</p>
+      </div>
+    </div>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 02</span><span class="who">안대열</span>
+        <span class="tc">0:16 – 0:23</span>
+        <span class="len mono">27음절 · 5.7초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 02 — <b>저희만 그런 게 아니었습니다</b> · 인터뷰 인용</p>
+        <p class="line">다섯 명을 만났더니 실수는 다 달랐는데 알게 된 방법이 같았습니다.</p>
+        <p class="how"><b>"알게 된 방법이 같았습니다" 앞에서 한 박자 쉽니다.</b>
+          다섯 명이 빠뜨린 것은 표면거칠기 · 척도 · 기하공차 · 출력 설정 · 단면도로 다 달랐는데,
+          알게 된 경로는 겹쳤습니다. 화면의 인용이 그 경로의 실례입니다 —
+          <b>인용은 소리 내어 읽지 않습니다.</b></p>
+      </div>
+    </div>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 02</span><span class="who">박지완</span>
+        <span class="tc">0:23 – 0:30</span>
+        <span class="len mono">30음절 · 6.4초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 02 — 같은 장. 여기서 넘기지 않습니다</p>
+        <p class="line">다섯 중 셋이 남이 찾아 줘서 알았습니다. 혼자 준비하면 그 사람이 없습니다.</p>
+        <p class="how"><b>"그 사람"은 김승준이 말한 선생님과 친구입니다.</b> 앞 문장을 그대로 받아
+          가리키는 말이라 <b>"그"에 힘을 줍니다.</b> 숫자는 소리로는 한글로 말합니다("다섯 중 셋").
+          마지막 문장 앞에서 한 박자 쉬고, 끝나고 1초 두고 ②절 시연으로 넘어갑니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>③ 다음 — 차례</h2>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 03</span><span class="who">안대열</span>
+        <span class="tc">2:30 – 2:38</span>
+        <span class="len mono">28음절 · 6.0초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 03 — <b>아직 못 쟀습니다</b></p>
+        <p class="line">검출률 100% 는 저희가 만든 합성 도면 100장에서 나온 숫자입니다.</p>
+        <p class="how"><b>이 절은 아쉬운 점부터 말합니다.</b> 워크샵이 "지금 안 되는 것 1가지를
+          스스로 밝히기"를 필수로 걸었고, "감추면 도움받을 기회만 잃는다"고 적어 뒀습니다.
+          <b>"저희가 만든"에 힘을 줍니다</b> — 그 한마디가 100% 를 정직한 숫자로 만듭니다.</p>
+      </div>
+    </div>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 03</span><span class="who">박지완</span>
+        <span class="tc">2:38 – 2:45</span>
+        <span class="len mono">25음절 · 5.3초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 03 — 같은 장. 여기서 넘기지 않습니다</p>
+        <p class="line">받은 실기 도면이 두 장뿐이라 현장 정확도는 아직 못 쟀습니다.</p>
+        <p class="how"><b>변명이 아니라 현재 위치입니다.</b> 합성 도면은 저희가 결함을 심고
+          저희 규칙이 잡은 것이라 100% 가 나옵니다. 실제 수험생 도면으로는 아직 못 쟀고,
+          그게 남은 4주에 풀 문제입니다. <b>"두 장뿐이라"에서 한 박자 쉽니다.</b></p>
+      </div>
+    </div>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 04</span><span class="who">장우영</span>
+        <span class="tc">2:45 – 2:52</span>
+        <span class="len mono">27음절 · 5.7초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 04 — <b>4주 뒤 만들 숫자</b></p>
+        <p class="line">남은 4주에 만들 숫자는 하나입니다. 주간 재검사 사용자 수입니다.</p>
+        <p class="how"><b>"하나입니다"가 중요합니다.</b> 지표를 여러 개 대면 아무것도 안 남습니다.
+          W1 에서 정한 북극성 지표 그대로라 새로 지어낸 숫자가 아닙니다.</p>
+      </div>
+    </div>
+
+    <div class="turn">
+      <div class="head">
+        <span class="no">SL 04</span><span class="who">김승준</span>
+        <span class="tc">2:52 – 3:00</span>
+        <span class="len mono">32음절 · 6.8초</span>
+      </div>
+      <div class="body">
+        <p class="slide">슬라이드 04 — 같은 장. 화면에 <b>0명 → 20명</b> 이 떠 있습니다</p>
+        <p class="line">고쳐서 다시 올린 사람입니다. 지금 0명이고 4주 뒤 주 20명을 만들겠습니다.</p>
+        <p class="how"><b>"지금 0명"을 흐리지 않습니다.</b> 0 을 말해야 20 이 약속이 됩니다.
+          숫자는 소리로는 한글로 말합니다("영 명", "스무 명"). 여기서 영상이 끝나므로
+          마지막 말 뒤에 <b>1초를 두고</b> 자릅니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>① 문제 — 이어서 읽기</h2>
+    <div class="read">
+      <p><span class="nm">장우영</span>저희가 겪은 일입니다. 다 그렸다고 생각했는데 치수 하나, 표면거칠기 하나가 계속 빠졌습니다.</p>
+      <p><span class="nm">김승준</span>혼자 찾기가 어려워서 매번 선생님이나 친구한테 확인을 부탁했습니다.</p>
+      <p><span class="nm">안대열</span>다섯 명을 만났더니 실수는 다 달랐는데 알게 된 방법이 같았습니다.</p>
+      <p><span class="nm">박지완</span>다섯 중 셋이 남이 찾아 줘서 알았습니다. 혼자 준비하면 그 사람이 없습니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>③ 다음 — 이어서 읽기</h2>
+    <div class="read">
+      <p><span class="nm">안대열</span>검출률 100% 는 저희가 만든 합성 도면 100장에서 나온 숫자입니다.</p>
+      <p><span class="nm">박지완</span>받은 실기 도면이 두 장뿐이라 현장 정확도는 아직 못 쟀습니다.</p>
+      <p><span class="nm">장우영</span>남은 4주에 만들 숫자는 하나입니다. 주간 재검사 사용자 수입니다.</p>
+      <p><span class="nm">김승준</span>고쳐서 다시 올린 사람입니다. 지금 0명이고 4주 뒤 주 20명을 만들겠습니다.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>녹음</h2>
+    <ul>
+      <li><b>네 명이 각자 자기 차례만 따로 녹음합니다.</b> 한 명이 틀려도 그 사람만 다시 합니다.</li>
+      <li>같은 방, 같은 마이크, 마이크와 입 사이 한 뼘. <b>사람이 바뀔 때 소리 크기가 튀면</b>
+        편집으로도 잘 안 붙습니다.</li>
+      <li>이어 붙일 때 사람 사이에 <b>0.4초쯤</b> 둡니다. 딱 붙이면 말을 자르는 것처럼 들립니다.</li>
+      <li>순서는 바꿔도 됩니다. 다만 <b>마지막 차례는 팀에서 제일 또박또박 읽는 사람</b>이 합니다.
+        그 한 문장이 ② 시연으로 넘어가는 다리입니다.</li>
+      <li>화면이 먼저 바뀌고 말이 따라갑니다. 슬라이드를 넘기면서 말하지 않습니다.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>말한 것의 근거</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>슬라이드</th><th>숫자</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr><td class="src">01</td><td>치수·표면거칠기를 계속 빠뜨렸다</td>
+            <td>만든 계기 그대로. <code>docs/왜_만들었나.md</code></td></tr>
+          <tr><td class="src">01</td><td>매번 선생님·친구한테 확인을 부탁했다</td>
+            <td>같은 문서. 그걸 혼자 하고 싶어서 만들기 시작했다</td></tr>
+          <tr><td class="src">02</td><td>실수는 다 달랐다</td>
+            <td>표면거칠기 1개 · 뷰 척도 2:1 · 기하공차 통째로 · 프린터 A4 설정 · 단면도 누락</td></tr>
+          <tr><td class="src">02</td><td>알게 된 방법이 같았다</td>
+            <td>다섯 중 셋이 남을 통해 알았다 — 친구 · 첨삭자 · 강사.
+                나머지 둘도 스스로 찾은 건 종이·PDF 로 한 번 더 봤을 때다(4시간 43분 · 종료 21분 전)</td></tr>
+          <tr><td class="src">02</td><td>대면 인터뷰 5건</td>
+            <td>수험생 4명과 기계제도 담당 교사 1명. 교사도 야간 과정을 들으며 같은 시험을 준비 중이었다</td></tr>
+          <tr><td class="src">03</td><td>합성 도면 100장 · 검출률 100%</td>
+            <td>2026-08-30 측정 — 완전 일치 100장 · 검출률 100.0% · 정확도 100.0%.
+                <code>docs/accuracy.md</code></td></tr>
+          <tr><td class="src">03</td><td>받은 실기 도면 두 장</td>
+            <td><code>실제도면/원본/1본체.dxf</code> · <code>3축.dxf</code>. <code>labels.json</code> 이 비어 있어 <code>bench.py</code> 를 못 돌린다 —
+                그래서 현장 정확도 숫자가 아직 없다</td></tr>
+          <tr><td class="src">04</td><td>0명 → 20명</td>
+            <td>W1 에서 정한 북극성 지표 그대로 — 주간 재검사 사용자 수, 오늘 0명 → 8주 뒤 주 20명.
+                <code>plan/w1/팀목표.md</code>. 20 의 근거는 한 반 규모라고 그 문서에 적어 뒀다</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>슬라이드에 뜨는 글자 전부</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>장</th><th>글자</th><th>누구 말</th></tr></thead>
+        <tbody>
+          <tr><td class="src">01</td><td><b>다 그린 줄 알았습니다</b></td><td class="src">우리</td></tr>
+          <tr><td class="src">01</td><td>치수 하나, 표면거칠기 하나가 계속 빠져 있었습니다</td><td class="src">우리</td></tr>
+          <tr><td class="src">02</td><td><b>저희만 그런 게 아니었습니다</b></td><td class="src">우리</td></tr>
+          <tr><td class="src">02</td><td>"친구가 '여기 베어링 자리인데 거칠기 없어도 돼?'라고 해서 알았어요."</td><td class="src">메카트로닉스과 2학년</td></tr>
+          <tr><td class="src">03</td><td><b>아직 못 쟀습니다</b></td><td class="src">우리</td></tr>
+          <tr><td class="src">03</td><td>검출률 100% 는 우리가 만든 합성 도면 100장에서 나온 숫자입니다</td><td class="src">우리</td></tr>
+          <tr><td class="src">04</td><td><b>4주 뒤 만들 숫자</b></td><td class="src">우리</td></tr>
+          <tr><td class="src">04</td><td>주간 재검사 사용자 0명 → 20명 · 고쳐서 다시 올린 사람 수입니다</td><td class="src">우리</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="warnbox">
+      <span class="lbl">지키는 것</span>
+      <div><b>01 은 따옴표가 없고 02 만 따옴표가 있습니다.</b> 우리 말과 남의 말을 섞지 않습니다.
+        인용은 <b>원문 그대로</b> 쓰고 <b>이름과 학교는 넣지 않습니다.</b></div>
+      <div>슬라이드에는 <b>머리글 한 줄과 본문 두 줄</b>뿐입니다. 숫자와 설명은 말이 옮깁니다.</div>
+      <div>③ 에는 워크샵 필수 두 가지가 다 들어갑니다 — <b>지금 안 되는 것 1가지</b>(03)와
+        <b>4주 뒤 만들 숫자</b>(04). 하나라도 빼면 영상을 낸 의미가 없습니다.</div>
+      <div>워크샵이 영상에서 금지한 것 — <b>팀 소개 · 기술 스택 나열 · 로드맵 그림.</b>
+        이 절에는 셋 다 없습니다.</div>
+      <div>3분을 넘기면 잘립니다. 이 절이 길어지면 <b>②절 시연 120초를 줄이지 말고 여기를 줄입니다.</b></div>
+    </div>
+  </section>
+
+</div>
