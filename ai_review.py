@@ -576,18 +576,23 @@ CACHE_DIR = os.path.join(
     "cad-checker", "aicache")
 
 
-def _cache_key(blob, model):
+def _cache_key(blob, model, prompt=""):
+    """AI 에게 보낸 것 전부로 열쇠를 만든다.
+
+    프롬프트를 빼고 도면 파일만으로 열면, 우리가 도면에서 더 잘 읽어 내도
+    **옛날 답이 그대로 나온다.** 실제로 뷰 이름과 제3각법 판정을 참고 정보에
+    실어 보내기 시작했는데 캐시가 그 전 판을 돌려줬다. 참고 정보가 채점 근거로
+    들어가는 이상, 그것도 열쇠의 일부여야 한다."""
     h = hashlib.sha256()
-    h.update(model.encode())
-    h.update(b"\0")
-    h.update(SYSTEM.encode())
-    h.update(b"\0")
+    for part in (model, SYSTEM, prompt):
+        h.update(part.encode())
+        h.update(b"\0")
     h.update(blob)
     return h.hexdigest()[:32] + ".json"
 
 
-def _cache_path(blob, model):
-    return os.path.join(CACHE_DIR, _cache_key(blob, model))
+def _cache_path(blob, model, prompt=""):
+    return os.path.join(CACHE_DIR, _cache_key(blob, model, prompt))
 
 
 def _drawing_blob(dxf_path):
@@ -641,11 +646,12 @@ def judge(facts, timeout=120.0):
     asks = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
             "groq": _ask_groq, "mistral": _ask_mistral}
     blob = _drawing_blob(dxf) or png
+    prompt = PROMPT + _context(facts)
 
-    # 같은 도면을 이미 채점해 뒀으면 어느 채점기 것이든 그대로 쓴다.
+    # 같은 도면을 같은 참고 정보로 이미 채점해 뒀으면 그대로 쓴다.
     for name in chain:
         model = MODEL_OF[name]
-        cached = _cache_path(blob, model)
+        cached = _cache_path(blob, model, prompt)
         hit = _cache_get(cached)
         if hit is None:
             continue
@@ -657,7 +663,6 @@ def judge(facts, timeout=120.0):
             print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
         return _to_findings(hit, model)
 
-    prompt = PROMPT + _context(facts)
     for name in chain:
         model = MODEL_OF[name]
         ask = asks[name]
@@ -683,7 +688,7 @@ def judge(facts, timeout=120.0):
                               if isinstance(d, dict) and (d.get("title")
                                                           or d.get("detail"))]
         _enrich(data, ask, timeout)
-        _cache_put(_cache_path(blob, model), data)
+        _cache_put(_cache_path(blob, model, prompt), data)
         if name != chain[0]:
             print(f"[ai] {chain[0]} 실패 → {name}({model})로 채점", flush=True)
         return _to_findings(data, model)

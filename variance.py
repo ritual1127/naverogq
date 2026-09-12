@@ -61,9 +61,16 @@ def measure(path, n=5, timeout=120.0):
     prompt = ai_review.PROMPT + ai_review._context(facts)
 
     print(f"=== {facts.get('file')}  ({model}, {n}회)")
-    scores, seen = [], {}
+    scores, seen, failed = [], {}, 0
     for i in range(1, n + 1):
-        text = ask(png, prompt, timeout)
+        # 한 번 실패했다고 측정을 통째로 버리지 않는다. 무료 한도라 503·429 가
+        # 흔한데, 예외를 그대로 띄우면 앞서 잰 회차까지 같이 날아갔다.
+        try:
+            text = ask(png, prompt, timeout)
+        except Exception as e:
+            failed += 1
+            print(f"  {i}회차  실패 — {type(e).__name__}: {str(e)[:120]}")
+            continue
         try:
             data = json.loads(text) if text else {}
         except ValueError:
@@ -84,6 +91,7 @@ def measure(path, n=5, timeout=120.0):
 def report(scores, seen):
     s = spread(scores)
     if not s:
+        print("  잰 회차가 0회다. 편차를 낼 수 없다.")
         return
     print(f"\n  점수 {sorted(scores)}")
     print(f"  최소 {s['min']}점 · 최대 {s['max']}점 · 폭 {s['spread']}점 · "
