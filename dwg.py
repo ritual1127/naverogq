@@ -1298,7 +1298,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                 try:
                     c = e.dxf.center
                     circles.append({"x": c.x, "y": c.y, "r": float(e.dxf.radius),
-                                    "layer": e.dxf.layer})
+                                    "layer": e.dxf.layer, "kind": t})
                 except Exception:
                     continue
             elif t in ("TEXT", "MTEXT"):
@@ -1351,10 +1351,25 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     grid_cell = max(10.0 / K, 1e-9)
     line_grid = _short_line_grid(short_lines, grid_cell)
     dimmed_dia = {round(abs(d["value_mm"]), 2) for d in dims}
+    threads = _thread_sizes(texts + [d.get("text") or "" for d in dims]
+                            + [t for _, _, t in plain_texts])
     tol_units = CENTER_TOL / K if K else CENTER_TOL
     groups = {}
     for c in circles:
         if c["layer"] == ERR_LAYER:
+            continue
+        # 구멍은 온전한 원이다. 원호는 거의 다 라운드·필렛이거나 절단선이
+        # 꺾인 자리다. 단면에서 구멍이 반원으로 보여도 그 구멍은 다른 뷰에
+        # 온전한 원으로 있으므로 놓치지 않는다.
+        if c.get("kind") != "CIRCLE":
+            continue
+        # 형상을 그리는 레이어의 원만 본다. 상세도 경계 원(`확대도-B` 의 그
+        # 동그라미), 절단선, 작도용 스케치는 부품의 구멍이 아니다.
+        if _NON_SHAPE_LAYER_RE.search(c["layer"] or ""):
+            continue
+        # 나사는 지름 치수를 안 적고 나사 호칭(M4·M6×0.75)으로 적는다.
+        # 골지름 원과 바깥지름 원에 치수가 없는 것이 정상이다.
+        if _is_thread_circle(c["r"] * 2 * K, threads):
             continue
         if any(abs(c["x"] - dx) <= tol_units and abs(c["y"] - dy) <= tol_units
                for dx, dy in dim_centers):
@@ -1617,6 +1632,38 @@ def _sheet_size(doc, rects, K):
             if fit:
                 return name, w, h
     return (None, cands[0][0], cands[0][1]) if cands else (None, None, None)
+
+
+# 형상을 그리는 레이어가 아닌 것들. 여기 있는 원은 부품의 구멍이 아니다.
+# - 상세 경계: `확대도-B (2:1)` 를 감싸는 동그라미
+# - 절단선·단면선: 꺾이는 자리가 원호로 들어간다
+# - 스케치 형상: 작도용 보조선
+_NON_SHAPE_LAYER_RE = re.compile(
+    r"상세\s*경계|절단|단면선|스케치|해\s*치|해\s*칭|중심|치수|기호|가상|"
+    r"detail|section|sketch|hatch|cent|dim|phantom|construction", re.I)
+# 나사 호칭. `M4` · `M6x0.75` · `4-M4` 어디에 있든 잡는다.
+_THREAD_RE = re.compile(r"(?<![A-Za-z])M\s*(\d+(?:\.\d+)?)", re.I)
+# 나사 그림에 나오는 원은 바깥지름(호칭 지름)과 골지름이다. 골지름은 호칭의
+# 0.8 배쯤이고 탭 드릴은 그보다 조금 크다. 그 사이를 나사 원으로 본다.
+THREAD_CIRCLE_LO = 0.72
+THREAD_CIRCLE_HI = 1.06
+
+
+def _thread_sizes(texts):
+    """도면에 적힌 나사 호칭 지름(mm)."""
+    out = set()
+    for t in texts:
+        for m in _THREAD_RE.finditer(t or ""):
+            try:
+                out.add(float(m.group(1)))
+            except ValueError:
+                continue
+    return out
+
+
+def _is_thread_circle(diameter_mm, threads):
+    return any(m * THREAD_CIRCLE_LO <= diameter_mm <= m * THREAD_CIRCLE_HI
+               for m in threads)
 
 
 def _props_from_titles(titles):

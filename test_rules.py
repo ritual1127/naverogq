@@ -1011,3 +1011,82 @@ def test_every_check_has_a_written_basis():
     ids = {c for c, *_ in exam.CHECKS}
     assert not ids - written, sorted(ids - written)
     assert not written - ids, sorted(written - ids)
+
+
+def test_holes_that_need_no_dimension_are_not_flagged():
+    """치수가 없어도 맞는 원이 있다. 제도 기본을 모르면 전부 오탐이 된다.
+
+    실제 수험생 도면 30장 중 22장에서 헛지적이 났고 원인이 넷이었다 —
+    나사 골지름 원, 필렛·라운드 원호, 상세도 경계 원, 절단선이 꺾인 원호."""
+    import ezdxf
+
+    import dwg
+    import exam
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    for name in ("외형선", "상세 경계(ISO)", "절단선(ISO)", "스케치 형상(ISO)"):
+        doc.layers.add(name)
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(0, 0), (594, 0), (594, 420), (0, 420)], close=True)
+    msp.add_lwpolyline([(40, 60), (200, 60), (200, 180), (40, 180)], close=True)
+
+    # 나사 — 호칭만 적고 지름 치수는 안 적는 것이 맞다. 골지름 원 세 개.
+    msp.add_text("3-M4", height=3.5).set_placement((60, 200))
+    for i in range(3):
+        msp.add_circle((60 + i * 20, 120), 3.24 / 2, dxfattribs={"layer": "외형선"})
+    # 라운드 — R 로 적고 구멍이 아니다
+    for i in range(4):
+        msp.add_arc((60 + i * 20, 90), 6.0, 0, 90, dxfattribs={"layer": "외형선"})
+    # 상세도 경계 원과 절단선이 꺾인 원호
+    msp.add_circle((300, 300), 20.0, dxfattribs={"layer": "상세 경계(ISO)"})
+    msp.add_arc((300, 200), 20.0, 0, 36, dxfattribs={"layer": "절단선(ISO)"})
+    msp.add_circle((350, 120), 4.0, dxfattribs={"layer": "스케치 형상(ISO)"})
+    # 치수가 하나도 없으면 "치수 없음" 으로 끝나 미치수 구멍까지 안 간다
+    msp.add_linear_dim(base=(120, 40), p1=(40, 60), p2=(200, 60),
+                       text="160").render()
+
+    path = os.path.join(tempfile.mkdtemp(), "holes.dxf")
+    doc.saveas(path)
+    sheet = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]
+    assert sheet["undimensioned"] == [], [
+        (round(u["diameter_mm"], 2), u["count"]) for u in sheet["undimensioned"]]
+
+    # 치수도 나사 호칭도 없는 진짜 구멍은 그대로 잡는다
+    msp.add_circle((120, 150), 9.0 / 2, dxfattribs={"layer": "외형선"})
+    doc.saveas(path)
+    sheet = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]
+    assert [round(u["diameter_mm"], 1) for u in sheet["undimensioned"]] == [9.0], \
+        sheet["undimensioned"]
+    assert "EX_DIM_MISSING" in {f["code"] for f in exam.grade({"sheets": [sheet]})[0]}
+
+
+def test_a_view_without_dimensions_is_not_a_defect():
+    """KS B 0001 — 하나의 치수는 도면 내 단 한 곳에만 기입한다.
+
+    우측면도에 원의 치수가 없어도 정면도에 있으면 기입한 것이다. 뷰마다
+    치수를 요구하면 중복 기입을 시키는 꼴이라 원칙에 어긋난다."""
+    import ezdxf
+
+    import dwg
+    import exam
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(0, 0), (594, 0), (594, 420), (0, 420)], close=True)
+    # 같은 Ø20 구멍을 정면도와 우측면도에 그리고, 치수는 정면도에만 적는다
+    for cx in (120, 300):
+        msp.add_lwpolyline([(cx - 40, 150), (cx + 40, 150), (cx + 40, 250),
+                            (cx - 40, 250)], close=True)
+        msp.add_circle((cx, 200), 10.0)
+    msp.add_diameter_dim(center=(120, 200), radius=10.0, angle=45,
+                         text="%%c20H7").render()
+
+    path = os.path.join(tempfile.mkdtemp(), "oneview.dxf")
+    doc.saveas(path)
+    sheet = (dwg.facts_from_dxf(path)["sheets"] or [{}])[0]
+    assert sheet["undimensioned"] == [], sheet["undimensioned"]
+    got = {f["code"] for f in exam.grade({"sheets": [sheet]})[0]}
+    assert "EX_DIM_MISSING" not in got, sorted(got)
+    assert "EX_VIEW_NO_DIMS" not in got, "뷰마다 치수를 요구하면 안 된다"
