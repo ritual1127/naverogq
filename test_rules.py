@@ -941,3 +941,55 @@ def test_material_field_does_not_borrow_the_cell_below():
     for code in ("GC250", "SM45C", "SCM415", "SUS304", "주철"):
         got = dwg._title_fields([(300, 30, "재질"), (320, 30, code)], 1.0)
         assert got.get("material") == code, code
+
+
+def test_web_screen_knows_every_check_and_rubric_item():
+    """화면의 검사 이름·묶음·배점표가 exam.py 와 어긋나지 않는다.
+
+    검사를 새로 만들 때 `static/index.html` 을 같이 안 고치면 화면에 코드가
+    그대로 뜨거나(`EX_OUTSIDE_FRAME`) 어느 항목에도 안 묶여 사라진다.
+    배점표도 손으로 적어 둔 것이라 항목이 늘면 만점이 안 맞는다."""
+    import re
+
+    import exam
+
+    def block(text, start):
+        depth, i = 0, start
+        while i < len(text):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:i + 1]
+            i += 1
+        raise AssertionError("괄호가 안 닫혔다")
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    page = open(os.path.join(here, "static", "index.html"), encoding="utf-8").read()
+
+    checks = {c for c, *_ in exam.CHECKS}
+    rubric = [c for c, _, _, _ in exam.RUBRIC]
+
+    codes = re.search(r"const RUBRIC_CODES=\[(.*?)\]", page).group(1)
+    assert re.findall(r"'([A-Z_]+)'", codes) == rubric, codes
+    maxes = re.search(r"const RUBRIC_MAX=\[(.*?)\]", page).group(1)
+    assert [int(v) for v in maxes.split(",")] == [p for _, _, p, _ in exam.RUBRIC]
+
+    groups = block(page, page.index("const GROUP_BY_CHECK=")
+                   + len("const GROUP_BY_CHECK="))
+    mapped = dict(re.findall(r"([A-Z_]+):'([A-Za-z_]+)'", groups))
+    assert not checks - set(mapped), sorted(checks - set(mapped))
+    assert not set(mapped) - checks, sorted(set(mapped) - checks)
+    assert not set(mapped.values()) - set(rubric) - {"dq"}, sorted(set(mapped.values()))
+
+    labels = block(page, page.index("const CHECK_LABELS=") + len("const CHECK_LABELS="))
+    for lang in ("en", "ja", "zh"):
+        named = set(re.findall(
+            r"([A-Z_]+):", block(labels, labels.index(lang + ":{") + len(lang) + 1)))
+        assert not (checks | set(rubric)) - named, (lang, sorted(
+            (checks | set(rubric)) - named))
+
+    for key in ("rub:[",):
+        for row in re.findall(r"rub:\[(.*?)\]", page):
+            assert len(row.split("','")) == len(rubric), (key, row)
