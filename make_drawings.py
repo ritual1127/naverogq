@@ -31,6 +31,9 @@ NOTES = ("1. 일반공차 - 가) 가공부: KS B ISO 2768-m\n"
          "5. 전체 열처리 HRC 50±2")
 
 # 공개문제에 자주 나오는 조합. 부품마다 재질과 끼워맞춤이 다르다.
+# 요목표가 필요한 부품인지 가리는 낱말
+_SPEC_PART = "기어"
+
 ASSEMBLIES = [
     ("동력전달장치", [("본체", "GC250"), ("축", "SCM415"),
                       ("커버", "GC250"), ("스퍼기어", "SC480")]),
@@ -203,6 +206,21 @@ def build(seed=0, *, defect=None, out_dir=".", name=None):
              "empty": ["", "x", "y", "z"], "none": []}.get(defect, ROUGH)
     for i, v in enumerate(rough):
         _surface_symbol(msp, 250 + i * 18, 250, v)
+    # 다듬질 구분을 정의하는 비교표. 면에 적은 w·x·y 가 각각 어느 거칠기인지는
+    # 이게 있어야 읽을 수 있고, 빠뜨리면 따로 감점된다.
+    if rough and defect != "no_rough_table":
+        marks = " , ".join(f"√{v}" for v in rough if v)
+        msp.add_text(f"√( {marks} )", height=3.5).set_placement((250, 275))
+
+    # 기어·스프링 요목표. 형상 치수만으로는 만들 수 없어서 따로 적어야 한다.
+    if any(_SPEC_PART in p for p, _ in parts) and defect != "no_spec_table":
+        rows = [("스퍼기어 요목표", ""), ("기어 치형", "표준"), ("모듈", "2"),
+                ("압력각", "20°"), ("잇 수", "40"), ("피치원 지름", "80"),
+                ("다듬질 방법", "호브절삭"), ("정밀도", "KS B ISO 1328-1, 4급")]
+        for i, (label, value) in enumerate(rows):
+            msp.add_text(label, height=3.5).set_placement((150, 330 - i * 8))
+            if value:
+                msp.add_text(value, height=3.5).set_placement((205, 330 - i * 8))
 
     # 데이텀과 기하공차
     if defect != "no_fcf":
@@ -241,7 +259,8 @@ DEFECTS = {
     "no_dims": {"EX_NO_DIMS"},
     "undimensioned": {"EX_DIM_MISSING"},
     # 끼워맞춤 기호를 다 빼면 공차 지정 치수 비율도 같이 떨어진다. 둘 다 참이다
-    "no_fit": {"EX_NO_FIT", "EX_TOL_FEW"},
+    # 끼워맞춤 기호가 하나도 없는 것은 감점이 아니라 오작이다(유의사항 5번)
+    "no_fit": {"DQ_NO_FIT", "EX_TOL_FEW"},
     "few": {"EX_SURFACE_FEW"},
     "uniform": {"EX_SURFACE_UNIFORM"},
     "empty": {"EX_SURFACE_EMPTY"},
@@ -249,6 +268,8 @@ DEFECTS = {
     "no_tolval": {"EX_FCF_NO_VALUE"},
     "one_fcf": {"EX_FCF_FEW"},
     "no_notes": {"EX_NO_NOTES", "EX_NO_HEAT"},
+    "no_rough_table": {"EX_NO_ROUGH_TABLE"},
+    "no_spec_table": {"EX_NO_SPEC_TABLE"},
     "no_chamfer": {"EX_NOTE_ITEM"},
     "no_heat": {"EX_NO_HEAT"},
     "no_center": {"EX_NO_CENTERLINE"},
@@ -268,9 +289,14 @@ def main():
     while len(labels) < args.count:
         defect = kinds[i % len(kinds)]
         seed = i // len(kinds)
+        i += 1
+        # 요목표 결함은 기어가 있는 과제에서만 만들 수 있다. 드릴지그·바이스에는
+        # 요목표가 필요한 부품이 없어서 빼놔도 결함이 아니다.
+        has_gear = any(_SPEC_PART in n for n, _ in ASSEMBLIES[seed % len(ASSEMBLIES)][1])
+        if defect == "no_spec_table" and not has_gear:
+            continue
         path = build(seed, defect=defect, out_dir=args.out)
         labels[os.path.basename(path)] = sorted(DEFECTS[defect])
-        i += 1
     with open(os.path.join(args.out, "labels.json"), "w", encoding="utf-8") as fh:
         json.dump(labels, fh, ensure_ascii=False, indent=1)
     print(f"{len(labels)}장 · {args.out}/labels.json")

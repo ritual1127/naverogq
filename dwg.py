@@ -437,6 +437,8 @@ def _is_note(text):
         return False
     if _VIEW_LABEL_RE.match(t) or _VIEW_TAG_RE.match(t):
         return False
+    if _ROUGH_TABLE_RE.match(t):
+        return False        # 거칠기 비교표 `√( √w , √x , √y )` 는 주서가 아니다
     return "\n" in t or len(t) >= MIN_NOTE_LEN or bool(_NOTE_KEYWORD_RE.search(t))
 
 
@@ -590,6 +592,54 @@ def _outside_frame(msp, box, mm_per_unit):
     return worst
 
 
+# 요목표가 필요한 부품. 기어·스프링은 형상만으로 만들 수 없어서 잇수·모듈·
+# 압력각 같은 값을 표로 따로 적어야 한다(공개문제 요구사항).
+_SPEC_PART_RE = re.compile(
+    r"^(?:\d+\s*[-.]?\s*)?[가-힣A-Za-z ]*"
+    r"(스퍼\s*어?\s*기어|헬리컬\s*기어|베벨\s*기어|웜\s*휠|웜|래크|피니언|"
+    r"스프로킷|기어|압축\s*스프링|인장\s*스프링|스프링)"
+    r"[가-힣A-Za-z ]*$")
+_SPEC_TABLE_RE = re.compile(r"요\s*목\s*표")
+# 거칠기 비교표는 `√( √x , √y , √z )` 모양이라 문자만 보면 괄호와 쉼표만 남는다.
+_ROUGH_TABLE_RE = re.compile(r"^[√∇(]\s*[(,\s√∇wxyzWXYZ]*\)$")
+MAX_PART_NAME_LEN = 20
+
+
+# 요목표 칸에 적히는 말. 주서가 아닌데 주서로 세어지던 것들이다 — 실제 도면
+# A32 에서 `다듬질 방법` · `KS B ISO 1328-1, 4급` 때문에 "주서 없음"(8점)을
+# 놓쳤다. 요목표가 있는 도면에서만 뺀다.
+_SPEC_ROW_RE = re.compile(
+    r"^(기어\s*치형|치형|모듈|압력각|잇\s*수|피치원\s*지름|전체\s*이\s*높이|"
+    r"이\s*두께|다듬질\s*방법|정밀도|재료|호브절삭|표준|보통이|"
+    r"총\s*감김\s*수|유효\s*감김\s*수|감김\s*방향|재료의\s*지름|코일\s*평균\s*지름|"
+    r"KS\s*B\s*ISO.*)$", re.I)
+
+
+def _drop_spec_rows(notes, has_table):
+    """요목표가 있는 도면에서는 요목표 칸을 주서로 세지 않는다."""
+    if not has_table:
+        return notes
+    return [t for t in notes if not _SPEC_ROW_RE.match(t.strip())]
+
+
+def _spec_tables(texts):
+    """요목표가 필요한 부품과, 실제로 있는 요목표."""
+    parts, tables, rough = [], [], False
+    for t in texts:
+        s = (t or "").strip()
+        if not s:
+            continue
+        if _SPEC_TABLE_RE.search(s):
+            tables.append(s)
+            continue
+        if len(s) <= MAX_PART_NAME_LEN and _SPEC_PART_RE.match(s):
+            parts.append(s)
+        if not rough and _ROUGH_TABLE_RE.match(s) and "(" in s:
+            rough = True
+    return {"needs_spec": sorted(set(parts)), "spec_tables": tables,
+            "roughness_table": rough}
+
+
 def _text_sizes(doc, msp, mm_per_unit):
     """문자 높이(mm). 치수 문자는 치수 스타일에, 나머지는 글자마다 들어 있다.
 
@@ -648,7 +698,9 @@ def _surface_symbol(text):
     t = (text or "").strip()
     if not t or len(t) > 40:
         return None
-    if _is_note(t):
+    if _is_note(t) or _ROUGH_TABLE_RE.match(t):
+        # 비교표 `√( √w , √x , √y )` 는 면에 붙은 기호가 아니라 정의표다.
+        # 기호로 세면 값이 빈 기호로 잡혀 없는 감점을 만든다.
         return None
     value = _SURFACE_VALUE_RE.search(t)
     letter = _FINISH_LETTER_RE.match(t)
@@ -1319,6 +1371,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     else:
         sheet_name, sheet_w, sheet_h = None, None, None
 
+    spec = _spec_tables(texts + [t for _, _, t in plain_texts])
     sheet = {"name": "Model", "title_block": title_block,
              "border": border,
              "fields": fields,
@@ -1331,6 +1384,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "layout": layout,
              "border_box_mm": border_box,
              "outside_frame": _outside_frame(msp, border_box, K),
+             **spec,
              "line_widths": _line_widths(doc),
              "text_sizes": _text_sizes(doc, msp, K),
              "views_known": bool(view_names),
@@ -1344,7 +1398,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         "kind": "dwg", "file": source_name or os.path.basename(path),
         "props": props, "sheets": [sheet],
         "first_angle": _first_angle(texts, fields), "dxf": path,
-        "notes_text": [t for t in texts if _is_note(t)],
+        "notes_text": _drop_spec_rows([t for t in texts if _is_note(t)],
+                                     bool(spec["spec_tables"])),
         "title_attributes": titles,
         "unit_mm_per_drawing_unit": K, "unit_source": unit_why,
     }

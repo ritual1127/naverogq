@@ -94,6 +94,9 @@ CHECKS = [
     ("EX_FCF_NO_VALUE", "기하공차 값이 빔", "GEOMETRIC", True),
     ("EX_FCF_FEW", "기하공차 개수 부족", "GEOMETRIC", True),
 
+    ("EX_NO_ROUGH_TABLE", "표면거칠기 비교표 없음", "SURFACE", True),
+
+    ("EX_NO_SPEC_TABLE", "기어·스프링 요목표 없음", "NOTES_TITLE", True),
     ("EX_NO_NOTES", "주서 없음", "NOTES_TITLE", True),
     ("EX_NOTE_ITEM", "주서 필수 문구 누락", "NOTES_TITLE", True),
     ("EX_NO_TITLEBLOCK", "표제란·도면양식 없음", "NOTES_TITLE", True),
@@ -339,6 +342,17 @@ def _surface(facts):
             "가공면 대비 기호 수가 적습니다. 기능면마다 기입되어야 합니다.",
             "끼워맞춤면·베어링 접촉면·미끄럼면에 각각 기입하세요.",
             "SURFACE", 4))
+    # 기호를 넣고도 비교표를 빠뜨리는 것은 따로 감점된다. 면에 적은 w·x·y 가
+    # 각각 어느 거칠기인지는 비교표가 있어야 읽을 수 있다.
+    if not sh.get("roughness_table"):
+        out.append(_f(
+            "EX_NO_ROUGH_TABLE", SEV_WARN, "표면거칠기 비교표가 없습니다",
+            f"면에 거칠기 기호 {n}개를 적었는데 다듬질 구분을 정의하는 "
+            "비교표를 못 찾았습니다. 비교표가 없으면 w·x·y 가 각각 어느 "
+            "거칠기인지 알 수 없습니다.",
+            "도면 위쪽 빈 곳에 √( √w , √x , √y ) 형태의 비교표를 넣고, "
+            "주서에 다듬질 정도를 정의하세요.",
+            "SURFACE", 2))
     return out
 
 
@@ -401,6 +415,23 @@ def _notes(facts):
             "시트 우클릭 > 표제란 삽입, 윤곽선과 중심마크를 배치하세요.",
             "NOTES_TITLE", 3))
     return out
+
+
+def _spec_table(facts):
+    """기어·스프링 요목표. 주서와 따로 본다 — `_notes` 는 주서가 없으면
+    거기서 끝나 버려서 그 안에 두면 주서 없는 도면에서 아예 안 돌았다."""
+    sh = _sheet_of(facts)
+    needs = sh.get("needs_spec") or []
+    if not needs or sh.get("spec_tables"):
+        return []
+    return [_f(
+        "EX_NO_SPEC_TABLE", SEV_ERROR, f"{needs[0]} 요목표가 없습니다",
+        f"부품란에 {', '.join(needs[:3])} 가 있는데 요목표를 못 찾았습니다. "
+        "기어·스프링은 형상 치수만으로 만들 수 없어서 잇수·모듈·압력각 "
+        "같은 값을 요목표로 따로 적어야 합니다.",
+        "도면 빈 곳에 요목표를 그리고 기어 치형·모듈·압력각·잇수·"
+        "피치원 지름·다듬질 방법·정밀도를 채우세요.",
+        "NOTES_TITLE", 3, {"parts": needs})]
 
 
 def _material(facts):
@@ -627,7 +658,7 @@ def _projection(facts):
 
 
 PRODUCERS = (_disqualifiers, _fits, _dimensions, _tolerance, _surface,
-             _geometric, _notes, _material, _sheet_form, _appearance,
+             _geometric, _notes, _spec_table, _material, _sheet_form, _appearance,
              _projection)
 _ORDER = {SEV_FAIL: 0, SEV_ERROR: 1, SEV_WARN: 2, SEV_INFO: 3}
 

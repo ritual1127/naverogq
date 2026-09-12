@@ -73,9 +73,14 @@ def _centerlines(msp):
     msp.add_line((120, 100), (120, 140), dxfattribs={"layer": "CENTER_LINES"})
 
 
-def _surfaces(msp, values=("y", "x", "w")):
+def _surfaces(msp, values=("y", "x", "w"), table=True):
     for i, v in enumerate(values):
         msp.add_text(f"√{v}", height=3.5).set_placement((220 + i * 15, 200))
+    if table:
+        # 다듬질 구분을 정의하는 비교표. 기호만 있고 이게 없으면 w·x·y 가
+        # 각각 어느 거칠기인지 읽을 수 없어 따로 감점된다.
+        marks = " , ".join(f"√{v}" for v in values if v)
+        msp.add_text(f"√( {marks} )", height=3.5).set_placement((220, 260))
 
 
 def _symbol_circles(msp, values=("y", "x", "w"), bare=False):
@@ -119,7 +124,7 @@ def _full(out_dir, name, *, surfaces=("y", "x", "w"), fcf_datums=("A",),
           dimension_hole=True, fcf_tol="0.011", extra_text=(),
           notes_as_lines=False, symbol_circles=False, bare_symbol=False,
           line_widths=LAYER_WIDTHS, dim_text=3.5, shaft_fit=True,
-          outside_frame=False):
+          outside_frame=False, rough_table=True, gear_part=False):
     doc, msp = _new(line_widths, dim_text)
     _title_block(doc, msp)
     _body(msp, dimension_hole=dimension_hole)
@@ -134,8 +139,10 @@ def _full(out_dir, name, *, surfaces=("y", "x", "w"), fcf_datums=("A",),
         msp.add_line((600, 200), (634, 200), dxfattribs={"layer": "외형선"})
     if centerlines:
         _centerlines(msp)
+    if gear_part:
+        msp.add_text('스퍼기어', height=3.5).set_placement((300, 60))
     if surfaces:
-        _surfaces(msp, surfaces)
+        _surfaces(msp, surfaces, rough_table)
         if symbol_circles:
             _symbol_circles(msp, surfaces, bare_symbol)
     if fcf_count:
@@ -187,6 +194,12 @@ def fixtures(out_dir):
         ("윤곽선 밖에 남은 선",
          _full(out_dir, "outside_frame", outside_frame=True),
          {"EX_OUTSIDE_FRAME"}),
+        ("거칠기 기호는 있는데 비교표가 없음",
+         _full(out_dir, "no_rough_table", rough_table=False),
+         {"EX_NO_ROUGH_TABLE"}),
+        ("부품란에 기어가 있는데 요목표가 없음",
+         _full(out_dir, "no_spec_table", gear_part=True),
+         {"EX_NO_SPEC_TABLE"}),
         ("주서 없음", _full(out_dir, "no_notes", notes=""),
          {"EX_NO_NOTES", "EX_NO_HEAT"}),
         ("주서 모떼기 누락", _full(out_dir, "no_chamfer", notes=NOTES_NO_CHAMFER),
