@@ -277,8 +277,6 @@ DEFECTS = {
     "no_tolval": {"EX_FCF_NO_VALUE"},
     "one_fcf": {"EX_FCF_FEW"},
     "no_notes": {"EX_NO_NOTES", "EX_NO_HEAT"},
-    "no_section": {"EX_NO_SECTION"},
-    "view_no_dims": {"EX_VIEW_NO_DIMS"},
     "no_rough_table": {"EX_NO_ROUGH_TABLE"},
     "no_spec_table": {"EX_NO_SPEC_TABLE"},
     "no_chamfer": {"EX_NOTE_ITEM"},

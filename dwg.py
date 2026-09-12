@@ -540,16 +540,37 @@ def _layer_widths(doc):
     return out
 
 
+def _layer_colors(doc):
+    """레이어 색 종류. 색으로 선 굵기를 주는 도면을 가려내는 데 쓴다."""
+    out = set()
+    for lay in doc.layers:
+        try:
+            out.add(int(lay.dxf.color))
+        except Exception:
+            continue
+    return out
+
+
+# 실기 관행은 레이어에 굵기를 직접 주는 것과, **색으로 나누고 출력할 때 펜
+# 설정으로 굵기를 내는 것** 두 가지다. 뒤쪽은 DXF 에 굵기가 안 들어 있어서
+# "굵기를 안 정했다" 와 구별이 안 된다. 색이 이만큼 나뉘어 있으면 펜 설정
+# 방식으로 보고 굵기를 판정하지 않는다.
+MIN_PEN_COLORS = 3
+
+
 def _line_widths(doc):
     """굵기 검사에 쓸 값 — 윤곽선 · 외형선 · 가는 선, 그리고 전체 목록."""
     widths = _layer_widths(doc)
     if not widths:
-        return None
+        return {"by_color": len(_layer_colors(doc)) >= MIN_PEN_COLORS,
+                "outline_mm": None, "thin_mm": None, "border_mm": None,
+                "ratio": None, "layers": {}}
     pick = lambda rx: [w for n, w in widths.items() if rx.search(n)]
     thick = max(pick(_THICK_LAYER_RE) or [0.0])
     thin = min(pick(_THIN_LAYER_RE) or [0.0])
     border = max(pick(_BORDER_LAYER_RE) or [0.0])
-    return {"outline_mm": thick or None, "thin_mm": thin or None,
+    return {"by_color": False,
+            "outline_mm": thick or None, "thin_mm": thin or None,
             "border_mm": border or None,
             "ratio": round(thick / thin, 2) if thick and thin else None,
             "layers": {n: w for n, w in sorted(widths.items())}}

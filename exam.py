@@ -52,9 +52,6 @@ REQUIRED_NOTE_PATTERNS = [
     ("모떼기/라운드", r"모[떼따]기|라운드|필렛|45\s*°|45°"),
 ]
 MIN_SURFACE_SYMBOLS = 3
-# 은선이 이만큼 있으면 안쪽에 형상이 있다고 본다. 몇 개뿐이면
-# 나사 골이나 모따기 표시라 단면도가 필요하다고 단정할 수 없다.
-MIN_HIDDEN_FOR_SECTION = 10
 MIN_FCF = 1
 
 SEV_FAIL, SEV_ERROR, SEV_WARN, SEV_INFO = "fail", "error", "warn", "info"
@@ -112,15 +109,12 @@ CHECKS = [
     ("EX_LINEWEIGHT_FLAT", "용도에 맞는 선 굵기 구분 없음", "APPEARANCE", True),
     ("EX_LINEWEIGHT_NONE", "레이어에 선 굵기가 지정되지 않음", "APPEARANCE", True),
     ("EX_TEXT_SIZE", "문자 크기가 제도 표준과 다름", "APPEARANCE", True),
-    ("EX_OUTSIDE_FRAME", "도면틀 밖에 그려진 요소", "APPEARANCE", True),
 
     ("EX_NO_HEAT", "열처리·표면처리 지시 없음", "MATERIAL", True),
     ("EX_NO_MATERIAL", "재료 기호 기입 없음", "MATERIAL", True),
     ("EX_NO_MASS", "3D 등각투상도 부품란에 질량 없음", "MATERIAL", True),
 
     ("EX_LAYOUT_FIRST_ANGLE", "뷰 배치가 제1각법으로 보임", "PROJECTION_LAYOUT", True),
-    ("EX_NO_SECTION", "내부 형상을 은선으로만 나타냄(단면도 없음)", "PROJECTION_LAYOUT", True),
-    ("EX_VIEW_NO_DIMS", "치수가 하나도 없는 투상도", "DIMENSIONS", True),
     ("EX_FEW_VIEWS", "투상도 개수 부족", "PROJECTION_LAYOUT", True),
     ("EX_NO_CENTERLINE", "중심선·중심마크 없음", "PROJECTION_LAYOUT", True),
     ("EX_VIEW_NO_LABEL", "상세도·단면도에 문자 표기 없음", "PROJECTION_LAYOUT", True),
@@ -284,27 +278,15 @@ def _dimensions(facts):
                    "도면에 치수가 전혀 기입되지 않았습니다. 치수 기입 15점을 "
                    "전부 잃습니다.",
                    "주석 > 치수 로 주요 치수를 기입하세요.", "DIMENSIONS", 15)]
-    out = []
-    # 정면도와 줄이 맞는 투상도인데 치수가 하나도 안 붙은 것. 같은 장의 다른
-    # 부품이나 상세도는 자기 치수가 따로 있을 수 있어 보지 않는다.
-    bare = [v for v in sh.get("views", [])
-            if v.get("spot") and not v.get("dim_count")]
-    if bare:
-        names = ", ".join(v.get("role") or v.get("name") or "?" for v in bare)
-        out.append(_f(
-            "EX_VIEW_NO_DIMS", SEV_ERROR,
-            f"치수가 하나도 없는 투상도 {len(bare)}개",
-            f"{names} 에 치수가 한 개도 붙어 있지 않습니다. 투상도를 그려 놓고 "
-            "치수를 안 넣으면 그 뷰가 하는 일이 없습니다. 치수 누락은 직접 "
-            "감점입니다.",
-            "그 뷰에서만 보이는 치수(폭·높이·구멍 위치)를 찾아 기입하세요. "
-            "다른 뷰에 이미 있는 치수를 옮겨 적을 필요는 없습니다.",
-            "DIMENSIONS", min(5, 2 * len(bare)),
-            {"views": [v.get("name") for v in bare]}))
+    # 뷰마다 치수가 붙었는지는 보지 않는다. KS B 0001 은 "하나의 치수는 도면 내
+    # 단 한 곳에만 기입한다" 가 기본이고, 치수는 주 투상도(정면도)에 모으라고
+    # 한다. 우측면도에 치수가 없어도 그 형상의 치수가 정면도에 있으면 기입한
+    # 것이다. 아래 미치수 구멍 검사는 **도면 전체의 치수값**과 대보므로 이
+    # 원칙을 이미 지킨다 — 다른 뷰에 있는 치수도 찾는다.
     n = sum(c.get("count", 1) for c in missing)
     if not n:
-        return out
-    return out + [_f(
+        return []
+    return [_f(
         "EX_DIM_MISSING", SEV_ERROR, f"치수 누락 의심 {n}곳",
         "치수가 붙지 않은 원/구멍이 있습니다. 치수 누락은 직접 감점입니다. "
         + ", ".join(f"Ø{c['diameter_mm']:.1f}" for c in missing[:6]),
@@ -559,11 +541,15 @@ def _sheet_form(facts):
 # 절대값 대신 비를 본다. 실기 도면은 보통 윤곽선 0.7 · 외형선 0.5 ·
 # 은선 0.35 · 중심선/치수선 0.25 · 해치 0.18 이다.
 MIN_LINE_RATIO = 2.0
-# 문자 크기는 KS A 0107 의 호칭(2.24 · 3.15 · 4.5 · 6.3 · 9)과 ISO 계열
-# (2.5 · 3.5 · 5 · 7 · 10)을 같이 인정한다. 실기 치수 문자는 3.15~3.5 다.
-DIM_TEXT_MM = (3.15, 3.5)
-DIM_TEXT_TOL = 0.6
-SMALL_SHEETS = ("A2", "A3", "A4")
+# KS A 0107 문자 크기 호칭. A 계열(2.24·3.15·4.5·6.3·9)과 ISO 계열
+# (2.5·3.5·5·7·10)을 둘 다 인정한다. 실기 관행은 3.15~3.5 지만 **7mm 도 규격
+# 안에 있는 크기**라 관행과 다르다는 이유로 틀렸다고 하지 않는다. 규격 계열에
+# 아예 없는 크기와, 출력하면 못 읽는 크기만 본다.
+TEXT_SIZES_MM = (2.24, 2.5, 3.15, 3.5, 4.5, 5.0, 6.3, 7.0, 9.0, 10.0, 14.0, 20.0)
+TEXT_SIZE_TOL = 0.15
+# KS A ISO 3098 은 도면 문자 최소 높이를 2.5mm 로 둔다. 그보다 작으면 축소
+# 출력에서 읽을 수 없다.
+MIN_TEXT_MM = 2.5
 
 
 def _appearance(facts):
@@ -576,16 +562,21 @@ def _appearance(facts):
     sh = _sheet_of(facts)
     out = []
 
-    lw = sh.get("line_widths")
-    if lw is None or not lw.get("layers"):
+    lw = sh.get("line_widths") or {}
+    # 색으로 나누고 출력할 때 펜 설정으로 굵기를 내는 도면은 DXF 에 굵기가
+    # 안 들어 있다. 이것을 "굵기를 안 정했다" 와 구별할 수 없으므로 판정하지
+    # 않는다 — 실기에서 흔히 쓰는 방식이라 단정하면 멀쩡한 도면을 잡는다.
+    if lw.get("by_color"):
+        pass
+    elif not lw.get("layers"):
         out.append(_f(
             "EX_LINEWEIGHT_NONE", SEV_WARN, "레이어에 선 굵기가 지정되지 않았습니다",
-            "레이어 어디에도 선 굵기가 정해져 있지 않습니다. 이대로 출력하면 "
-            "외형선과 치수선이 같은 굵기로 나와 '용도에 맞는 선 굵기'에서 "
-            "감점됩니다.",
+            "레이어 어디에도 선 굵기가 정해져 있지 않고, 색으로 나눈 흔적도 "
+            "없습니다. 이대로 출력하면 외형선과 치수선이 같은 굵기로 나옵니다.",
             "레이어 특성에서 윤곽선 0.7, 외형선 0.5, 은선 0.35, "
-            "중심선·치수선 0.25, 해칭 0.18 mm 로 지정하세요.",
-            "APPEARANCE", 3))
+            "중심선·치수선 0.25, 해칭 0.18 mm 로 지정하세요. "
+            "색으로 굵기를 주는 방식이면 출력 펜 설정을 확인하세요.",
+            "APPEARANCE", 2))
     elif lw.get("ratio") is not None and lw["ratio"] < MIN_LINE_RATIO:
         out.append(_f(
             "EX_LINEWEIGHT_FLAT", SEV_ERROR,
@@ -597,34 +588,28 @@ def _appearance(facts):
             "외형선을 0.5mm, 치수선·중심선을 0.25mm 로 두면 정확히 2배입니다.",
             "APPEARANCE", 3, {"layers": lw.get("layers")}))
 
-    # 문자 크기는 도면 크기에 따라 달라진다(A0·A1 은 더 크게 쓴다). 요구 크기인
-    # A2 와 출력 크기 A3·A4 에서만 본다. 그보다 큰 종이는 이미 도면 크기로
-    # 실격이라 문자 크기까지 겹쳐 지적하지 않는다.
     ts = sh.get("text_sizes") or {}
     dim_mm = ts.get("dim_mm")
-    if (dim_mm and sh.get("sheet_name") in SMALL_SHEETS
-            and not any(abs(dim_mm - k) <= DIM_TEXT_TOL for k in DIM_TEXT_MM)):
+    if dim_mm and dim_mm < MIN_TEXT_MM:
+        out.append(_f(
+            "EX_TEXT_SIZE", SEV_ERROR, f"치수 문자가 {dim_mm}mm 로 너무 작습니다",
+            f"도면 문자의 최소 높이는 {MIN_TEXT_MM}mm 입니다. "
+            f"{dim_mm}mm 로는 출력했을 때 치수를 읽을 수 없습니다.",
+            "치수 스타일 편집에서 문자 높이를 3.15 또는 3.5mm 로 바꾸세요.",
+            "APPEARANCE", 2))
+    elif dim_mm and not any(abs(dim_mm - k) <= TEXT_SIZE_TOL for k in TEXT_SIZES_MM):
         out.append(_f(
             "EX_TEXT_SIZE", SEV_WARN, f"치수 문자 크기가 {dim_mm}mm 입니다",
-            f"실기 도면의 치수 문자는 {DIM_TEXT_MM[0]}mm 또는 "
-            f"{DIM_TEXT_MM[1]}mm 로 씁니다. {dim_mm}mm 는 "
-            + ("너무 커서 치수선이 겹칩니다." if dim_mm > DIM_TEXT_MM[1]
-               else "작아서 출력하면 읽기 어렵습니다.")
-            + " '문자의 선 굵기 및 크기' 채점 항목입니다.",
-            f"치수 스타일 편집에서 문자 높이를 {DIM_TEXT_MM[1]}mm 로 바꾸세요.",
-            "APPEARANCE", 2))
+            "KS 문자 크기는 정해진 호칭 중에서 고릅니다 — "
+            "2.24 · 2.5 · 3.15 · 3.5 · 4.5 · 5 · 6.3 · 7 · 9 · 10mm. "
+            f"{dim_mm}mm 는 그 목록에 없습니다. 실기 도면의 치수 문자는 "
+            "보통 3.15 또는 3.5mm 입니다.",
+            "치수 스타일 편집에서 문자 높이를 3.5mm 로 바꾸세요.",
+            "APPEARANCE", 1))
 
-    over = sh.get("outside_frame")
-    if over:
-        out.append(_f(
-            "EX_OUTSIDE_FRAME", SEV_ERROR,
-            f"도면틀 밖으로 {over['over_mm']}mm 나간 요소가 있습니다",
-            f"{over['layer']} 레이어의 {over['type']} 가 윤곽선 바깥에 "
-            "있습니다. 수험자 유의사항은 도면 범위 밖 요소가 출력에 섞이지 "
-            "않게 하라고 합니다. 이대로 출력하면 잘리거나 종이를 넘칩니다.",
-            "윤곽선 밖의 요소를 지우거나 틀 안으로 옮기세요. "
-            "안 쓰는 스케치 선이 남아 있는 경우가 많습니다.",
-            "APPEARANCE", 2, {"layer": over["layer"]}))
+    # 윤곽선 밖은 채점하지 않는다. 채점은 도면 영역(윤곽선 안) 안에서 이뤄지고,
+    # 틀 밖에 남은 선은 제출물의 일부가 아니다. 한때 감점으로 넣었다가 뺐다 —
+    # 실제 도면에서 걸린 것이 윤곽선을 6mm 넘은 치수선 정도였다.
     return out
 
 
@@ -653,19 +638,6 @@ def _projection(facts):
             "부품 형상을 표현하기에 투상도가 부족해 보입니다.",
             "정면도 기준으로 평면도·측면도, 필요시 단면도·상세도를 배치하세요.",
             "PROJECTION_LAYOUT"))
-    # 내부 형상은 은선보다 단면도로 나타내라는 것이 KS 제도 규칙이고,
-    # 채점 항목 '올바른 단면도 수' 가 이것을 본다. 인터뷰에서도 "안쪽에
-    # 구멍·턱이 있는데 단면이 없다" 가 실제 실수로 나왔다.
-    if counts.get("HiddenLines", 0) >= MIN_HIDDEN_FOR_SECTION \
-            and not counts.get("Hatches", 0):
-        out.append(_f(
-            "EX_NO_SECTION", SEV_ERROR, "단면도 없이 은선으로만 나타냈습니다",
-            f"숨은선이 {counts['HiddenLines']}개인데 단면(해칭)이 하나도 "
-            "없습니다. 안쪽 구멍·턱을 은선으로만 그리면 형상을 읽기 어려워 "
-            "'올바른 단면도 수' 에서 감점됩니다.",
-            "배치 > 단면도 로 내부가 드러나는 자리에 절단선을 긋고 단면도를 "
-            "만드세요. 해칭과 절단선 문자(A-A)도 같이 넣습니다.",
-            "PROJECTION_LAYOUT", 4))
     if not counts.get("Centerlines", 0) and not counts.get("Centermarks", 0):
         out.append(_f(
             "EX_NO_CENTERLINE", SEV_WARN, "중심선·중심마크 없음",

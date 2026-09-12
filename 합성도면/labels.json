@@ -13,7 +13,7 @@
   "EX_DIM_MISSING"
  ],
  "000_no_fit.dxf": [
-  "EX_NO_FIT",
+  "DQ_NO_FIT",
   "EX_TOL_FEW"
  ],
  "000_few.dxf": [
@@ -37,6 +37,12 @@
  "000_no_notes.dxf": [
   "EX_NO_HEAT",
   "EX_NO_NOTES"
+ ],
+ "000_no_rough_table.dxf": [
+  "EX_NO_ROUGH_TABLE"
+ ],
+ "000_no_spec_table.dxf": [
+  "EX_NO_SPEC_TABLE"
  ],
  "000_no_chamfer.dxf": [
   "EX_NOTE_ITEM"
@@ -64,7 +70,7 @@
   "EX_DIM_MISSING"
  ],
  "001_no_fit.dxf": [
-  "EX_NO_FIT",
+  "DQ_NO_FIT",
   "EX_TOL_FEW"
  ],
  "001_few.dxf": [
@@ -88,6 +94,9 @@
  "001_no_notes.dxf": [
   "EX_NO_HEAT",
   "EX_NO_NOTES"
+ ],
+ "001_no_rough_table.dxf": [
+  "EX_NO_ROUGH_TABLE"
  ],
  "001_no_chamfer.dxf": [
   "EX_NOTE_ITEM"
@@ -115,7 +124,7 @@
   "EX_DIM_MISSING"
  ],
  "002_no_fit.dxf": [
-  "EX_NO_FIT",
+  "DQ_NO_FIT",
   "EX_TOL_FEW"
  ],
  "002_few.dxf": [
@@ -139,6 +148,9 @@
  "002_no_notes.dxf": [
   "EX_NO_HEAT",
   "EX_NO_NOTES"
+ ],
+ "002_no_rough_table.dxf": [
+  "EX_NO_ROUGH_TABLE"
  ],
  "002_no_chamfer.dxf": [
   "EX_NOTE_ITEM"
@@ -166,7 +178,7 @@
   "EX_DIM_MISSING"
  ],
  "003_no_fit.dxf": [
-  "EX_NO_FIT",
+  "DQ_NO_FIT",
   "EX_TOL_FEW"
  ],
  "003_few.dxf": [
@@ -190,6 +202,12 @@
  "003_no_notes.dxf": [
   "EX_NO_HEAT",
   "EX_NO_NOTES"
+ ],
+ "003_no_rough_table.dxf": [
+  "EX_NO_ROUGH_TABLE"
+ ],
+ "003_no_spec_table.dxf": [
+  "EX_NO_SPEC_TABLE"
  ],
  "003_no_chamfer.dxf": [
   "EX_NOTE_ITEM"
@@ -217,7 +235,7 @@
   "EX_DIM_MISSING"
  ],
  "004_no_fit.dxf": [
-  "EX_NO_FIT",
+  "DQ_NO_FIT",
   "EX_TOL_FEW"
  ],
  "004_few.dxf": [
@@ -241,6 +259,12 @@
  "004_no_notes.dxf": [
   "EX_NO_HEAT",
   "EX_NO_NOTES"
+ ],
+ "004_no_rough_table.dxf": [
+  "EX_NO_ROUGH_TABLE"
+ ],
+ "004_no_spec_table.dxf": [
+  "EX_NO_SPEC_TABLE"
  ],
  "004_no_chamfer.dxf": [
   "EX_NOTE_ITEM"
@@ -268,35 +292,10 @@
   "EX_DIM_MISSING"
  ],
  "005_no_fit.dxf": [
-  "EX_NO_FIT",
+  "DQ_NO_FIT",
   "EX_TOL_FEW"
  ],
  "005_few.dxf": [
   "EX_SURFACE_FEW"
- ],
- "005_uniform.dxf": [
-  "EX_SURFACE_UNIFORM"
- ],
- "005_empty.dxf": [
-  "EX_SURFACE_EMPTY"
- ],
- "005_no_datum.dxf": [
-  "EX_FCF_NO_DATUM"
- ],
- "005_no_tolval.dxf": [
-  "EX_FCF_NO_VALUE"
- ],
- "005_one_fcf.dxf": [
-  "EX_FCF_FEW"
- ],
- "005_no_notes.dxf": [
-  "EX_NO_HEAT",
-  "EX_NO_NOTES"
- ],
- "005_no_chamfer.dxf": [
-  "EX_NOTE_ITEM"
- ],
- "005_no_heat.dxf": [
-  "EX_NO_HEAT"
  ]
 }
