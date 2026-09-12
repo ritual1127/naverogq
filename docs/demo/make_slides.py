@@ -57,12 +57,12 @@ def s2_문제(path):
 def s3_무엇(path):
     img, d = board()
     d.text((96, 200), "무엇을 만들었나", font=font(76), fill=TEXT)
-    d.text((96, 300), "도면 한 장을 90점으로 채점하고, 깎인 자리를 도면 위에 번호로 찍습니다",
+    d.text((96, 300), "도면 한 장을 100점으로 채점하고, 깎인 자리를 도면 위에 번호로 찍습니다",
            font=font(36, False), fill=MUTED)
 
     panel(d, [96, 396, 940, 700])
     d.text((136, 430), "규칙 코드 60점", font=font(44), fill=MINT)
-    bullets(d, 140, 500, ["검사 24개", "실격 판정 5가지", "AI 를 부르지 않는다"],
+    bullets(d, 140, 500, ["검사 24개", "실격 판정 6가지", "AI 를 부르지 않는다"],
             gap=52, size=32, dot=MINT)
 
     panel(d, [980, 396, 1824, 700])

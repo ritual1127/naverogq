@@ -20,7 +20,7 @@ h2 { font-size: 8.8pt; margin:2.2mm 0 1.1mm 0; padding:0.7mm 1.2mm; background:#
 <div class="cols">
 
 <h2>A. 문제와 사용자 (1–12)</h2>
-<div class="qa"><div class="q"><b>1.</b> 뭘 만들었나요?</div><div class="a">전산응용기계제도기능사 실기 도면(DWG·DXF)을 올리면 31개 항목을 검사해 빠진 것을 도면 위에 번호로 찍어 주는 웹 서비스입니다. 90점 중 60점은 규칙 코드, 30점은 AI가 채점합니다.</div></div>
+<div class="qa"><div class="q"><b>1.</b> 뭘 만들었나요?</div><div class="a">전산응용기계제도기능사 실기 도면(DWG·DXF)을 올리면 40개 항목을 검사해 빠진 것을 도면 위에 번호로 찍어 주는 웹 서비스입니다. 100점 중 70점은 규칙 코드, 30점은 AI가 채점합니다.</div></div>
 <div class="qa"><div class="q"><b>2.</b> 왜 이 문제를 골랐나요?</div><div class="a">팀원이 직접 겪었습니다. 못 그려서 떨어지는 게 아니라 다 그려 놓고 표기를 빠뜨려서 떨어집니다. 그중 몇 개는 감점이 아니라 바로 오작(실격)입니다.</div></div>
 <div class="qa"><div class="q"><b>3.</b> 사용자는 누구인가요?</div><div class="a">이 종목 실기 준비생입니다. 대부분 특성화고·마이스터고 학생이라 미성년자가 주 사용자라는 전제로 설계했습니다.</div></div>
 <div class="qa"><div class="q"><b>4.</b> 문제가 얼마나 큰가요?</div><div class="a">실기 응시가 5년째 연 3천 명대, 합격률 45~53%라 매년 1,500~1,700명이 떨어집니다. Q-Net 통계를 나무위키 정리표에서 옮긴 값이라 저희가 직접 계산한 숫자는 아닙니다.</div></div>
@@ -36,8 +36,8 @@ h2 { font-size: 8.8pt; margin:2.2mm 0 1.1mm 0; padding:0.7mm 1.2mm; background:#
 <h2>B. 제품과 기능 (13–27)</h2>
 <div class="qa"><div class="q"><b>13.</b> 어떻게 쓰나요?</div><div class="a">웹에 들어가 도면을 끌어다 놓으면 끝입니다. 설치도 회원가입도 없습니다.</div></div>
 <div class="qa"><div class="q"><b>14.</b> 지원 형식은?</div><div class="a">DWG·DXF, zip 묶음입니다. Inventor의 ipt·idw·iam은 아직 안 됩니다.</div></div>
-<div class="qa"><div class="q"><b>15.</b> 검사 항목은 몇 개인가요?</div><div class="a">규칙 검사 31개와 실격 판정 5가지입니다. 2026-09-08에 7개를 새로 붙였습니다 — 도면 영역 크기·각법 표기·표제란 척도·부품도 척도·뷰별 척도 섞임·재료 기호·3D 질량.</div></div>
-<div class="qa"><div class="q"><b>16.</b> 배점은 어떻게 되나요?</div><div class="a">투상도 30(AI)·치수 15·끼워맞춤 10·표면거칠기 10·기하공차 10·주서/표제란 8·재료/열처리 7, 합계 90점입니다.</div></div>
+<div class="qa"><div class="q"><b>15.</b> 검사 항목은 몇 개인가요?</div><div class="a">규칙 검사 40개와 실격 판정 6가지입니다. 2026-09-08에 7개를 새로 붙였습니다 — 도면 영역 크기·각법 표기·표제란 척도·부품도 척도·뷰별 척도 섞임·재료 기호·3D 질량.</div></div>
+<div class="qa"><div class="q"><b>16.</b> 배점은 어떻게 되나요?</div><div class="a">투상도 30(AI)·치수 15·끼워맞춤 10·표면거칠기 10·기하공차 10·도면 배치와 외관 10·주서/표제란 8·재료/열처리 7, 합계 100점입니다.</div></div>
 <div class="qa"><div class="q"><b>17.</b> 채점 기준은 어디서 가져왔나요?</div><div class="a">KS 규격과 공개된 채점 기준만 봤습니다. 비공개 채점표를 베낀 적은 없고, 항목별 근거는 docs/rule_standards.md에 정리했습니다.</div></div>
 <div class="qa"><div class="q"><b>18.</b> 이 점수가 공식 점수인가요?</div><div class="a">아닙니다. 한국산업인력공단·Q-Net과 아무 관계가 없는 보조 도구입니다. 화면에도 그렇게 적어 뒀습니다.</div></div>
 <div class="qa"><div class="q"><b>19.</b> 결과 화면에 뭐가 나오나요?</div><div class="a">점수, 실격/오류/경고/참고로 나눈 지적 목록, 도면 위 번호 마커, 지적별 질문 버튼 3개입니다.</div></div>
