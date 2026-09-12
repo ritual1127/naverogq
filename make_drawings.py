@@ -90,7 +90,8 @@ def _part_list(msp, parts):
             msp.add_text(cell, height=2.5).set_placement((x, y))
 
 
-def _view(msp, ox, oy, w, h, *, holes, label, section=False, rng=None):
+def _view(msp, ox, oy, w, h, *, holes, label, section=False, rng=None,
+          centerlines=True):
     """부품 하나의 뷰. 외형 · 구멍 · 중심선 · (단면이면) 해칭과 문자."""
     msp.add_lwpolyline([(ox, oy), (ox + w, oy), (ox + w, oy + h), (ox, oy + h)],
                        close=True)
@@ -98,8 +99,9 @@ def _view(msp, ox, oy, w, h, *, holes, label, section=False, rng=None):
     for cx, cy, dia in holes:
         msp.add_circle((cx, cy), dia / 2)
         # 중심선 — 원마다 넣는다. 하나라도 빠지면 KS 위반이다
-        msp.add_line((cx - dia, cy), (cx + dia, cy), dxfattribs={"layer": "CENTER"})
-        msp.add_line((cx, cy - dia), (cx, cy + dia), dxfattribs={"layer": "CENTER"})
+        if centerlines:
+            msp.add_line((cx - dia, cy), (cx + dia, cy), dxfattribs={"layer": "CENTER"})
+            msp.add_line((cx, cy - dia), (cx, cy + dia), dxfattribs={"layer": "CENTER"})
     if section:
         for i in range(6):
             x = ox + 4 + i * (w - 8) / 6
@@ -148,7 +150,7 @@ def build(seed=0, *, defect=None, out_dir=".", name=None):
     # 외형선과 치수선이 같은 굵기로 나와 '용도에 맞는 선 굵기' 에서 감점된다.
     doc.layers.add("경계", lineweight=70)
     doc.layers.add("외형선", lineweight=50)
-    doc.layers.add("은선", lineweight=35)
+    doc.layers.add("은선", linetype="DASHED", lineweight=35)
     doc.layers.add("CENTER", linetype="CENTER", lineweight=25)
     doc.layers.add("치수", lineweight=25)
     doc.layers.add("HATCH", lineweight=18)
@@ -182,17 +184,24 @@ def build(seed=0, *, defect=None, out_dir=".", name=None):
         holes = [(ox + w / 2, oy + h / 2, d0)]
         if not section:
             holes.append((ox + w - 15, oy + 12, dia_b / 3))
-        if defect == "no_center":
-            for cx, cy, d in holes:
-                msp.add_circle((cx, cy), d / 2)
-        else:
-            _view(msp, ox, oy, w, h, holes=holes, label=label, section=section)
+        _view(msp, ox, oy, w, h, holes=holes, label=label,
+              section=section and defect != "no_section",
+              centerlines=defect != "no_center")
+        # 안쪽 형상을 나타내는 은선. 단면도가 없으면 이것만으로는 부족하다.
+        for k in range(6):
+            y = oy + 8 + k * (h - 16) / 6
+            msp.add_line((ox + 6, y), (ox + w - 6, y), dxfattribs={"layer": "은선"})
         holes_all += holes
 
     # 치수 — 구멍마다 지름 치수를 넣는다. 하나라도 빠지면 EX_DIM_MISSING
     if defect != "no_dims":
+        # 우측면도는 정면도 오른쪽(x 140 이상)·같은 높이(y 190대)에 있다.
+        bare_view = (lambda cx, cy: defect == "view_no_dims"
+                     and cx >= 140 and cy >= 185)
         for i, (cx, cy, d) in enumerate(holes_all):
             if defect == "undimensioned" and i == 0:
+                continue
+            if bare_view(cx, cy):
                 continue
             fit = FITS[i % len(FITS)] if defect != "no_fit" else ""
             _dim_dia(msp, (cx, cy), d, f"%%c{d:g}{fit}")
@@ -268,6 +277,8 @@ DEFECTS = {
     "no_tolval": {"EX_FCF_NO_VALUE"},
     "one_fcf": {"EX_FCF_FEW"},
     "no_notes": {"EX_NO_NOTES", "EX_NO_HEAT"},
+    "no_section": {"EX_NO_SECTION"},
+    "view_no_dims": {"EX_VIEW_NO_DIMS"},
     "no_rough_table": {"EX_NO_ROUGH_TABLE"},
     "no_spec_table": {"EX_NO_SPEC_TABLE"},
     "no_chamfer": {"EX_NOTE_ITEM"},

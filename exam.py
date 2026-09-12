@@ -52,6 +52,9 @@ REQUIRED_NOTE_PATTERNS = [
     ("모떼기/라운드", r"모[떼따]기|라운드|필렛|45\s*°|45°"),
 ]
 MIN_SURFACE_SYMBOLS = 3
+# 은선이 이만큼 있으면 안쪽에 형상이 있다고 본다. 몇 개뿐이면
+# 나사 골이나 모따기 표시라 단면도가 필요하다고 단정할 수 없다.
+MIN_HIDDEN_FOR_SECTION = 10
 MIN_FCF = 1
 
 SEV_FAIL, SEV_ERROR, SEV_WARN, SEV_INFO = "fail", "error", "warn", "info"
@@ -116,6 +119,8 @@ CHECKS = [
     ("EX_NO_MASS", "3D 등각투상도 부품란에 질량 없음", "MATERIAL", True),
 
     ("EX_LAYOUT_FIRST_ANGLE", "뷰 배치가 제1각법으로 보임", "PROJECTION_LAYOUT", True),
+    ("EX_NO_SECTION", "내부 형상을 은선으로만 나타냄(단면도 없음)", "PROJECTION_LAYOUT", True),
+    ("EX_VIEW_NO_DIMS", "치수가 하나도 없는 투상도", "DIMENSIONS", True),
     ("EX_FEW_VIEWS", "투상도 개수 부족", "PROJECTION_LAYOUT", True),
     ("EX_NO_CENTERLINE", "중심선·중심마크 없음", "PROJECTION_LAYOUT", True),
     ("EX_VIEW_NO_LABEL", "상세도·단면도에 문자 표기 없음", "PROJECTION_LAYOUT", True),
@@ -279,10 +284,27 @@ def _dimensions(facts):
                    "도면에 치수가 전혀 기입되지 않았습니다. 치수 기입 15점을 "
                    "전부 잃습니다.",
                    "주석 > 치수 로 주요 치수를 기입하세요.", "DIMENSIONS", 15)]
+    out = []
+    # 정면도와 줄이 맞는 투상도인데 치수가 하나도 안 붙은 것. 같은 장의 다른
+    # 부품이나 상세도는 자기 치수가 따로 있을 수 있어 보지 않는다.
+    bare = [v for v in sh.get("views", [])
+            if v.get("spot") and not v.get("dim_count")]
+    if bare:
+        names = ", ".join(v.get("role") or v.get("name") or "?" for v in bare)
+        out.append(_f(
+            "EX_VIEW_NO_DIMS", SEV_ERROR,
+            f"치수가 하나도 없는 투상도 {len(bare)}개",
+            f"{names} 에 치수가 한 개도 붙어 있지 않습니다. 투상도를 그려 놓고 "
+            "치수를 안 넣으면 그 뷰가 하는 일이 없습니다. 치수 누락은 직접 "
+            "감점입니다.",
+            "그 뷰에서만 보이는 치수(폭·높이·구멍 위치)를 찾아 기입하세요. "
+            "다른 뷰에 이미 있는 치수를 옮겨 적을 필요는 없습니다.",
+            "DIMENSIONS", min(5, 2 * len(bare)),
+            {"views": [v.get("name") for v in bare]}))
     n = sum(c.get("count", 1) for c in missing)
     if not n:
-        return []
-    return [_f(
+        return out
+    return out + [_f(
         "EX_DIM_MISSING", SEV_ERROR, f"치수 누락 의심 {n}곳",
         "치수가 붙지 않은 원/구멍이 있습니다. 치수 누락은 직접 감점입니다. "
         + ", ".join(f"Ø{c['diameter_mm']:.1f}" for c in missing[:6]),
@@ -631,6 +653,19 @@ def _projection(facts):
             "부품 형상을 표현하기에 투상도가 부족해 보입니다.",
             "정면도 기준으로 평면도·측면도, 필요시 단면도·상세도를 배치하세요.",
             "PROJECTION_LAYOUT"))
+    # 내부 형상은 은선보다 단면도로 나타내라는 것이 KS 제도 규칙이고,
+    # 채점 항목 '올바른 단면도 수' 가 이것을 본다. 인터뷰에서도 "안쪽에
+    # 구멍·턱이 있는데 단면이 없다" 가 실제 실수로 나왔다.
+    if counts.get("HiddenLines", 0) >= MIN_HIDDEN_FOR_SECTION \
+            and not counts.get("Hatches", 0):
+        out.append(_f(
+            "EX_NO_SECTION", SEV_ERROR, "단면도 없이 은선으로만 나타냈습니다",
+            f"숨은선이 {counts['HiddenLines']}개인데 단면(해칭)이 하나도 "
+            "없습니다. 안쪽 구멍·턱을 은선으로만 그리면 형상을 읽기 어려워 "
+            "'올바른 단면도 수' 에서 감점됩니다.",
+            "배치 > 단면도 로 내부가 드러나는 자리에 절단선을 긋고 단면도를 "
+            "만드세요. 해칭과 절단선 문자(A-A)도 같이 넣습니다.",
+            "PROJECTION_LAYOUT", 4))
     if not counts.get("Centerlines", 0) and not counts.get("Centermarks", 0):
         out.append(_f(
             "EX_NO_CENTERLINE", SEV_WARN, "중심선·중심마크 없음",

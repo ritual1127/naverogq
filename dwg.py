@@ -810,6 +810,32 @@ def _short_line_grid(segments, cell):
     return grid
 
 
+# 숨은선(은선)과 단면 해칭. 내부 형상은 은선보다 단면도로 나타내라는 것이
+# KS 제도 규칙이고, 채점 항목 '올바른 단면도 수' 가 이것을 본다.
+_HIDDEN_RE = re.compile(r"은\s*선|숨은|hidden|dash", re.I)
+# 해칭을 HATCH 엔티티로 넣는 CAD 도 있고 선으로 긋는 CAD 도 있다.
+# 둘 다 "단면을 그렸다" 는 같은 뜻이라 같이 센다.
+_HATCH_RE = re.compile(r"해\s*치|해\s*칭|hatch|section", re.I)
+
+
+def _hidden_layers(doc):
+    out = set()
+    for lay in doc.layers:
+        name = lay.dxf.name or ""
+        if _HIDDEN_RE.search(name) or _HIDDEN_RE.search(lay.dxf.get("linetype", "") or ""):
+            out.add(name)
+    return out
+
+
+def _is_hidden(entity, hidden_layers):
+    try:
+        if (entity.dxf.get("layer", "") or "") in hidden_layers:
+            return True
+        return bool(_HIDDEN_RE.search(entity.dxf.get("linetype", "") or ""))
+    except Exception:
+        return False
+
+
 def _is_centerline(entity):
     try:
         if _CENTER_RE.search(entity.dxf.get("layer", "") or ""):
@@ -1183,6 +1209,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     K, unit_why = detect_mm_per_unit(doc, msp)
     dims, circles, dim_centers, titles, texts = [], [], [], {}, []
     surfaces, geo_tols, rects, centerlines, symbol_zones = [], [], [], 0, []
+    hidden = hatches = 0
+    hidden_layers = _hidden_layers(doc)
     short_lines, long_lines = [], []
     gdt_styles = _gdt_styles(doc)
     gdt_glyphs, plain_texts = [], []
@@ -1196,6 +1224,10 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
             t = e.dxftype()
             if _is_centerline(e):
                 centerlines += 1
+            if t == "HATCH" or _HATCH_RE.search(e.dxf.get("layer", "") or ""):
+                hatches += 1
+            elif _is_hidden(e, hidden_layers):
+                hidden += 1
             if _is_border(e):
                 rects.append(e)
             if t == "LINE":
@@ -1393,7 +1425,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "counts": {"circles": len(circles), "title_blocks": len(titles),
                         "SurfaceTextureSymbols": len(surfaces),
                         "FeatureControlFrames": len(geo_tols),
-                        "Centerlines": centerlines, "Centermarks": 0}}
+                        "Centerlines": centerlines, "Centermarks": 0,
+                        "HiddenLines": hidden, "Hatches": hatches}}
     return {
         "kind": "dwg", "file": source_name or os.path.basename(path),
         "props": props, "sheets": [sheet],
