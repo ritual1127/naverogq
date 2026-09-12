@@ -1,5 +1,12 @@
 # 검사 항목과 근거
 
+> **근거 자료** — 한국산업인력공단이 낸 **[국가기술자격 실기시험용 KS 기계제도 규격](https://hrdc.hrdkorea.or.kr/hrdc/download/downloadFile.hrd?attachSeq=574807)**
+> (50개 항목, 32쪽)을 1차 근거로 씁니다. 시험을 내는 곳이 "실기시험에서는 이 값을
+> 쓴다"고 직접 낸 문서라 KS 원문보다 이 도면에 더 가깝습니다. 여기서 가져온 값은
+> 표에 `공단 규격 N번` 으로 적어 뒀고, `test_rules.py` 의
+> `test_official_ks_examples_are_accepted` 가 그 예시를 그대로 통과시키는지 봅니다.
+
+
 CADLens의 지적은 임의 기준이 아니라 KS 제도 규격과 전산응용기계제도기능사
 실기 채점 기준에서 나옵니다. 이 문서는 검사 코드 하나하나가 **어느 규격에서
 왔고, 코드 어디에 구현되어 있는지**를 대응시킵니다.
@@ -52,7 +59,7 @@ CADLens의 지적은 임의 기준이 아니라 KS 제도 규격과 전산응용
 |---|---|---|---|
 | `EX_SURFACE_EMPTY` | 기호만 있고 거칠기 값이 없음 | KS B ISO 1302 — 기호에는 요구 값이 따라야 함 | `exam._surface` |
 | `EX_SURFACE_UNIFORM` | 모든 면이 같은 거칠기 | KS B 0161 — 기능에 따라 다듬질 정도를 구분 | `exam._surface` |
-| `EX_NO_ROUGH_TABLE` | 거칠기 기호는 있는데 다듬질 구분을 정의하는 비교표가 없음 | KS A ISO 1302 표면 성상 표시 — 기호가 뜻하는 값을 도면에서 정의해야 한다. 채점 기준의 표면거칠기 항목 | `exam._surface` |
+| `EX_NO_ROUGH_TABLE` | 거칠기 기호는 있는데 다듬질 구분을 정의하는 비교표가 없음 | 공단 규격 46번 주서(예) 7번 — `√w = Ra 12.5 · √x = Ra 3.2 · √y = Ra 0.8 · √z = Ra 0.2`. 괄호로 묶는 ISO 1302 방식도 인정한다 | `exam._surface` |
 | `EX_SURFACE_FEW` | 가공면 대비 기호 수가 부족 | KS B ISO 1302 — 가공면에는 기호 기입 | `exam._surface` |
 
 DXF에서는 `√`, `Ra/Rz/Ry` 값, 다듬질 기호(w/x/y/z)를 문자에서 인식합니다
@@ -73,7 +80,7 @@ DXF에서는 `TOLERANCE` 엔티티와 GDT 문자열(`{\Fgdt;…}%%v0.011%%vA`)�
 
 | 코드 | 지적 내용 | 근거 | 구현 |
 |---|---|---|---|
-| `EX_NO_SPEC_TABLE` | 부품란에 기어·스프링이 있는데 요목표가 없음 | 공개문제 요구사항 — 기어·스프링은 잇수·모듈·압력각 등을 요목표로 적는다. KS B ISO 1328-1 · KS B 2401 | `exam._spec_table` |
+| `EX_NO_SPEC_TABLE` | 부품란에 기어·스프링이 있는데 요목표가 없음 | 공단 규격 49번 요목표(예) — 스퍼기어·베벨·헬리컬·웜과 웜휠·체인/스프로킷·래크와 피니언·래칫 휠 | `exam._spec_table` |
 | `EX_NO_NOTES` | 주서가 없음 | KS B ISO 2768-1 — 일반공차는 도면에 명시해야 적용됨 | `exam._notes` |
 | `EX_NOTE_ITEM` | 주서에 일반공차·표면거칠기·모떼기 문구 누락 | KS B ISO 2768-1, KS B ISO 13715 모서리 지시 | `exam._notes` |
 | `EX_SHEET_SIZE` | 도면 영역이 요구 크기(A2)와 다름 | KS A ISO 5457 제도 용지 · 공개문제 요구사항 'A2 용지에 제도' | `exam._disqualifiers` |
@@ -87,7 +94,7 @@ DXF에서는 `TOLERANCE` 엔티티와 GDT 문자열(`{\Fgdt;…}%%v0.011%%vA`)�
 
 | 코드 | 지적 내용 | 근거 | 구현 |
 |---|---|---|---|
-| `EX_NO_MATERIAL` | 표제란·부품란에 재료 기호가 없음 | KS D 재료 기호 · 채점 기준의 '올바른 재료 선택' | `exam._sheet_form` |
+| `EX_NO_MATERIAL` | 표제란·부품란에 재료 기호가 없음 | 공단 규격 50번 기계재료 기호 예시(KS D) — `SCr415` 처럼 소문자가 섞인 것과 `GCD 350-22` 처럼 빈칸이 있는 것까지 인정한다 | `exam._sheet_form` |
 | `EX_NO_MASS` | 3D 등각투상도 부품란 비고에 질량이 없음 | 공개문제 요구사항 — 질량을 g 단위로 소수점 첫째자리까지 적는다 | `exam._sheet_form` |
 | `EX_NO_HEAT` | 열처리·표면처리 지시가 없음 | KS D 재료 기호 및 열처리 표기 관행, 채점 기준의 재료 항목 | `exam._material` |
 

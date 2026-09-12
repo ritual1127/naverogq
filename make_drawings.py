@@ -276,6 +276,7 @@ DEFECTS = {
     "no_datum": {"EX_FCF_NO_DATUM"},
     "no_tolval": {"EX_FCF_NO_VALUE"},
     "one_fcf": {"EX_FCF_FEW"},
+    # 주서가 없으면 일반공차 선언도 없어서 공차가 정의되지 않는다
     "no_notes": {"EX_NO_NOTES", "EX_NO_HEAT"},
     "no_rough_table": {"EX_NO_ROUGH_TABLE"},
     "no_spec_table": {"EX_NO_SPEC_TABLE"},

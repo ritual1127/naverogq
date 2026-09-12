@@ -1090,3 +1090,55 @@ def test_a_view_without_dimensions_is_not_a_defect():
     got = {f["code"] for f in exam.grade({"sheets": [sheet]})[0]}
     assert "EX_DIM_MISSING" not in got, sorted(got)
     assert "EX_VIEW_NO_DIMS" not in got, "뷰마다 치수를 요구하면 안 된다"
+
+
+def test_official_ks_examples_are_accepted():
+    """공단이 낸 `국가기술자격 실기시험용 KS 기계제도 규격` 의 예시를 그대로
+    통과시킨다. 이 예시대로 그린 도면에 헛지적이 나면 안 된다."""
+    import re
+
+    import dwg
+    import exam
+
+    # 50. 기계재료 기호 예시 (KS D) — 소문자가 섞인 것과 빈칸이 있는 것 포함
+    for code in ("GC100", "GC250", "GCD 350-22", "SC360", "SC480", "SF390A",
+                 "CAC502A", "CAC402", "SM9CK", "SM45C", "AC4C", "STC85",
+                 "STS3", "WM3", "SCM415", "SNCM431", "SNC415",
+                 "SCr415", "SCr435", "SPS6", "S55C-CSP", "PW-1",
+                 "SS235", "ALDC5", "SCW410", "C5102B"):
+        assert dwg._MATERIAL_VALUE_RE.match(code), code
+    for not_a_code in ("베어링커버", "과제명", "동력전달장치-4", "품명"):
+        assert not dwg._MATERIAL_VALUE_RE.match(not_a_code), not_a_code
+
+    # 46. 주서(예) 의 표면거칠기 비교표는 등식으로 쓴다
+    for line in ("√w = Ra 12.5", "√x = Ra 3.2", "√y = Ra 0.8", "√z = Ra 0.2",
+                 "x = Ra 3.2"):
+        assert dwg._ROUGH_PAIR_RE.search(line), line
+    for line in ("7. 표면거칠기", "재질", "1. 일반공차"):
+        assert not dwg._ROUGH_PAIR_RE.search(line), line
+
+    # 46. 주서(예) 1번은 일반공차 선언이다 — 가공부와 주조부 둘 다 인정한다
+    for line in ("1. 일반공차 : 가)가공부 : KS B ISO 2768 - m",
+                 "나)주조부 : KS B 0250 - CT11"):
+        assert re.search(exam.GENERAL_TOL_RE, line), line
+    assert not re.search(exam.GENERAL_TOL_RE, "6. 전체 열처리 HRC 50±3")
+
+    # 10. 미터 보통 나사 골 지름 — 이 원에는 치수를 안 적는 것이 맞다
+    for nominal, minor in ((3, 2.459), (4, 3.242), (5, 4.134), (6, 4.917),
+                           (8, 6.647), (10, 8.376), (12, 10.106), (16, 13.835)):
+        assert dwg._is_thread_circle(minor, {float(nominal)}), (nominal, minor)
+        assert dwg._is_thread_circle(float(nominal), {float(nominal)}), nominal
+    # 나사와 상관없는 구멍은 그대로 잡는다
+    assert not dwg._is_thread_circle(9.0, {4.0, 6.0})
+    assert not dwg._is_thread_circle(20.0, {4.0})
+
+    # 49. 요목표(예) 에 실린 종류를 전부 알아본다
+    for part in ("스퍼기어", "스퍼어기어", "헬리컬기어", "베벨 기어", "웜휠",
+                 "웜", "래크", "피니언", "스프로킷", "체인", "래칫 휠",
+                 "압축 스프링"):
+        assert dwg._SPEC_PART_RE.match(part), part
+
+    # KS A ISO 5455 권장 척도를 오작으로 부르지 않는다
+    for scale in ("1:1", "1:2", "1:5", "1:10", "1:20", "1:50", "1:100",
+                  "2:1", "5:1", "10:1", "20:1", "50:1"):
+        assert scale in exam.STANDARD_SCALES, scale

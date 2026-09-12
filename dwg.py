@@ -615,14 +615,23 @@ def _outside_frame(msp, box, mm_per_unit):
 
 # 요목표가 필요한 부품. 기어·스프링은 형상만으로 만들 수 없어서 잇수·모듈·
 # 압력각 같은 값을 표로 따로 적어야 한다(공개문제 요구사항).
+# 공단이 낸 실기시험용 규격 49번 `요목표(예)` 에 실린 종류를 그대로 따른다 —
+# 스퍼기어 · 베벨 기어 · 헬리컬 기어 · 웜과 웜휠 · 체인/스프로킷 ·
+# 래크와 피니언 · 래칫 휠. 여기에 스프링을 더한다.
 _SPEC_PART_RE = re.compile(
     r"^(?:\d+\s*[-.]?\s*)?[가-힣A-Za-z ]*"
-    r"(스퍼\s*어?\s*기어|헬리컬\s*기어|베벨\s*기어|웜\s*휠|웜|래크|피니언|"
-    r"스프로킷|기어|압축\s*스프링|인장\s*스프링|스프링)"
+    r"(스퍼\s*어?\s*기어|헬리컬\s*기어|베벨\s*기어|웜\s*휠|웜|래크|래칫\s*휠?|"
+    r"피니언|스프로킷|체인|기어|압축\s*스프링|인장\s*스프링|스프링)"
     r"[가-힣A-Za-z ]*$")
 _SPEC_TABLE_RE = re.compile(r"요\s*목\s*표")
 # 거칠기 비교표는 `√( √x , √y , √z )` 모양이라 문자만 보면 괄호와 쉼표만 남는다.
 _ROUGH_TABLE_RE = re.compile(r"^[√∇(]\s*[(,\s√∇wxyzWXYZ]*\)$")
+# 공단이 낸 실기시험용 주서(예)의 비교표는 등식으로 쓴다 —
+#   √w = Ra 12.5   √x = Ra 3.2   √y = Ra 0.8   √z = Ra 0.2
+# 괄호로 묶는 ISO 1302 방식(`√( √x , √y , √z )`)만 보고 있어서, 공단 예시
+# 그대로 적은 도면을 "비교표 없음" 으로 잡을 뻔했다.
+_ROUGH_PAIR_RE = re.compile(
+    r"[√∇]?\s*([wxyzWXYZ])\s*=\s*(?:Ra|Rz|Ry|Rmax)?\s*[\d.]+", re.I)
 MAX_PART_NAME_LEN = 20
 
 
@@ -630,10 +639,13 @@ MAX_PART_NAME_LEN = 20
 # A32 에서 `다듬질 방법` · `KS B ISO 1328-1, 4급` 때문에 "주서 없음"(8점)을
 # 놓쳤다. 요목표가 있는 도면에서만 뺀다.
 _SPEC_ROW_RE = re.compile(
-    r"^(기어\s*치형|치형|모듈|압력각|잇\s*수|피치원\s*지름|전체\s*이\s*높이|"
-    r"이\s*두께|다듬질\s*방법|정밀도|재료|호브절삭|표준|보통이|"
+    r"^(기어\s*치형|치형|공\s*구|모듈|압력\s*각|잇\s*수|피치\s*원?\s*지름|"
+    r"피치\s*원경|전체\s*이\s*높이|이\s*높이|이\s*두께|다듬질\s*방법|정밀도|재료|"
+    r"호브절삭|절삭|연삭|글리슨\s*식|표준|보통이|축\s*각|피치원\s*추각|"
+    r"치형\s*기준\s*면|치형\s*기준\s*단면|치직각|축직각|리\s*드|방\s*향|"
+    r"비틀림\s*각|원주\s*피치|롤러\s*외경|줄\s*수,?\s*방향|진행각|호칭|종류|"
     r"총\s*감김\s*수|유효\s*감김\s*수|감김\s*방향|재료의\s*지름|코일\s*평균\s*지름|"
-    r"KS\s*B\s*ISO.*)$", re.I)
+    r"KS\s*B\s*(ISO\s*)?\d.*)$", re.I)
 
 
 def _drop_spec_rows(notes, has_table):
@@ -655,6 +667,9 @@ def _spec_tables(texts):
             continue
         if len(s) <= MAX_PART_NAME_LEN and _SPEC_PART_RE.match(s):
             parts.append(s)
+        if not rough and _ROUGH_PAIR_RE.search(s):
+            rough = True
+            continue
         if not rough and _ROUGH_TABLE_RE.match(s) and "(" in s:
             rough = True
     return {"needs_spec": sorted(set(parts)), "spec_tables": tables,
@@ -1509,8 +1524,13 @@ _MASS_VALUE_RE = re.compile(r"^\d+(?:\.\d+)?\s*(?:g|kg|그램)?$", re.I)
 # KS 재료 기호. SM45C · GC250 · SCM415 · SS400 · SUS304 · FC250 · PBC2 …
 # 한글로 적는 사람도 있어 흔한 재료 이름은 값으로 인정한다(기호로 쓰라는 지적은
 # 채점 기준이 할 일이고, 우리는 "칸이 비었다"만 말한다).
+# 공단이 실기시험용으로 낸 KS D 재료 기호 예시를 그대로 통과시켜야 한다.
+# 전에 쓰던 `^[A-Z][A-Z0-9-]+$` 로는 두 가지가 걸렸다 —
+#   SCr415 · SCr420 (크로뮴강) 은 가운데가 소문자다
+#   GCD 350-22 (구상흑연 주철품) 은 기호와 숫자 사이에 빈칸이 있다
 _MATERIAL_VALUE_RE = re.compile(
-    r"^[A-Z][A-Z0-9\-]{1,11}$|^(주철|주강|황동|청동|연강|탄소강|합금강|"
+    r"^[A-Z][A-Za-z]{0,4}\s?[A-Z0-9][A-Za-z0-9\-]{0,9}$"
+    r"|^(주철|주강|황동|청동|연강|탄소강|합금강|"
     r"스테인리스|알루미늄|알루미늄합금|동|강)$")
 _ISO_3D_RE = re.compile(r"등\s*각|렌더링|ISOMETRIC", re.I)
 # `E-E ( 1 : 1 )`, `단면도 A-A (2:1)` 처럼 뷰 이름표 뒤에 붙는 척도.
@@ -1643,10 +1663,14 @@ _NON_SHAPE_LAYER_RE = re.compile(
     r"detail|section|sketch|hatch|cent|dim|phantom|construction", re.I)
 # 나사 호칭. `M4` · `M6x0.75` · `4-M4` 어디에 있든 잡는다.
 _THREAD_RE = re.compile(r"(?<![A-Za-z])M\s*(\d+(?:\.\d+)?)", re.I)
-# 나사 그림에 나오는 원은 바깥지름(호칭 지름)과 골지름이다. 골지름은 호칭의
-# 0.8 배쯤이고 탭 드릴은 그보다 조금 크다. 그 사이를 나사 원으로 본다.
-THREAD_CIRCLE_LO = 0.72
-THREAD_CIRCLE_HI = 1.06
+# 미터 보통 나사의 골 지름(안 지름 D1). 공단이 낸 `국가기술자격 실기시험용
+# KS 기계제도 규격` 10번 표를 그대로 옮긴 값이다. 비율로 어림잡지 않는다.
+THREAD_MINOR_MM = {3: 2.459, 4: 3.242, 5: 4.134, 6: 4.917, 8: 6.647,
+                   10: 8.376, 12: 10.106, 16: 13.835}
+# 표에 없는 호칭(가는 나사 M6x0.75 등)은 골 지름이 호칭의 0.8~0.93 배 사이다.
+THREAD_MINOR_LO = 0.78
+THREAD_MINOR_HI = 0.95
+THREAD_MATCH_TOL_MM = 0.35
 
 
 def _thread_sizes(texts):
@@ -1662,8 +1686,21 @@ def _thread_sizes(texts):
 
 
 def _is_thread_circle(diameter_mm, threads):
-    return any(m * THREAD_CIRCLE_LO <= diameter_mm <= m * THREAD_CIRCLE_HI
-               for m in threads)
+    """나사를 그리면 나오는 원인가 — 바깥지름이거나 골지름이면 참.
+
+    나사는 지름 치수를 안 적고 나사 호칭(M4 · M6×0.75)으로 적으므로, 이 원에
+    치수가 없는 것이 정상이다. 실제 수험생 도면 30장 중 22장에서 이 원들이
+    "치수 없는 구멍" 으로 잡히고 있었다."""
+    for m in threads:
+        if abs(diameter_mm - m) <= THREAD_MATCH_TOL_MM:
+            return True                       # 바깥지름(호칭 지름)
+        minor = THREAD_MINOR_MM.get(int(m)) if float(m).is_integer() else None
+        if minor is not None:
+            if abs(diameter_mm - minor) <= THREAD_MATCH_TOL_MM:
+                return True                   # 표에 있는 골지름
+        elif m * THREAD_MINOR_LO <= diameter_mm <= m * THREAD_MINOR_HI:
+            return True                       # 표에 없는 호칭은 비로 본다
+    return False
 
 
 def _props_from_titles(titles):

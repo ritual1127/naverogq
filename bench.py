@@ -124,7 +124,8 @@ def _full(out_dir, name, *, surfaces=("y", "x", "w"), fcf_datums=("A",),
           dimension_hole=True, fcf_tol="0.011", extra_text=(),
           notes_as_lines=False, symbol_circles=False, bare_symbol=False,
           line_widths=LAYER_WIDTHS, dim_text=3.5, shaft_fit=True,
-          outside_frame=False, rough_table=True, gear_part=False):
+          outside_frame=False, rough_table=True, gear_part=False,
+          plain_dims=0):
     doc, msp = _new(line_widths, dim_text)
     _title_block(doc, msp)
     _body(msp, dimension_hole=dimension_hole)
@@ -134,6 +135,10 @@ def _full(out_dir, name, *, surfaces=("y", "x", "w"), fcf_datums=("A",),
         shaft = msp.add_linear_dim(base=(120, 30), p1=(40, 50), p2=(200, 50),
                                    text="%%c12h6")
         shaft.render()
+    for i in range(plain_dims):
+        # 공차가 안 붙은 평범한 치수. 일반공차 선언이 있으면 이게 정상이다.
+        msp.add_linear_dim(base=(120, 200 + i * 8), p1=(40, 190),
+                           p2=(200, 190), text=f"{60 + i * 5}").render()
     if outside_frame:
         # 윤곽선 오른쪽 40mm 바깥에 남은 스케치 선
         msp.add_line((600, 200), (634, 200), dxfattribs={"layer": "외형선"})
@@ -176,8 +181,17 @@ def fixtures(out_dir):
          {"EX_SURFACE_UNIFORM"}),
         ("거칠기 기호 부족", _full(out_dir, "few_surface", surfaces=("y", "x")),
          {"EX_SURFACE_FEW"}),
+        # 주서에 일반공차가 있으면 개별 공차가 없는 치수는 정상이다
+        # (KS B ISO 2768-1). 그래서 EX_TOL_FEW 는 여기서 안 뜬다.
         ("치수 없는 구멍", _full(out_dir, "undimensioned", dimension_hole=False),
-         {"EX_DIM_MISSING", "DQ_NO_FIT", "EX_TOL_FEW"}),
+         {"EX_DIM_MISSING", "DQ_NO_FIT"}),
+        ("일반공차 선언도 없고 개별 공차도 거의 없음",
+         _full(out_dir, "no_tol_at_all", notes="", shaft_fit=False,
+               dimension_hole=False, plain_dims=12),
+         {"EX_TOL_FEW", "EX_NO_NOTES", "EX_NO_HEAT",
+          "EX_DIM_MISSING", "DQ_NO_FIT"}),
+        ("일반공차 선언이 있으면 공차 없는 치수는 정상",
+         _full(out_dir, "general_tol_ok", plain_dims=12), set()),
         ("구멍만 있고 축 기호가 없음",
          _full(out_dir, "fit_case", shaft_fit=False,
                extra_text=()) if False else _full(
