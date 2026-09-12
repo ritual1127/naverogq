@@ -56,12 +56,16 @@ MIN_FCF = 1
 
 SEV_FAIL, SEV_ERROR, SEV_WARN, SEV_INFO = "fail", "error", "warn", "info"
 
+# 공개된 채점 기준표의 8개 항목과 배점(합계 100점)을 그대로 옮긴 것이다.
+# `도면 배치와 외관` 10점은 오래 빠져 있었다 — 그동안 만점이 90점이었고,
+# 선 굵기·문자 크기처럼 DXF 에서 바로 읽히는 항목이 통째로 채점되지 않았다.
 RUBRIC = [
     ("PROJECTION_LAYOUT", "투상도 선택과 배열", 30, "review"),
     ("DIMENSIONS", "치수 기입", 15, "auto"),
     ("TOLERANCE", "끼워맞춤 공차·치수공차", 10, "auto"),
     ("SURFACE", "표면거칠기", 10, "auto"),
     ("GEOMETRIC", "형상(기하)공차", 10, "auto"),
+    ("APPEARANCE", "도면 배치와 외관", 10, "auto"),
     ("NOTES_TITLE", "주서·표제란·부품란", 8, "auto"),
     ("MATERIAL", "재료 선택과 처리", 7, "auto"),
 ]
@@ -75,11 +79,11 @@ CHECKS = [
     ("DQ_PROJECTION", "투상법이 제3각법이 아님", "오작", True),
     ("DQ_SHEET_SIZE", "도면 크기가 요구와 다름", "오작", True),
     ("DQ_SCALE", "비표준 척도 사용", "오작", True),
+    ("DQ_NO_FIT", "끼워맞춤 공차 기호가 아예 없음", "오작", True),
 
     ("EX_NO_DIMS", "치수가 하나도 없음", "DIMENSIONS", True),
     ("EX_DIM_MISSING", "치수 없는 원·구멍", "DIMENSIONS", True),
 
-    ("EX_NO_FIT", "끼워맞춤 공차 기호 없음", "TOLERANCE", True),
     ("EX_TOL_FEW", "공차 지정된 치수가 너무 적음", "TOLERANCE", True),
 
     ("EX_SURFACE_EMPTY", "거칠기 값이 빈 기호", "SURFACE", True),
@@ -98,6 +102,11 @@ CHECKS = [
     ("EX_NO_SHEET_SCALE", "표제란에 척도 표기 없음", "NOTES_TITLE", True),
     ("EX_SCALE_NOT_ONE", "부품도 척도가 1:1이 아님", "NOTES_TITLE", True),
     ("EX_VIEW_SCALE_MIXED", "뷰마다 척도가 다름", "NOTES_TITLE", True),
+
+    ("EX_LINEWEIGHT_FLAT", "용도에 맞는 선 굵기 구분 없음", "APPEARANCE", True),
+    ("EX_LINEWEIGHT_NONE", "레이어에 선 굵기가 지정되지 않음", "APPEARANCE", True),
+    ("EX_TEXT_SIZE", "문자 크기가 제도 표준과 다름", "APPEARANCE", True),
+    ("EX_OUTSIDE_FRAME", "도면틀 밖에 그려진 요소", "APPEARANCE", True),
 
     ("EX_NO_HEAT", "열처리·표면처리 지시 없음", "MATERIAL", True),
     ("EX_NO_MATERIAL", "재료 기호 기입 없음", "MATERIAL", True),
@@ -209,6 +218,56 @@ def _disqualifiers(facts):
     return out
 
 
+def _fit_states(facts):
+    """치수 문자마다 (원문, 판정). 끼워맞춤 검사 셋이 같이 쓴다."""
+    dims = _sheet_of(facts).get("dims", [])
+    return [(plain_dim_text(d.get("text")), text_tolerance_state(d.get("text")))
+            for d in dims]
+
+
+# 끼워맞춤 기호의 구멍/축 구분. 대문자는 구멍, 소문자는 축이다.
+# 뒤에 붙는 숫자는 IT 등급(01, 0, 1~18)이라 등급까지 봐야 나사(M6x1)와 안 섞인다.
+_FIT_SYMBOL = re.compile(
+    r"(?<=\d)\s*([A-Za-z]{1,2})(0?[1-9]|1[0-8])(?![\d.])")
+
+
+def _fit_symbols(facts):
+    """치수 문자에서 끼워맞춤 기호만 (기호, 구멍인가) 로 뽑는다."""
+    out = []
+    for text, state in _fit_states(facts):
+        if state != "fit":
+            continue
+        for letters, grade in _FIT_SYMBOL.findall(text):
+            out.append((letters + grade, letters.isupper()))
+    return out
+
+
+def _fits(facts):
+    """오작 5·6 — 끼워맞춤 공차 기호.
+
+    공개된 수험자 유의사항의 오작 조건에 두 줄이 따로 있다.
+      5. 끼워맞춤 공차 기호를 부품도에 기입하지 않거나 부정확하게 지시한 경우
+      6. 끼워맞춤 공차의 구멍 기호(대문자)와 축 기호(소문자)를 구분하지 않은 경우
+    전에는 5번을 6점짜리 감점(`EX_NO_FIT`)으로만 다뤘고 6번은 검사가 없었다."""
+    if not _sheet_of(facts).get("dims"):
+        return []
+    symbols = _fit_symbols(facts)
+    if not symbols:
+        return [_f(
+            "DQ_NO_FIT", SEV_FAIL, "오작: 끼워맞춤 공차 기호 없음",
+            "H7, js5, h6 같은 끼워맞춤 공차 기호가 하나도 없습니다. "
+            "'끼워맞춤 공차 기호를 부품도에 기입하지 않은 도면'은 오작(실격)입니다.",
+            "결합되는 치수에 끼워맞춤 기호를 넣으세요. "
+            "예) 베어링 축 Ø17js5, 커버 구멍 Ø47H7",
+            "TOLERANCE")]
+    # 오작 6번(구멍 대문자·축 소문자 미구분)은 검사하지 않는다. 만들어서 실제
+    # 도면 30장에 대 봤더니 "기호가 전부 대문자면 구분 안 한 것" 이라는 규칙이
+    # 본체만 그린 부품도 3장을 실격시켰다 — 구멍(H8·JS9)만 있는 것이 맞는
+    # 도면이었다. 어느 치수가 구멍이고 어느 것이 축인지는 DXF 로 못 가른다.
+    # 없는 오작을 만드는 것이 이 서비스에서 가장 나쁜 오류라 검사를 접었다.
+    return []
+
+
 def _dimensions(facts):
     sh = _sheet_of(facts)
     dims, missing = sh.get("dims", []), sh.get("undimensioned", [])
@@ -235,18 +294,10 @@ def _tolerance(facts):
     if not dims:
         return []
     states = [text_tolerance_state(d.get("text")) for d in dims]
-    fits = sum(1 for s in states if s == "fit")
     toleranced = sum(1 for d, s in zip(dims, states)
                      if d.get("tol_type") not in (None, "none") or s in ("explicit", "fit"))
     out = []
-    if fits == 0:
-        out.append(_f(
-            "EX_NO_FIT", SEV_ERROR, "끼워맞춤 공차 기호가 없음",
-            "H7, js5, h6 같은 끼워맞춤 공차 기호가 하나도 없습니다. "
-            "베어링·축·키홈이 있는 과제에서는 반드시 필요합니다.",
-            "결합되는 치수에 끼워맞춤 기호를 넣으세요. "
-            "예) 베어링 축 Ø17js5, 커버 구멍 Ø47H7",
-            "TOLERANCE", 6))
+    # 끼워맞춤 기호가 아예 없는 것은 감점이 아니라 오작이라 `_fits` 가 본다.
     if toleranced / len(dims) < 0.2:
         out.append(_f(
             "EX_TOL_FEW", SEV_WARN,
@@ -450,6 +501,80 @@ def _sheet_form(facts):
     return out
 
 
+# KS B 0001 은 선 굵기를 절대값으로 못 박지 않고 비로 정한다 —
+# 가는 선 : 굵은 선 : 아주 굵은 선 = 1 : 2 : 4. 축척이 달라도 통하는 기준이라
+# 절대값 대신 비를 본다. 실기 도면은 보통 윤곽선 0.7 · 외형선 0.5 ·
+# 은선 0.35 · 중심선/치수선 0.25 · 해치 0.18 이다.
+MIN_LINE_RATIO = 2.0
+# 문자 크기는 KS A 0107 의 호칭(2.24 · 3.15 · 4.5 · 6.3 · 9)과 ISO 계열
+# (2.5 · 3.5 · 5 · 7 · 10)을 같이 인정한다. 실기 치수 문자는 3.15~3.5 다.
+DIM_TEXT_MM = (3.15, 3.5)
+DIM_TEXT_TOL = 0.6
+SMALL_SHEETS = ("A2", "A3", "A4")
+
+
+def _appearance(facts):
+    """채점 항목 '도면 배치와 외관' 10점 중 기계가 잴 수 있는 것.
+
+    '각 부품의 균형 배치' 5점은 여기서 보지 않는다. 실제 도면 30장을 재 보니
+    표제란이 오른쪽 아래를 차지해 **멀쩡한 도면이 전부 왼쪽으로 치우쳐** 나왔다
+    (x -0.10 ~ -0.31). 치우침만으로는 정상과 불량이 안 갈려서, 그 5점은
+    투상도 AI 판정에 남겨 둔다. 없는 규칙을 만들어 붙이지 않는다."""
+    sh = _sheet_of(facts)
+    out = []
+
+    lw = sh.get("line_widths")
+    if lw is None or not lw.get("layers"):
+        out.append(_f(
+            "EX_LINEWEIGHT_NONE", SEV_WARN, "레이어에 선 굵기가 지정되지 않았습니다",
+            "레이어 어디에도 선 굵기가 정해져 있지 않습니다. 이대로 출력하면 "
+            "외형선과 치수선이 같은 굵기로 나와 '용도에 맞는 선 굵기'에서 "
+            "감점됩니다.",
+            "레이어 특성에서 윤곽선 0.7, 외형선 0.5, 은선 0.35, "
+            "중심선·치수선 0.25, 해칭 0.18 mm 로 지정하세요.",
+            "APPEARANCE", 3))
+    elif lw.get("ratio") is not None and lw["ratio"] < MIN_LINE_RATIO:
+        out.append(_f(
+            "EX_LINEWEIGHT_FLAT", SEV_ERROR,
+            f"외형선과 가는 선의 굵기 차이가 작습니다 ({lw['ratio']}배)",
+            f"외형선 {lw['outline_mm']}mm, 치수·중심선 {lw['thin_mm']}mm 로 "
+            f"비가 {lw['ratio']}배입니다. KS 제도규격은 "
+            f"가는 선 : 굵은 선 = 1 : 2 이상을 요구합니다. 굵기가 구분되지 "
+            "않으면 도면을 읽을 수 없어 감점됩니다.",
+            "외형선을 0.5mm, 치수선·중심선을 0.25mm 로 두면 정확히 2배입니다.",
+            "APPEARANCE", 3, {"layers": lw.get("layers")}))
+
+    # 문자 크기는 도면 크기에 따라 달라진다(A0·A1 은 더 크게 쓴다). 요구 크기인
+    # A2 와 출력 크기 A3·A4 에서만 본다. 그보다 큰 종이는 이미 도면 크기로
+    # 실격이라 문자 크기까지 겹쳐 지적하지 않는다.
+    ts = sh.get("text_sizes") or {}
+    dim_mm = ts.get("dim_mm")
+    if (dim_mm and sh.get("sheet_name") in SMALL_SHEETS
+            and not any(abs(dim_mm - k) <= DIM_TEXT_TOL for k in DIM_TEXT_MM)):
+        out.append(_f(
+            "EX_TEXT_SIZE", SEV_WARN, f"치수 문자 크기가 {dim_mm}mm 입니다",
+            f"실기 도면의 치수 문자는 {DIM_TEXT_MM[0]}mm 또는 "
+            f"{DIM_TEXT_MM[1]}mm 로 씁니다. {dim_mm}mm 는 "
+            + ("너무 커서 치수선이 겹칩니다." if dim_mm > DIM_TEXT_MM[1]
+               else "작아서 출력하면 읽기 어렵습니다.")
+            + " '문자의 선 굵기 및 크기' 채점 항목입니다.",
+            f"치수 스타일 편집에서 문자 높이를 {DIM_TEXT_MM[1]}mm 로 바꾸세요.",
+            "APPEARANCE", 2))
+
+    over = sh.get("outside_frame")
+    if over:
+        out.append(_f(
+            "EX_OUTSIDE_FRAME", SEV_ERROR,
+            f"도면틀 밖으로 {over['over_mm']}mm 나간 요소가 있습니다",
+            f"{over['layer']} 레이어의 {over['type']} 가 윤곽선 바깥에 "
+            "있습니다. 수험자 유의사항은 도면 범위 밖 요소가 출력에 섞이지 "
+            "않게 하라고 합니다. 이대로 출력하면 잘리거나 종이를 넘칩니다.",
+            "윤곽선 밖의 요소를 지우거나 틀 안으로 옮기세요. "
+            "안 쓰는 스케치 선이 남아 있는 경우가 많습니다.",
+            "APPEARANCE", 2, {"layer": over["layer"]}))
+    return out
+
+
 def _projection(facts):
     sh = _sheet_of(facts)
     counts, views = sh.get("counts", {}), sh.get("views", [])
@@ -501,8 +626,9 @@ def _projection(facts):
     return out
 
 
-PRODUCERS = (_disqualifiers, _dimensions, _tolerance, _surface,
-             _geometric, _notes, _material, _sheet_form, _projection)
+PRODUCERS = (_disqualifiers, _fits, _dimensions, _tolerance, _surface,
+             _geometric, _notes, _material, _sheet_form, _appearance,
+             _projection)
 _ORDER = {SEV_FAIL: 0, SEV_ERROR: 1, SEV_WARN: 2, SEV_INFO: 3}
 
 

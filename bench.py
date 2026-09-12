@@ -21,10 +21,24 @@ NOTES_NO_CHAMFER = ("1. 일반공차 - 가) 가공부: KS B ISO 2768-m\n"
                     "3. 전체 열처리 HRC 50±2")
 
 
-def _new():
+# 실기 도면의 선 굵기(1/100 mm). KS 는 가는 선 : 굵은 선 = 1 : 2 이상을 요구한다.
+LAYER_WIDTHS = {"경계": 70, "외형선": 50, "은선": 35, "중심선": 25,
+                "치수": 25, "해치": 18}
+
+
+def _new(line_widths=LAYER_WIDTHS, dim_text=3.5):
     doc = ezdxf.new("R2013", setup=True)
     doc.header["$INSUNITS"] = 4
     doc.layers.add("CENTER_LINES", linetype="CENTER")
+    for name, width in (line_widths or {}).items():
+        doc.layers.add(name, lineweight=width)
+    # 치수가 실제로 쓰는 스타일에 문자 높이를 준다. ezdxf 기본값은 0.25mm 라
+    # 실기 도면(3.15~3.5mm)과 전혀 다르다.
+    for style in ("Standard", "EZDXF"):
+        try:
+            doc.dimstyles.get(style).dxf.dimtxt = dim_text
+        except Exception:
+            pass
     msp = doc.modelspace()
     # A2 — 공개문제 요구 도면 영역. 출력만 A3다.
     msp.add_lwpolyline([(0, 0), (594, 0), (594, 420), (0, 420)], close=True)
@@ -103,11 +117,21 @@ def _write(doc, name, out_dir):
 def _full(out_dir, name, *, surfaces=("y", "x", "w"), fcf_datums=("A",),
           fcf_count=2, notes=NOTES_FULL, centerlines=True, fit_text="160",
           dimension_hole=True, fcf_tol="0.011", extra_text=(),
-          notes_as_lines=False, symbol_circles=False, bare_symbol=False):
-    doc, msp = _new()
+          notes_as_lines=False, symbol_circles=False, bare_symbol=False,
+          line_widths=LAYER_WIDTHS, dim_text=3.5, shaft_fit=True,
+          outside_frame=False):
+    doc, msp = _new(line_widths, dim_text)
     _title_block(doc, msp)
     _body(msp, dimension_hole=dimension_hole)
     _linear(msp, fit_text)
+    if shaft_fit and dimension_hole:
+        # 구멍은 Ø20H7(대문자), 축은 Ø12h6(소문자). 둘 다 있어야 정상이다.
+        shaft = msp.add_linear_dim(base=(120, 30), p1=(40, 50), p2=(200, 50),
+                                   text="%%c12h6")
+        shaft.render()
+    if outside_frame:
+        # 윤곽선 오른쪽 40mm 바깥에 남은 스케치 선
+        msp.add_line((600, 200), (634, 200), dxfattribs={"layer": "외형선"})
     if centerlines:
         _centerlines(msp)
     if surfaces:
@@ -146,7 +170,23 @@ def fixtures(out_dir):
         ("거칠기 기호 부족", _full(out_dir, "few_surface", surfaces=("y", "x")),
          {"EX_SURFACE_FEW"}),
         ("치수 없는 구멍", _full(out_dir, "undimensioned", dimension_hole=False),
-         {"EX_DIM_MISSING", "EX_NO_FIT", "EX_TOL_FEW"}),
+         {"EX_DIM_MISSING", "DQ_NO_FIT", "EX_TOL_FEW"}),
+        ("구멍만 있고 축 기호가 없음",
+         _full(out_dir, "fit_case", shaft_fit=False,
+               extra_text=()) if False else _full(
+             out_dir, "fit_case", shaft_fit=False), set()),
+        ("선 굵기가 하나도 지정되지 않음",
+         _full(out_dir, "no_lineweight", line_widths={}),
+         {"EX_LINEWEIGHT_NONE"}),
+        ("외형선과 치수선이 같은 굵기",
+         _full(out_dir, "flat_lineweight",
+               line_widths={"경계": 70, "외형선": 25, "치수": 25}),
+         {"EX_LINEWEIGHT_FLAT"}),
+        ("치수 문자가 7mm 로 너무 큼",
+         _full(out_dir, "big_text", dim_text=7.0), {"EX_TEXT_SIZE"}),
+        ("윤곽선 밖에 남은 선",
+         _full(out_dir, "outside_frame", outside_frame=True),
+         {"EX_OUTSIDE_FRAME"}),
         ("주서 없음", _full(out_dir, "no_notes", notes=""),
          {"EX_NO_NOTES", "EX_NO_HEAT"}),
         ("주서 모떼기 누락", _full(out_dir, "no_chamfer", notes=NOTES_NO_CHAMFER),

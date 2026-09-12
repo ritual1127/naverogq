@@ -141,8 +141,16 @@ def build(seed=0, *, defect=None, out_dir=".", name=None):
     asm_name, parts = ASSEMBLIES[seed % len(ASSEMBLIES)]
     doc = ezdxf.new("R2013", setup=True)
     doc.header["$INSUNITS"] = 4                       # mm
-    doc.layers.add("CENTER", linetype="CENTER")
-    doc.layers.add("HATCH")
+    # 실기 도면의 선 굵기(1/100 mm)와 치수 문자 크기. 이게 없으면 출력했을 때
+    # 외형선과 치수선이 같은 굵기로 나와 '용도에 맞는 선 굵기' 에서 감점된다.
+    doc.layers.add("경계", lineweight=70)
+    doc.layers.add("외형선", lineweight=50)
+    doc.layers.add("은선", lineweight=35)
+    doc.layers.add("CENTER", linetype="CENTER", lineweight=25)
+    doc.layers.add("치수", lineweight=25)
+    doc.layers.add("HATCH", lineweight=18)
+    for style in doc.dimstyles:
+        style.dxf.dimtxt = 3.5
     msp = doc.modelspace()
 
     # 표제란·도면양식이 통째로 없는 변형은 도면틀도 그리지 않는다

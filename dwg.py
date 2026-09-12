@@ -1,3 +1,4 @@
+import collections
 import glob
 import math
 import os
@@ -463,6 +464,17 @@ def _is_border(entity):
     return _rect_size(entity) is not None
 
 
+def _rect_box(entity, K):
+    """닫힌 사각형 윤곽선의 (x0, y0, x1, y1) mm."""
+    try:
+        pts = entity.get_points("xy")
+    except Exception:
+        return None
+    xs = [p[0] * K for p in pts]
+    ys = [p[1] * K for p in pts]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
 BORDER_MIN_EDGE_MM = 150.0     # 이보다 짧은 변은 윤곽선이 아니다
 BORDER_AXIS_TOL_MM = 0.2       # 축에 나란하다고 볼 기울기
 
@@ -497,7 +509,121 @@ def _line_border(lines, K):
     if not all((spans(hor, y0, x0, x1), spans(hor, y1, x0, x1),
                 spans(ver, x0, y0, y1), spans(ver, x1, y0, y1))):
         return None
-    return (x1 - x0) * K, (y1 - y0) * K
+    return x0 * K, y0 * K, x1 * K, y1 * K
+
+
+# 채점 기준 '용도에 맞는 선 굵기'. KS B 0001 은 굵기를 절대값으로 못 박지 않고
+# 가는 선 : 굵은 선 : 아주 굵은 선 = 1 : 2 : 4 로 정한다. 실기 도면은 보통
+# 윤곽선 0.7 · 외형선 0.5 · 은선 0.35 · 중심선/치수선 0.25 · 해치 0.18 이다.
+# 절대값이 아니라 비를 보는 이유는 축척이 다른 도면도 통과시켜야 해서다.
+_THICK_LAYER_RE = re.compile(r"외형|가시|visible|outline|continuous\s*thick", re.I)
+_THIN_LAYER_RE = re.compile(r"치수|중심|해치|가는|숨은|은\s*선|dim|cent|hatch|thin|hidden",
+                            re.I)
+_BORDER_LAYER_RE = re.compile(r"경계|윤곽|외곽|border|frame", re.I)
+
+
+def _layer_widths(doc):
+    """레이어 이름과 굵기(mm). 굵기를 안 정한 레이어는 뺀다.
+
+    DXF 는 굵기를 1/100 mm 정수로 담고, 음수는 BYLAYER·BYBLOCK·기본값이라
+    실제 굵기가 아니다."""
+    out = {}
+    for lay in doc.layers:
+        try:
+            w = int(lay.dxf.get("lineweight", -1))
+        except Exception:
+            continue
+        if w > 0:
+            out[lay.dxf.name] = w / 100.0
+    return out
+
+
+def _line_widths(doc):
+    """굵기 검사에 쓸 값 — 윤곽선 · 외형선 · 가는 선, 그리고 전체 목록."""
+    widths = _layer_widths(doc)
+    if not widths:
+        return None
+    pick = lambda rx: [w for n, w in widths.items() if rx.search(n)]
+    thick = max(pick(_THICK_LAYER_RE) or [0.0])
+    thin = min(pick(_THIN_LAYER_RE) or [0.0])
+    border = max(pick(_BORDER_LAYER_RE) or [0.0])
+    return {"outline_mm": thick or None, "thin_mm": thin or None,
+            "border_mm": border or None,
+            "ratio": round(thick / thin, 2) if thick and thin else None,
+            "layers": {n: w for n, w in sorted(widths.items())}}
+
+
+# 도면틀 밖으로 나간 것을 잴 때 빼는 것들.
+# - 중심마크는 원래 윤곽선을 넘어 튀어나온다 (도면 양식의 일부다).
+# - 문자는 ezdxf 가 세로로 긴 엉뚱한 경계상자를 줄 때가 있어 믿지 않는다
+#   (`A-A ( 1 : 1 ) / .` 한 줄이 12x65mm 로 나왔다).
+_OUTSIDE_SKIP_TYPES = {"TEXT", "MTEXT", "VIEWPORT", "POINT", "ATTDEF", "INSERT"}
+OUTSIDE_TOL_MM = 3.0
+
+
+def _outside_frame(msp, box, mm_per_unit):
+    """도면틀 밖으로 나간 요소 중 가장 많이 나간 것. 없으면 None.
+
+    수험자 유의사항에 "도면 범위 밖 요소가 출력에 섞이지 않게" 가 있다.
+    출력 설정은 DXF 에 없지만 **틀 밖에 그려진 요소는 DXF 에 그대로 있다.**
+    실제 수험생 도면에서 윤곽선 오른쪽 174mm 바깥까지 뻗은 선이 나왔다."""
+    if not box:
+        return None
+    x0, y0, x1, y1 = box
+    worst = None
+    for e in _walk(msp):
+        if e.dxftype() in _OUTSIDE_SKIP_TYPES:
+            continue
+        if _BORDER_LAYER_RE.search(e.dxf.get("layer", "") or ""):
+            continue
+        try:
+            b = bbox.extents([e])
+        except Exception:
+            continue
+        if not b.has_data:
+            continue
+        over = max(x0 - b.extmin.x * mm_per_unit, b.extmax.x * mm_per_unit - x1,
+                   y0 - b.extmin.y * mm_per_unit, b.extmax.y * mm_per_unit - y1)
+        if over > OUTSIDE_TOL_MM and (worst is None or over > worst["over_mm"]):
+            worst = {"over_mm": round(over, 1), "type": e.dxftype(),
+                     "layer": e.dxf.get("layer", "")}
+    return worst
+
+
+def _text_sizes(doc, msp, mm_per_unit):
+    """문자 높이(mm). 치수 문자는 치수 스타일에, 나머지는 글자마다 들어 있다.
+
+    치수 스타일은 **실제로 치수가 쓰는 것만** 본다. CAD 가 만들어 두는 안 쓰는
+    스타일이 수십 개씩 있고 그중에는 높이 0.0025 짜리도 있어서, 전부 훑으면
+    도면과 상관없는 값이 나온다."""
+    used = collections.Counter(e.dxf.get("dimstyle", "") or ""
+                               for e in _walk(msp) if e.dxftype() == "DIMENSION")
+    heights = collections.Counter()
+    for st in doc.dimstyles:
+        n = used.get(st.dxf.name, 0)
+        if not n:
+            continue
+        try:
+            h = float(st.dxf.get("dimtxt", 0)) * float(st.dxf.get("dimscale", 1) or 1)
+        except Exception:
+            continue
+        if h > 0:
+            heights[round(h * mm_per_unit, 2)] += n
+    # 치수 대부분이 쓰는 높이를 그 도면의 치수 문자 크기로 본다. 최솟값을 쓰면
+    # 지름 치수 하나가 다른 스타일을 쓰는 것만으로 도면 전체가 틀린 게 된다.
+    dim_mm = heights.most_common(1)[0][0] if heights else None
+    heights = set()
+    for e in _walk(msp):
+        t = e.dxftype()
+        if t not in ("TEXT", "MTEXT"):
+            continue
+        try:
+            h = float(e.dxf.char_height if t == "MTEXT" else e.dxf.height)
+        except Exception:
+            continue
+        if h > 0:
+            heights.add(round(h * mm_per_unit, 2))
+    return {"dim_mm": dim_mm, "heights_mm": sorted(heights)}
 
 
 def _drawn_span(rects, circles):
@@ -1150,6 +1276,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     view_names = []
     views = []
     border = None
+    border_box = None
     for ins in msp.query("INSERT"):
         name = ins.dxf.name
         if _VIEW_BLOCK_RE.search(name):
@@ -1161,11 +1288,17 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         # 부품 외형도 닫힌 사각형이다. 그려진 것 전체를 거의 다 감싸야 윤곽선으로 본다.
         # 이 조건이 없으면 뷰 하나짜리 사각형도 도면양식으로 세어 표제란 누락을 놓친다.
         span_x, span_y = _drawn_span(rects, circles)
-        if any(w >= span_x * BORDER_MIN_SPAN and h >= span_y * BORDER_MIN_SPAN
-               for w, h in (z for z in (_rect_size(r) for r in rects) if z)):
+        wide = [r for r in rects
+                for z in [_rect_size(r)]
+                if z and z[0] >= span_x * BORDER_MIN_SPAN
+                and z[1] >= span_y * BORDER_MIN_SPAN]
+        if wide:
             border = "윤곽선"
-    if border is None and _line_border(long_lines, K):
-        border = "윤곽선(선 4개)"
+            border_box = _rect_box(wide[0], K)
+    if border_box is None:
+        border_box = _line_border(long_lines, K)
+        if border is None and border_box:
+            border = "윤곽선(선 4개)"
 
     title_block = (list(titles) or [None])[0]
     if not title_block:
@@ -1196,6 +1329,10 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "view_scales": _view_scales(texts),
              "views": views,
              "layout": layout,
+             "border_box_mm": border_box,
+             "outside_frame": _outside_frame(msp, border_box, K),
+             "line_widths": _line_widths(doc),
+             "text_sizes": _text_sizes(doc, msp, K),
              "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,
