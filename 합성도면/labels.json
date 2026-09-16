@@ -13,8 +13,7 @@
   "EX_DIM_MISSING"
  ],
  "000_no_fit.dxf": [
-  "DQ_NO_FIT",
-  "EX_TOL_FEW"
+  "DQ_NO_FIT"
  ],
  "000_few.dxf": [
   "EX_SURFACE_FEW"
@@ -70,8 +69,7 @@
   "EX_DIM_MISSING"
  ],
  "001_no_fit.dxf": [
-  "DQ_NO_FIT",
-  "EX_TOL_FEW"
+  "DQ_NO_FIT"
  ],
  "001_few.dxf": [
   "EX_SURFACE_FEW"
@@ -124,8 +122,7 @@
   "EX_DIM_MISSING"
  ],
  "002_no_fit.dxf": [
-  "DQ_NO_FIT",
-  "EX_TOL_FEW"
+  "DQ_NO_FIT"
  ],
  "002_few.dxf": [
   "EX_SURFACE_FEW"
@@ -178,8 +175,7 @@
   "EX_DIM_MISSING"
  ],
  "003_no_fit.dxf": [
-  "DQ_NO_FIT",
-  "EX_TOL_FEW"
+  "DQ_NO_FIT"
  ],
  "003_few.dxf": [
   "EX_SURFACE_FEW"
@@ -235,8 +231,7 @@
   "EX_DIM_MISSING"
  ],
  "004_no_fit.dxf": [
-  "DQ_NO_FIT",
-  "EX_TOL_FEW"
+  "DQ_NO_FIT"
  ],
  "004_few.dxf": [
   "EX_SURFACE_FEW"
@@ -292,8 +287,7 @@
   "EX_DIM_MISSING"
  ],
  "005_no_fit.dxf": [
-  "DQ_NO_FIT",
-  "EX_TOL_FEW"
+  "DQ_NO_FIT"
  ],
  "005_few.dxf": [
   "EX_SURFACE_FEW"

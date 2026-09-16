@@ -34,7 +34,7 @@ A3 도면틀 · 표제란 · 부품란 · 제3각법 기호 · 정면/평면/우
 | `*_no_fcf` | 기하공차를 통째로 뺌 | `DQ_NO_GEOMETRIC_TOL` |
 | `*_no_dims` | 치수를 하나도 안 넣음 | `EX_NO_DIMS` |
 | `*_undimensioned` | 정면도 큰 구멍만 치수 없음 | `EX_DIM_MISSING` |
-| `*_no_fit` | 끼워맞춤 기호 없음 | `EX_NO_FIT` · `EX_TOL_FEW` |
+| `*_no_fit` | 끼워맞춤 기호 없음 | `DQ_NO_FIT` (주서에 일반공차가 있어 `EX_TOL_FEW` 는 참이 아니다) |
 | `*_few` | 거칠기 기호 2개뿐 | `EX_SURFACE_FEW` |
 | `*_uniform` | 거칠기가 한 종류뿐 | `EX_SURFACE_UNIFORM` |
 | `*_empty` | 값이 빈 거칠기 기호 | `EX_SURFACE_EMPTY` |

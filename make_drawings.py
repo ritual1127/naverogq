@@ -267,9 +267,10 @@ DEFECTS = {
     # 치수가 하나도 없으면 "미치수 구멍"이 아니라 "치수 없음"이다. 하나만 적는다
     "no_dims": {"EX_NO_DIMS"},
     "undimensioned": {"EX_DIM_MISSING"},
-    # 끼워맞춤 기호를 다 빼면 공차 지정 치수 비율도 같이 떨어진다. 둘 다 참이다
-    # 끼워맞춤 기호가 하나도 없는 것은 감점이 아니라 오작이다(유의사항 5번)
-    "no_fit": {"DQ_NO_FIT", "EX_TOL_FEW"},
+    # 끼워맞춤 기호가 하나도 없는 것은 감점이 아니라 오작이다(유의사항 5번).
+    # 공차 지정 치수 비율도 떨어지지만 주서에 일반공차(KS B ISO 2768-m)가 있어서
+    # 개별 공차가 없는 치수는 그것을 따른다 — EX_TOL_FEW 는 참이 아니다
+    "no_fit": {"DQ_NO_FIT"},
     "few": {"EX_SURFACE_FEW"},
     "uniform": {"EX_SURFACE_UNIFORM"},
     "empty": {"EX_SURFACE_EMPTY"},
