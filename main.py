@@ -1,6 +1,7 @@
 import asyncio
 import os
 import shutil
+import threading
 import time
 import traceback
 import uuid
@@ -314,17 +315,64 @@ def _unzip(zpath, workdir):
     return found[0], os.path.basename(found[0])
 
 
+EXTRAS = {}                 # job -> [started, result or None]
+EXTRAS_LOCK = threading.Lock()
+
+
+def _start_extras(job, later):
+    """AI 질문 답변·번역을 결과 응답 뒤에 만든다. 점수와 지적은 이미 나가 있고,
+    기다리면 호출 하나(실측 13초)만큼 결과가 늦어진다.
+    ponytail: 서버 메모리에만 두므로 프로세스가 하나일 때만 맞다. 늘리면 캐시 파일로 옮긴다."""
+    def run():
+        try:
+            out = later()
+        except Exception:                                     # noqa: BLE001
+            traceback.print_exc()
+            out = {}                 # 화면이 기다리기를 멈추게 빈 결과라도 남긴다
+        with EXTRAS_LOCK:
+            if job in EXTRAS:
+                EXTRAS[job][1] = out
+
+    with EXTRAS_LOCK:
+        cutoff = time.time() - JOB_TTL_SEC
+        for old in [k for k, (started, _) in EXTRAS.items() if started < cutoff]:
+            del EXTRAS[old]
+        EXTRAS[job] = [time.time(), None]
+    threading.Thread(target=run, daemon=True).start()
+
+
+@app.get("/api/ai-extra/{job}")
+def ai_extra(job: str):
+    with EXTRAS_LOCK:
+        item = EXTRAS.get(job)
+        out = item[1] if item else None
+    if item is None:
+        raise HTTPException(404, "그런 검사가 없습니다.")
+    if out is None:
+        return {"ready": False}
+    return {"ready": True,
+            "findings": [{"ai_index": f.get("ai_index"), "i18n": f.get("i18n") or {},
+                          "followups": f.get("followups") or {}}
+                         for f in out.get("findings") or []],
+            "verdict_i18n": out.get("verdict_i18n") or {}}
+
+
 def _run(job, path, name, enabled=None):
     _prune_uploads()
     try:
-        facts, findings, summary = check.analyze(path, enabled=enabled)
+        facts, findings, summary = check.analyze(path, enabled=enabled, alongside=_render,
+                                                 defer_extras=True)
     except Exception as e:
         traceback.print_exc()
         # Traceback already went to the log; the client only needs the summary.
         raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}") from None
 
-    svg, marked, marker_index, svg_note, svg_tf = _render(facts)
+    svg, marked, marker_index, svg_note, svg_tf = facts["alongside"]
+    later = facts.get("ai_later")
+    if later:
+        _start_extras(job, later)
     payload = {
+        "ai_extra": bool(later),
         "job": job, "file": name, "kind": facts.get("kind"),
         "props": facts.get("props", {}),
         "standard": facts.get("standard"),

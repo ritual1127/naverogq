@@ -34,3 +34,22 @@ def test_info_pages_are_served_but_not_counted_as_visits():
         assert r.status_code == 200
         assert f'data-page="{page}"' in r.text
     assert client.get("/api/stats").json()["total"]["visits"] == before
+
+
+def test_ai_answers_are_fetched_after_the_result():
+    import time
+
+    import main
+
+    fake = {"findings": [{"ai_index": 1, "i18n": {"en": {"title": "t"}},
+                          "followups": {"ko": ["a", "b", "c"]}}],
+            "verdict_i18n": {"en": "v"}}
+    assert client.get("/api/ai-extra/nope").status_code == 404
+    main._start_extras("job-extra", lambda: (time.sleep(0.2), fake)[1])
+    assert client.get("/api/ai-extra/job-extra").json() == {"ready": False}
+    for _ in range(50):
+        got = client.get("/api/ai-extra/job-extra").json()
+        if got["ready"]:
+            break
+        time.sleep(0.05)
+    assert got == {"ready": True, "findings": fake["findings"], "verdict_i18n": {"en": "v"}}

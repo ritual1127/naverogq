@@ -130,7 +130,7 @@ $$('[data-nav]').forEach(a=>a.onclick=e=>{if($('#res').hidden)return;e.preventDe
 // draw the result, then draw the comparison against the previous run.
 function localize(d){const findings=(d.findings||[]).map(f=>({...f,...findingText(f),item:f.item?itemLabel(f.item):f.item}));const scorecard={...(d.scorecard||{})};scorecard.items=(scorecard.items||[]).map(it=>({...it,label:(CHECK_LABELS[lang]||{})[it.code]||it.label}));if(lang!=='ko'){scorecard.disqualifiers=findings.filter(f=>f.severity==='fail').map(f=>f.title);if(scorecard.ai_verdict)scorecard.ai_verdict=(scorecard.ai_verdict_i18n||{})[lang]||{en:'AI review is available for human confirmation.',ja:'AI レビューは人による確認用に表示されています。',zh:'AI 检查结果仅供人工确认。'}[lang]}d={...d,findings,scorecard};return{...d,svg_note:lang==='ko'?d.svg_note:(d.svg_note?t('previewNone'):'')}}
 function render(raw,relang){
-  if(!RAW||RAW.job!==raw.job){sevFilter=null;setTab('find')}   // a new drawing clears the filter and tab
+  if(!RAW||RAW.job!==raw.job){sevFilter=null;setTab('find');$('#finds').innerHTML=''}   // a new drawing clears the filter and tab
   RAW=raw;
   const diff=compareFor(raw);
   const d=RES=localize(raw);
@@ -142,6 +142,22 @@ function render(raw,relang){
   drawScore(d.scorecard||{},d.summary||{});drawItems(d.scorecard||{});drawFindings(d);drawInfo(d);drawSvg(d,relang);
   let disc=t('disc');const sc=d.scorecard||{};if(sc.review_points>0)disc+=` ${sc.review_points}${t('reviewPoints')}`;$('#disc').textContent=disc;
   drawCompare(diff);
+  if(raw.ai_extra&&!relang)waitExtras(raw.job);
+}
+
+// Scores and findings arrive first; the AI answers and translations follow a few seconds later.
+function waitExtras(job){
+  let tries=0;
+  const poll=()=>{if(!RAW||RAW.job!==job)return;
+    fetch(`/api/ai-extra/${job}`).then(r=>r.ok?r.json():{ready:true,findings:[]}).catch(()=>null).then(x=>{
+      if(!RAW||RAW.job!==job)return;
+      if(!x||!x.ready){if(++tries<120)setTimeout(poll,1500);else{RAW.ai_extra=false;render(RAW,true)}return}
+      const byIndex=new Map((x.findings||[]).map(e=>[e.ai_index,e]));
+      RAW.findings.forEach(f=>{const e=f.code==='AI_PROJECTION'&&byIndex.get(f.ai_index);if(e){f.i18n=e.i18n;f.followups=e.followups}});
+      if(RAW.scorecard&&x.verdict_i18n)RAW.scorecard.ai_verdict_i18n=x.verdict_i18n;
+      RAW.ai_extra=false;render(RAW,true);
+    })};
+  setTimeout(poll,1500);
 }
 
 // 실기는 100점 만점 60점 이상 합격이다. 자동 채점 퍼센트가 60% 이상이면 합격선으로 본다.
@@ -166,14 +182,16 @@ function drawItems(sc){
     return `<div class="item${ai?' ai':''}"><div class="item-top"><span>${esc((CHECK_LABELS[lang]||{})[it.code]||it.label)}${ai?` <span class="tag ai">${ico('spark')}AI</span>`:''}</span><span class="sc">${esc(val)}</span></div><div class="bar"><i style="width:${w}%"></i></div></div>`}).join('');
   $('#verdict').innerHTML=sc.ai_verdict?`<div class="ai-verdict"><b>${ico('spark')}${esc(t('aiTotal'))}</b>${esc(sc.ai_verdict)}</div>`:'';
 }
-function asksHtml(f){const a=(f.followups||{})[lang];if(!a||!a.length)return '';const qs=t('asks')||[];
+function asksHtml(f){const a=(f.followups||{})[lang];if((!a||!a.length)&&f.code==='AI_PROJECTION'&&RAW&&RAW.ai_extra)return `<div class="askbar"><div class="asklab">${esc(t('askTitle'))}</div><p class="asknote" aria-live="polite">${esc(t('askPending'))}</p></div>`;if(!a||!a.length)return '';const qs=t('asks')||[];
   return `<div class="askbar"><div class="asklab">${esc(t('askTitle'))}</div><div class="asks">${a.map((_,i)=>`<button type="button" data-ask="${i}" aria-expanded="false">${esc(qs[i]||'')}</button>`).join('')}</div><div class="answer" aria-live="polite" hidden></div><p class="asknote">${esc(t('askNote'))}</p></div>`}
 function drawFindings(d){
+  // Redrawing (language change, late AI answers) keeps the cards the user had open.
+  const opened=new Set($$('#finds .fhead[aria-expanded="true"]').map(h=>h.closest('.finding').dataset.i));
   const all=d.findings||[],counts={};all.forEach(f=>counts[f.severity]=(counts[f.severity]||0)+1);
   $('#cntFind').textContent=all.length;
   $('#fbar').innerHTML=[['',t('all'),all.length]].concat(Object.keys(SEV).filter(k=>counts[k]).map(k=>[k,t(k),counts[k]]))
     .map(([k,l,n])=>{const on=sevFilter===(k||null);return `<button type="button" data-s="${k}" class="${on?'on':''}" aria-pressed="${on}">${k?`<i style="background:${SEV[k]}"></i>`:''}${esc(l)} ${n}</button>`}).join('');
-  $$('#fbar button').forEach(b=>b.onclick=()=>{sevFilter=b.dataset.s||null;drawFindings(d)});
+  $$('#fbar button').forEach(b=>b.onclick=()=>{sevFilter=b.dataset.s||null;$('#finds').innerHTML='';drawFindings(d)});
   const idx=d.markers_placed?(d.marker_index||[]):[];
   const shown=all.filter(f=>!sevFilter||f.severity===sevFilter);
   $('#finds').innerHTML=shown.map((f,i)=>{const sev=SEV[f.severity]?f.severity:'info';
@@ -190,6 +208,7 @@ function drawFindings(d){
     ||`<div class="empty">${esc(t('emptyFindings'))}</div>`;
   $$('#finds .finding').forEach(el=>{const f=shown[+el.dataset.i],head=el.querySelector('.fhead'),body=el.querySelector('.fbody');
     head.onclick=()=>{const open=body.hidden;body.hidden=!open;head.setAttribute('aria-expanded',String(open))};
+    if(opened.has(el.dataset.i)){body.hidden=false;head.setAttribute('aria-expanded','true')}
     const box=el.querySelector('.answer'),answers=(f.followups||{})[lang];if(!box||!answers)return;
     const asks=$$('.asks button',el);
     asks.forEach(b=>b.onclick=()=>{const open=!b.classList.contains('on');asks.forEach(x=>{x.classList.remove('on');x.setAttribute('aria-expanded','false')});

@@ -630,9 +630,14 @@ def _cache_put(path, data):
         pass
 
 
-def judge(facts, timeout=120.0):
+def judge(facts, timeout=120.0, defer=False):
     """투상도 30점을 채점한다. 쓸 수 있는 채점기를 우선순위대로 실제로 다
-    시도한다 — 앞이 503·429로 막혀도 뒤가 살아 있으면 채점이 이어진다."""
+    시도한다 — 앞이 503·429로 막혀도 뒤가 살아 있으면 채점이 이어진다.
+
+    defer=True 면 질문 답변·번역을 기다리지 않는다. 점수와 지적은 채점 호출
+    하나로 다 나오고, 답변·번역은 그 뒤 호출 하나가 더 걸린다(실측 5초 + 13초).
+    결과의 "later" 에 그 뒤 호출을 할 함수를 넣어 돌려주니, 부르는 쪽이 따로
+    돌린다. 부르면 답변·번역이 채워진 같은 결과를 돌려준다."""
     chain = providers()
     dxf = facts.get("dxf")
     if not chain or not dxf or not os.path.exists(dxf):
@@ -657,11 +662,9 @@ def judge(facts, timeout=120.0):
             continue
         # 채점은 됐는데 답변이나 번역만 실패한 판이 캐시에 남아 있으면 그
         # 상태로 굳는다. 캐시를 쓰되 빠진 부분은 이번에 채워 다시 저장한다.
-        if _fill_missing(hit, asks[name], timeout):
-            _cache_put(cached, hit)
-        else:
+        if not _needs_extras(hit):
             print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
-        return _to_findings(hit, model)
+        return _with_extras(hit, asks[name], timeout, cached, model, defer)
 
     for name in chain:
         model = MODEL_OF[name]
@@ -687,27 +690,44 @@ def judge(facts, timeout=120.0):
         data["deductions"] = [d for d in (data.get("deductions") or [])
                               if isinstance(d, dict) and (d.get("title")
                                                           or d.get("detail"))]
-        _enrich(data, ask, timeout)
-        _cache_put(_cache_path(blob, model, prompt), data)
+        cached = _cache_path(blob, model, prompt)
+        # 답변·번역이 실패해도 채점은 남긴다. 기다리지 않는 경우에도 같은 도면을
+        # 곧바로 다시 올리면 채점을 또 부르지 않게 먼저 저장한다.
+        _cache_put(cached, data)
         if name != chain[0]:
             print(f"[ai] {chain[0]} 실패 → {name}({model})로 채점", flush=True)
-        return _to_findings(data, model)
+        return _with_extras(data, ask, timeout, cached, model, defer)
     return None
 
 
-def _fill_missing(data, ask, timeout):
-    """Retry the answer and translation steps that failed on an earlier run.
+def _needs_extras(data):
+    """Answers or translations are missing — they failed on an earlier run or were never made.
 
-    True 를 돌려주면 캐시를 다시 써야 한다는 뜻이다. 세 단계가 순서대로 이어져
-    있어 뒤가 실패하면 앞 결과만 남는데, 캐시를 그대로 쓰면 그 반쪽짜리 판이
-    영영 굳는다. 다음 검사 때 빠진 것만 다시 부른다."""
+    세 단계가 순서대로 이어져 있어 뒤가 실패하면 앞 결과만 남는데, 캐시를 그대로
+    쓰면 그 반쪽짜리 판이 영영 굳는다. 다음 검사 때 빠진 것만 다시 부른다."""
     if not isinstance(data.get("deductions"), list) or not data["deductions"]:
         return False
     missing_answers = any("answers" not in d for d in data["deductions"]
                           if isinstance(d, dict))
-    if not missing_answers and data.get("i18n"):
-        return False
-    return _enrich(data, ask, timeout)
+    return missing_answers or not data.get("i18n")
+
+
+def _with_extras(data, ask, timeout, cached, model, defer):
+    if not _needs_extras(data):
+        return _to_findings(data, model)
+
+    def extras():
+        if _enrich(data, ask, timeout):
+            _cache_put(cached, data)
+        return _to_findings(data, model)
+
+    if not defer:
+        return extras()
+    # _to_findings 가 새 dict 를 만들어 돌려주므로, 뒤에서 data 를 채워도
+    # 지금 돌려주는 결과는 바뀌지 않는다.
+    out = _to_findings(data, model)
+    out["later"] = extras
+    return out
 
 
 def _enrich(data, ask, timeout):
@@ -825,6 +845,9 @@ def _to_findings(data, model):
             "where": {},
             "i18n": translated,
             "followups": followups,
+            # 채점표가 심각도순으로 다시 줄을 세우므로, 뒤늦게 온 답변·번역을
+            # 제자리에 붙이려면 원래 순번이 필요하다.
+            "ai_index": pos,
         })
     return {"verdict": data.get("verdict", ""),
             "verdict_i18n": {lang: i18n[lang].get("verdict", "")

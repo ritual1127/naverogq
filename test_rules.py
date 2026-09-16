@@ -907,6 +907,51 @@ def test_ai_moves_to_the_next_grader_when_the_first_one_fails(monkeypatch):
     assert ai_review.MISTRAL_MODEL in json.dumps(out, ensure_ascii=False)
 
 
+def test_ai_answers_can_come_later_without_changing_the_grade(monkeypatch):
+    """답변·번역을 기다리지 않아도 점수와 지적은 기다렸을 때와 같다.
+
+    답변·번역 호출이 채점 호출보다 두 배 넘게 걸려서(실측 13초 대 5초) 뒤로 뺐다.
+    뒤로 빼면서 감점이나 지적이 달라지면 속도를 얻고 정확도를 잃는 셈이다."""
+    import ai_review
+
+    graded = json.dumps({"verdict": "v", "deductions": [
+        {"title": "정면도 방향", "detail": "d", "fix": "f", "deduct": 6, "severity": "warn"},
+        {"title": "투상도 누락", "detail": "d2", "fix": "f2", "deduct": 8, "severity": "error"}]})
+    enriched = []
+
+    def enrich(data, ask, timeout):
+        enriched.append(1)
+        for d in data["deductions"]:
+            d["answers"] = ["왜", "어디", "확인"]
+        data["i18n"] = {"en": {"verdict": "v-en", "deductions": [
+            {"title": "t", "detail": "x", "fix": "y", "answers": ["a", "b", "c"]}] * 2}}
+        return True
+
+    monkeypatch.setattr(ai_review, "providers", lambda: ["gemini"])
+    monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
+    monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
+    monkeypatch.setattr(ai_review, "_cache_put", lambda path, data: None)
+    monkeypatch.setattr(ai_review, "_ask_gemini", lambda *a, **k: graded)
+    monkeypatch.setattr(ai_review, "_enrich", enrich)
+
+    now = ai_review.judge({"dxf": __file__}, timeout=1)
+    assert enriched == [1]
+    fast = ai_review.judge({"dxf": __file__}, timeout=1, defer=True)
+    assert enriched == [1], "defer=True 인데 답변·번역을 기다렸다"
+    later = fast.pop("later")
+    keep = ("code", "severity", "title", "detail", "fix", "item", "deduct", "ai_index")
+    assert [{k: f[k] for k in keep} for f in fast["findings"]] == \
+           [{k: f[k] for k in keep} for f in now["findings"]]
+    assert fast["score"] == now["score"] == 30 - 14
+    assert all(not f["followups"] for f in fast["findings"])
+
+    done = later()
+    assert enriched == [1, 1]
+    assert [f["followups"] for f in done["findings"]] == [f["followups"] for f in now["findings"]]
+    assert done["verdict_i18n"] == {"en": "v-en"}
+    assert [f["ai_index"] for f in done["findings"]] == [0, 1]
+
+
 def test_ai_gives_up_only_after_every_grader_failed(monkeypatch):
     import ai_review
 

@@ -1,5 +1,6 @@
 import os
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 DXF_EXT = {".dxf", ".dwg"}
@@ -30,11 +31,17 @@ Summary = dict[str, int]
 
 
 def analyze(path: str, enabled: Iterable[str] | None = None,
-            use_ai: bool = True) -> tuple[Facts, list[Finding], Summary]:
+            use_ai: bool = True, alongside: Callable[[Facts], Any] | None = None,
+            defer_extras: bool = False) -> tuple[Facts, list[Finding], Summary]:
     """Read one drawing and return (facts, findings, summary).
 
     enabled=None turns every check on. With use_ai off the projection-layout
-    judgement is skipped and that rubric item stays "needs human review"."""
+    judgement is skipped and that rubric item stays "needs human review".
+
+    alongside(facts) runs while the AI grader is waiting on the network; its
+    return value lands in facts["alongside"]. With defer_extras the AI answers
+    and translations are not awaited: facts["ai_later"] is a function that
+    makes them (see ai_review.judge)."""
     ext = os.path.splitext(path)[1].lower()
     if ext in INVENTOR_EXT:
         raise ValueError(inventor_help(ext))
@@ -45,7 +52,15 @@ def analyze(path: str, enabled: Iterable[str] | None = None,
     import dwg
     import exam
     facts = dwg.analyze(path)
-    projection = ai_review.judge(facts) if use_ai else None
+    # AI 채점은 대부분 네트워크 대기다. 그동안 미리보기 같은 일을 같이 한다.
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        ai = pool.submit(ai_review.judge, facts, defer=defer_extras) if use_ai else None
+        if alongside:
+            facts["alongside"] = alongside(facts)
+        projection = ai.result() if ai else None
+    later = (projection or {}).pop("later", None)
+    if later and (enabled is None or "AI_PROJECTION" in set(enabled)):
+        facts["ai_later"] = later
     findings, scorecard = exam.grade(facts, enabled, projection)
     facts["scorecard"] = scorecard
     return facts, findings, scorecard["summary"]
