@@ -26,3 +26,6 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      # 대회 사무국이 준 OGQ 마켓 API 키. 결과 화면 캐릭터 스티커를 받는다. 없으면 스티커만 빠진다
+      - key: OGQ_API_KEY
+        sync: false

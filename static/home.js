@@ -21,10 +21,12 @@ onLang.push(()=>{
   if(RAW)render(RAW,true);else setTitle();
 });
 
-function showErr(msg){const box=$('#res').hidden?$('#errHome'):$('#errRes');box.innerHTML=`${ico('error')}<span>${esc(msg)}</span>`;box.classList.remove('hide');box.scrollIntoView({block:'center'})}
+// OGQ 마켓 캐릭터 스티커(서버가 키를 가지고 받아 둔다). 서버에 키가 없으면 아무것도 안 그린다.
+const stk=(name,cls='')=>HEALTH.stickers?`<img class="stk ${cls}" src="/api/sticker/${name}" alt="" width="240" height="207" onerror="this.remove()">`:'';
+function showErr(msg){const box=$('#res').hidden?$('#errHome'):$('#errRes');box.innerHTML=`${stk('error','sm')||ico('error')}<span>${esc(msg)}</span>`;box.classList.remove('hide');box.scrollIntoView({block:'center'})}
 function clearErr(){$('#errHome').classList.add('hide');$('#errRes').classList.add('hide')}
 
-function drawHealth(){const h=HEALTH;if(!h||!h.ok)return;const sup=h.supported||[];
+function drawHealth(){const h=HEALTH;if(!h||!h.ok)return;const sup=h.supported||[];$('#stkCredit').hidden=!h.stickers;
   $('#exts').textContent=sup.join(' · ')||'.dwg · .dxf';
   $('#formatrow').innerHTML=sup.map(x=>`<span class="chip">${esc(x)}</span>`).join('')+'<span class="chip">zip</span>';
   const bits=[];if(h.exam)bits.push(`${h.exam.sheet} ${t('examBase')}`);bits.push(`${CHECKS.length} ${t('checks')}`);bits.push(h.ai?t('aiOn'):t('aiOff'));if(h.dwg_via)bits.push(t('dwgReady'));
@@ -68,7 +70,7 @@ function drawSamples(){const has=SAMPLES.length>0;$('#samples').classList.toggle
   $$('#sgrid .scard').forEach(b=>b.onclick=()=>sendSample(b.dataset.n))}
 
 function ready(){if(busyNow)return false;if(!CHECKS.length){showErr(t('appError'));return false}if(!enabled.size){showErr(t('noChecks'));return false}clearErr();return true}
-function busy(label){busyNow=true;$('#busyFile').textContent=label;const t0=Date.now();
+function busy(label){busyNow=true;$('#busyFile').textContent=label;const sp=$('.spin');if(!sp.querySelector('.stk'))sp.insertAdjacentHTML('afterbegin',stk('wait'));const t0=Date.now();
   const tick=()=>{$('#busyTime').textContent=fmt(t('elapsed'),{s:Math.floor((Date.now()-t0)/1000)})};tick();busyTimer=setInterval(tick,1000);$('#busy').hidden=false}
 function idle(){busyNow=false;clearInterval(busyTimer);$('#busy').hidden=true}
 const done=r=>r.json().catch(()=>({detail:'Bad response'})).then(j=>{if(!r.ok)throw new Error(j.detail||r.status);loadStats();return j});
@@ -167,13 +169,13 @@ function drawScore(sc,sum){
   const note=`<p class="vnote">${esc(t('vdNote'))}</p>`;
   if(sc.disqualified){
     $('#score').innerHTML=`<div class="card dq"><span class="verdict bad">${ico('fail')}${esc(t('vdDq'))}</span>`
-      +`<div class="dq-head"><span class="dq-ico">${ico('fail')}</span><div><div class="dq-big">${esc(t('disqualified'))}</div><p class="dq-copy">${esc(t('dqCopy'))}</p></div></div>`
+      +`<div class="dq-head">${stk('fail','pop')||`<span class="dq-ico">${ico('fail')}</span>`}<div><div class="dq-big">${esc(t('disqualified'))}</div><p class="dq-copy">${esc(t('dqCopy'))}</p></div></div>`
       +`<ul class="dq-list">${(sc.disqualifiers||[]).map(r=>`<li>${ico('x')}<span>${esc(r)}</span></li>`).join('')}</ul>${note}</div>`;
     return}
   const pct=sc.percent!=null?Math.round(sc.percent):0,ok=pct>=PASS_MARK,C=2*Math.PI*48;
   $('#score').innerHTML=`<div class="card"><div class="score-top">`
     +`<div class="gauge ${ok?'pass':'short'}" role="img" aria-label="${pct}%"><svg viewBox="0 0 116 116"><circle class="trk" cx="58" cy="58" r="48"/><circle class="val" cx="58" cy="58" r="48" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C*(1-Math.min(100,Math.max(0,pct))/100)}"/></svg><b>${pct}%</b></div>`
-    +`<div><span class="verdict ${ok?'good':'warn'}">${ico(ok?'check':'warn')}${esc(t(ok?'vdPass':'vdShort'))}</span><p class="score-sub">${esc(t('autoScore'))} <b>${sc.auto_score} / ${sc.auto_max}</b></p>${note}</div></div>`
+    +`<div><span class="verdict ${ok?'good':'warn'}">${ico(ok?'check':'warn')}${esc(t(ok?'vdPass':'vdShort'))}</span><p class="score-sub">${esc(t('autoScore'))} <b>${sc.auto_score} / ${sc.auto_max}</b></p>${note}</div>${stk(ok?'pass':'short','pop')}</div>`
     +`<div class="counts">${['error','warn','info'].map(k=>`<div class="count" style="color:${SEV[k]}">${ico(SEV_ICON[k])}<span>${esc(t(k))}</span><b style="color:var(--text)">${sum[k]||0}</b></div>`).join('')}</div></div>`;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=$('#score .val');if(v)v.style.strokeDashoffset=v.dataset.off}));
 }
@@ -284,7 +286,7 @@ function drawCompare(diff){const box=$('#cmp');
   const tags=[['fixed',t('cmpFixed'),fixed.length],['stayed',t('cmpStayed'),stayed.length],['added',t('cmpAdded'),added.length]].map(([k,l,n])=>`<span class="cmp-tag ${k}">${esc(l)} <b>${n}</b></span>`).join('');
   const list=(cls,items,icon)=>items.length?`<ul class="cmp-list ${cls}">${items.map(([c,title])=>`<li>${ico(icon)}<span>${esc(codeName(c,title))}</span></li>`).join('')}</ul>`:'';
   const nothing=(!fixed.length&&!added.length)?`<p class="cmp-none">${esc(t('cmpSame'))}</p>`:'';
-  box.innerHTML=`<div class="card"><div class="cmp-head"><b>${esc(t('cmpTitle'))}</b><span class="cmp-when">${esc(ago(prev.ts))} · ${esc(t('cmpAgo'))}</span></div>${banner}<div class="cmp-score"><span class="was">${pct(prev.percent)}</span>${ico('arrow')}<span class="now">${pct(now.percent)}</span>${delta}</div><div class="cmp-tags">${tags}</div>${list('fixed',fixed,'check')}${list('added',added,'plus')}${nothing}</div>`}
+  box.innerHTML=`<div class="card"><div class="cmp-head"><b>${esc(t('cmpTitle'))}</b><span class="cmp-when">${esc(ago(prev.ts))} · ${esc(t('cmpAgo'))}</span></div>${banner}<div class="cmp-score"><span class="was">${pct(prev.percent)}</span>${ico('arrow')}<span class="now">${pct(now.percent)}</span>${delta}${fixed.length||(prev.dq&&!now.dq)?stk('fixed','pop'):''}</div><div class="cmp-tags">${tags}</div>${list('fixed',fixed,'check')}${list('added',added,'plus')}${nothing}</div>`}
 
 reveal();
 

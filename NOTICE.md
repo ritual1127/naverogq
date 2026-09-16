@@ -19,6 +19,7 @@
 | [GNU LibreDWG](https://www.gnu.org/software/libredwg/) (`dwg2dxf`) | DWG → DXF 변환 | **GPL-3.0-or-later** | GPL-3.0 바이너리를 MIT 저장소에 재배포하면 라이선스가 충돌합니다. 그래서 `vendor/` 를 `.gitignore` 로 제외하고, 설치 시점에 각자 내려받도록 했습니다. |
 | Autodesk Inventor | `.ipt`/`.idw`/`.iam` 판독 | 상용 (Autodesk) | 재배포 불가. 사용자가 이미 보유한 설치본을 COM API로 호출만 합니다. |
 | ODA File Converter | DWG 변환 (선택) | 상용 무료 | 재배포 불가. 설치되어 있으면 자동으로 찾아 씁니다. |
+| OGQ마켓 스티커 「박하의 힐링타임」 (OGQ 공식계정) | 결과 화면의 캐릭터 스티커 | 대회 사무국이 대회 참여 목적으로 제공 | 무단 배포·복제 금지 조건이라 파일을 저장소에 넣지 않습니다. 서버가 실행 중에 OGQ 마켓 API(키는 환경변수 `OGQ_API_KEY`)로 받아 서버 디스크에만 두고 화면에 보냅니다(`ogq.py`). |
 
 LibreDWG는 별도 프로세스(`dwg2dxf.exe`)로 실행하고 파일만 주고받습니다. 라이브러리를
 링크하지 않으므로 본 프로젝트 코드가 GPL로 전염되지 않습니다.

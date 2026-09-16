@@ -597,3 +597,17 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .gnote{padding:12px 18px 0}
 .num b{font-size:30px}
 }
+
+/* OGQ market character stickers (results) */
+.stk{display:block;flex:none;width:104px;height:auto;object-fit:contain}
+.score-top .stk{margin-left:auto}
+.dq-head .stk{width:88px}
+.cmp-score .stk{width:68px;margin-left:auto}
+.err-box .stk{width:44px;align-self:center}
+.spin .stk{width:112px;margin:-24px auto 0;animation:bob 1.8s ease-in-out infinite}
+.spin .stk+svg{display:none}
+.spin:has(.stk){width:auto;height:auto}
+.stk.pop{animation:pop .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pop{from{opacity:0;transform:scale(.7) rotate(-6deg)}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+@media (max-width:640px){.score-top .stk{width:76px}.dq-head .stk{width:68px}}

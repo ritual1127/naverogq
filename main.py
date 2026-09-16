@@ -9,10 +9,11 @@ import zipfile
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 import check
+import ogq
 import stats
 
 DATA = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
@@ -127,6 +128,7 @@ def health(request: Request):
             "ai_model": ai_review.active_model(),
             "local": _is_local(request),
             "dwg_converter": dwg.has_dwg_support(),
+            "stickers": ogq.available(),
             "dwg_via": dwg.dwg_converter_name(),
             "oda": dwg.find_oda(),
             "checks": exam.check_catalog(),
@@ -140,6 +142,15 @@ def _openable():
     if not dwg.has_dwg_support():
         exts.discard(".dwg")
     return exts
+
+
+@app.get("/api/sticker/{name}", include_in_schema=False)
+def sticker(name: str):
+    data = ogq.sticker(name)
+    if data is None:
+        raise HTTPException(404, "스티커를 쓸 수 없습니다.")
+    return Response(data, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/api/samples")

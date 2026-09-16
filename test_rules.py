@@ -1216,3 +1216,44 @@ def test_official_ks_examples_are_accepted():
     for scale in ("1:1", "1:2", "1:5", "1:10", "1:20", "1:50", "1:100",
                   "2:1", "5:1", "10:1", "20:1", "50:1"):
         assert scale in exam.STANDARD_SCALES, scale
+
+
+def test_ogq_stickers_need_the_key_and_are_fetched_once(monkeypatch, tmp_path):
+    """OGQ 스티커는 키가 없으면 안 부르고, 받은 뒤에는 API 를 다시 부르지 않는다.
+
+    분당 60회 한도가 있고 결과 화면마다 스티커를 그리므로, 요청마다 API 를 부르면
+    금방 막힌다. PNG 가 아닌 응답(오류 페이지 등)은 저장하지 않는다."""
+    import ogq
+
+    calls = []
+
+    class Resp:
+        def __init__(self, body=None, content=b""):
+            self.body, self.content = body, content
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self.body
+
+    def fake_get(url, **kw):
+        calls.append(url)
+        if url.endswith("/v1/assets/" + ogq.PACK):
+            assert kw["headers"]["X-OGQ-API-KEY"] == "k"
+            return Resp({"images": [{"imageId": i, "imageUrl": f"https://img/{i}.png"}
+                                    for i in ogq.STICKERS.values()]})
+        return Resp(content=b"\x89PNG fake")
+
+    monkeypatch.setattr(ogq, "CACHE", str(tmp_path))
+    monkeypatch.setattr(ogq.requests, "get", fake_get)
+    monkeypatch.setattr(ogq, "_failed_at", [0.0])
+    monkeypatch.delenv("OGQ_API_KEY", raising=False)
+    assert ogq.sticker("pass") is None and calls == []
+
+    monkeypatch.setenv("OGQ_API_KEY", "k")
+    assert ogq.sticker("nope") is None
+    assert ogq.sticker("pass") == b"\x89PNG fake"
+    assert len(calls) == 1 + len(ogq.STICKERS)
+    assert ogq.sticker("fail") == b"\x89PNG fake"
+    assert len(calls) == 1 + len(ogq.STICKERS), "받아 둔 뒤에 API 를 또 불렀다"
