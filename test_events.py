@@ -53,3 +53,23 @@ def test_ai_answers_are_fetched_after_the_result():
             break
         time.sleep(0.05)
     assert got == {"ready": True, "findings": fake["findings"], "verdict_i18n": {"en": "v"}}
+
+
+def test_sample_results_are_reused(monkeypatch):
+    """예제 도면은 파일이 안 바뀌니 한 번 검사한 결과를 다시 쓴다. 켠 검사가 다르면 다시 한다."""
+    import main
+
+    calls = []
+
+    def fake(job, path, name, enabled=None):
+        calls.append(enabled)
+        return {"job": job, "file": name, "ai_extra": False,
+                "scorecard": {"ai_model": "m"}, "findings": []}
+
+    monkeypatch.setattr(main, "_result", fake)
+    monkeypatch.setattr(main, "SAMPLE_RESULTS", {})
+    first = client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"}).json()
+    again = client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"}).json()
+    assert len(calls) == 1 and first["job"] != again["job"]
+    client.post("/api/analyze-sample", json={"name": "sample_plate.dxf", "checks": ["EX_NO_DIMS"]})
+    assert len(calls) == 2

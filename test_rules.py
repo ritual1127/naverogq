@@ -1257,3 +1257,51 @@ def test_ogq_stickers_need_the_key_and_are_fetched_once(monkeypatch, tmp_path):
     assert len(calls) == 1 + len(ogq.STICKERS)
     assert ogq.sticker("fail") == b"\x89PNG fake"
     assert len(calls) == 1 + len(ogq.STICKERS), "받아 둔 뒤에 API 를 또 불렀다"
+
+
+def test_preview_coordinates_match_the_drawing_at_any_unit():
+    """미리보기 좌표 변환(svg_tf)이 도면이 실제로 그려진 자리와 맞는다.
+
+    도면 범위와 여백으로 어림잡던 때는 단위가 아주 작은 도면(범위 0.12)에서
+    위치가 32% 밀려 viewBox 밖(1,260,000 / 1,000,000)으로 나갔다. 번호 확대와
+    '수정 예시'가 전부 이 값으로 그리므로, 크기가 달라도 도면이 가운데에 대칭으로
+    놓이는지 본다."""
+    import ezdxf
+
+    import dwg
+
+    for size in (0.12, 594.0):
+        doc = ezdxf.new("R2013")
+        msp = doc.modelspace()
+        msp.add_lwpolyline([(0, 0), (size, 0), (size, size * 0.7), (0, size * 0.7)], close=True)
+        msp.add_circle((size * 0.3, size * 0.4), size * 0.05)
+        path = os.path.join(tempfile.mkdtemp(), "units.dxf")
+        doc.saveas(path)
+        _, tf, _ = dwg.render_svg(path)
+
+        left, right = 0 * tf["scale"] + tf["off_x"], size * tf["scale"] + tf["off_x"]
+        top, bottom = tf["off_y"] - size * 0.7 * tf["scale"], tf["off_y"] - 0 * tf["scale"]
+        assert 0 < left < right < tf["view_w"], (size, left, right, tf)
+        assert 0 < top < bottom < tf["view_h"], (size, top, bottom, tf)
+        assert abs(left - (tf["view_w"] - right)) < tf["view_w"] * 0.01, size
+        assert abs(top - (tf["view_h"] - bottom)) < tf["view_h"] * 0.01, size
+
+
+def test_center_mark_example_uses_every_hole_once():
+    """'수정 예시'의 중심 마크는 중심선이 없는 도면에서만, 원마다 한 번씩 그린다.
+
+    동심원(카운터보어 등)에 두 번 그으면 선이 겹쳐 틀린 예시가 된다."""
+    import check
+    import main
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "000_no_center.dxf"), use_ai=False)
+    centers = main._fix_data(facts, findings)["centers"]
+    assert "EX_NO_CENTERLINE" in {f["code"] for f in findings}
+    assert len(centers) == 7
+    for i, (x, y, r) in enumerate(centers):
+        assert r > 0
+        assert all(abs(x - x2) > 1 or abs(y - y2) > 1 for x2, y2, _ in centers[i + 1:])
+
+    facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "005_undimensioned.dxf"), use_ai=False)
+    assert main._fix_data(facts, findings)["centers"] == [], "중심선이 있는 도면에는 안 그린다"

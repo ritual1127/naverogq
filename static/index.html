@@ -8,7 +8,7 @@
 <link rel="icon" href="/static/favicon.ico" sizes="32x32">
 <link rel="icon" type="image/png" href="/static/favicon.png" sizes="180x180">
 <link rel="apple-touch-icon" href="/static/favicon.png">
-<link rel="stylesheet" href="/static/site.css?v=20260916c">
+<link rel="stylesheet" href="/static/site.css?v=20260917">
 <link rel="preload" href="/static/fonts/NanumSquareRoundR.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/NanumSquareRoundEB.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -152,9 +152,11 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
     <section class="rleft" aria-labelledby="viewerT">
       <div class="viewer" id="viewer">
         <div class="vbar"><h2 id="viewerT" data-i18n="preview">도면 미리보기</h2>
+          <button class="fix-btn" id="fixBtn" type="button" aria-pressed="false" aria-controls="fixNote" hidden><svg class="ico"><use href="#i-spark"/></svg><span data-i18n="fixBtn">수정 예시</span></button>
           <div class="vtools"><button class="vbtn" id="zout" type="button" data-i18n-aria="zoomOut"><svg class="ico"><use href="#i-minus"/></svg></button><span class="zoom" id="zoomv">100%</span><button class="vbtn" id="zin" type="button" data-i18n-aria="zoomIn"><svg class="ico"><use href="#i-plus"/></svg></button><button class="vbtn" id="zfit" type="button" data-i18n-aria="fitFixed"><svg class="ico"><use href="#i-fit"/></svg></button></div>
         </div>
         <div class="stage" id="stage"><div class="pan" id="pan"></div></div>
+        <div class="fixnote" id="fixNote" aria-live="polite" hidden></div>
         <p class="vhint" data-i18n="viewerHint"></p>
       </div>
       <div class="warnbox hide" id="novw"></div>
@@ -199,7 +201,7 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
     <p class="busy-note" data-i18n="loadingNote"></p>
   </div>
 </div>
-<script src="/static/common.js?v=20260916c"></script>
-<script src="/static/home.js?v=20260916c"></script>
+<script src="/static/common.js?v=20260917"></script>
+<script src="/static/home.js?v=20260917"></script>
 </body>
 </html>

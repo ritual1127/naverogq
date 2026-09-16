@@ -238,8 +238,8 @@ function fit(){const svg=pan.querySelector('svg');if(!svg)return;const r=stage.g
 function setZoom(z,cx,cy){const r=stage.getBoundingClientRect();cx=cx==null?r.width/2:cx;cy=cy==null?r.height/2:cy;const next=clampZ(z);ox=cx-(cx-ox)*(next/zoom);oy=cy-(cy-oy)*(next/zoom);zoom=next;apply();showZoom()}
 function drawSvg(d,keep){const has=!!d.svg;$('#viewer').classList.toggle('hide',!has);$('#novw').classList.toggle('hide',has||!d.svg_note);
   if(!has){if(d.svg_note)$('#novw').innerHTML=`${ico('warn')}<span>${esc(d.svg_note)}</span>`;return}
-  if(keep)return;
-  pan.innerHTML=d.svg;const svg=pan.querySelector('svg');if(svg&&svg.viewBox.baseVal.width){svg.setAttribute('width',svg.viewBox.baseVal.width);svg.setAttribute('height',svg.viewBox.baseVal.height)}requestAnimationFrame(fit)}
+  if(keep){if(fixOn)drawFixNote(d);return}
+  pan.innerHTML=d.svg;setFix(false);$('#fixBtn').hidden=!fixCounts(d);const svg=pan.querySelector('svg');if(svg&&svg.viewBox.baseVal.width){svg.setAttribute('width',svg.viewBox.baseVal.width);svg.setAttribute('height',svg.viewBox.baseVal.height)}requestAnimationFrame(fit)}
 addEventListener('resize',()=>{if($('#res').hidden||$('#viewer').classList.contains('hide'))return;const r=stage.getBoundingClientRect();if(Math.round(r.width)+'x'+Math.round(r.height)!==stageSize)fit()});
 stage.addEventListener('wheel',e=>{if(!pan.querySelector('svg'))return;e.preventDefault();const r=stage.getBoundingClientRect();pan.classList.add('dragging');setZoom(zoom*(e.deltaY<0?1.18:1/1.18),e.clientX-r.left,e.clientY-r.top)},{passive:false});
 stage.addEventListener('pointerdown',e=>{if(!pan.querySelector('svg'))return;drag={x:e.clientX,y:e.clientY,ox,oy};stage.classList.add('grabbing');pan.classList.add('dragging');stage.setPointerCapture(e.pointerId)});
@@ -249,6 +249,41 @@ stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercance
 $('#zin').onclick=()=>{pan.classList.remove('dragging');setZoom(zoom*1.4)};
 $('#zout').onclick=()=>{pan.classList.remove('dragging');setZoom(zoom/1.4)};
 $('#zfit').onclick=()=>{pan.classList.remove('dragging');fit()};
+
+// Fix preview: hole diameter callouts and center marks drawn straight onto the preview, in green.
+// Positions come from the drawing's own coordinates (svg_tf maps DXF to SVG units); nothing is generated,
+// and nothing is sent to the server, so it shows at once.
+let fixOn=false;
+const DIM_CODES=['EX_DIM_MISSING','EX_NO_DIMS'],CANT_CODES=['DQ_NO_SURFACE_SYMBOL','DQ_NO_GEOMETRIC_TOL','DQ_NO_FIT'];
+function fixCounts(d){if(!d||!d.svg_tf)return null;
+  const holes=d.markers_placed&&(d.findings||[]).some(f=>DIM_CODES.includes(f.code))?(d.marker_index||[]):[];
+  const centers=(d.fix&&d.fix.centers)||[];
+  return holes.length||centers.length?{holes,centers}:null}
+function fixLayer(d){const c=fixCounts(d);if(!c)return '';
+  const tf=d.svg_tf,K=(d.fix&&d.fix.mm_per_unit)||1,s=tf.scale;
+  const X=x=>x*s+tf.off_x,Y=y=>tf.off_y-y*s,mm=v=>v/K*s,n=v=>+v.toFixed(3);  // mm on paper -> SVG units
+  const out=[];
+  c.centers.forEach(([x,y,r])=>{const cx=X(x),cy=Y(y),e=r*s+mm(3);
+    out.push(`<path d="M${n(cx-e)} ${n(cy)}H${n(cx+e)}M${n(cx)} ${n(cy-e)}V${n(cy+e)}" stroke-dasharray="${n(mm(8))} ${n(mm(1.5))} ${n(mm(.8))} ${n(mm(1.5))}"/>`)});
+  // Leader goes up-left: the numbered marker badge already sits up-right of the hole.
+  c.holes.forEach(h=>{const cx=X(h.dxf_x),cy=Y(h.dxf_y),r=h.dxf_r*s,u=Math.SQRT1_2;
+    const px=cx-r*u,py=cy-r*u,qx=px-mm(9)*u,qy=py-mm(9)*u,len=mm(3.5)*(String(+h.diameter_mm.toFixed(2)).length+1)*.62;
+    const bx=px-mm(2.6)*u,by=py-mm(2.6)*u,w=mm(.9)*u;
+    out.push(`<path d="M${n(px)} ${n(py)}L${n(qx)} ${n(qy)}H${n(qx-len)}"/>`,
+      `<path class="fixfill" d="M${n(px)} ${n(py)}L${n(bx+w)} ${n(by-w)}L${n(bx-w)} ${n(by+w)}Z"/>`,
+      `<text x="${n(qx-mm(.8))}" y="${n(qy-mm(1.2))}" text-anchor="end" font-size="${n(mm(3.5))}">Ø${+h.diameter_mm.toFixed(2)}</text>`)});
+  return `<g class="fixlayer" stroke-width="${n(Math.max(mm(.5),tf.view_w/1600))}">${out.join('')}</g>`}
+function drawFixNote(d){const c=fixCounts(d);if(!c)return;
+  const bits=[];if(c.holes.length)bits.push(fmt(t('fixDims'),{n:c.holes.length}));if(c.centers.length)bits.push(fmt(t('fixCenters'),{n:c.centers.length}));
+  const codes=new Set((d.findings||[]).map(f=>f.code));
+  $('#fixNote').innerHTML=`<p><b>${esc(t('fixLegend'))}</b> ${esc(bits.join(' · '))}. ${esc(t('fixCheck'))}</p>`
+    +(c.holes.some(h=>(h.count||1)>1)?`<p>${esc(t('fixSame'))}</p>`:'')
+    +(CANT_CODES.some(k=>codes.has(k))?`<p class="cant">${esc(t('fixCant'))}</p>`:'')}
+function setFix(on){const svg=pan.querySelector('svg');fixOn=!!(on&&svg&&fixCounts(RES));
+  if(fixOn&&!svg.querySelector('.fixlayer'))svg.insertAdjacentHTML('beforeend',fixLayer(RES));
+  const g=svg&&svg.querySelector('.fixlayer');if(g)g.style.display=fixOn?'':'none';
+  $('#fixBtn').setAttribute('aria-pressed',String(fixOn));$('#fixNote').hidden=!fixOn;if(fixOn)drawFixNote(RES)}
+$('#fixBtn').onclick=()=>setFix(!fixOn);
 function zoomToMarker(m){const tf=RES&&RES.svg_tf;if(!tf||m.dxf_x==null)return false;
   const sx=m.dxf_x*tf.scale+tf.off_x,sy=tf.off_y-m.dxf_y*tf.scale,r=stage.getBoundingClientRect();
   const want=Math.max(fitZoom*4,Math.min(fitZoom*14,r.height*0.18/Math.max(m.dxf_r*tf.scale,1e-6)));

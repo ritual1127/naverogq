@@ -1370,6 +1370,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                             + [t for _, _, t in plain_texts])
     tol_units = CENTER_TOL / K if K else CENTER_TOL
     groups = {}
+    hole_circles = []
     for c in circles:
         if c["layer"] == ERR_LAYER:
             continue
@@ -1382,6 +1383,14 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         # 동그라미), 절단선, 작도용 스케치는 부품의 구멍이 아니다.
         if _NON_SHAPE_LAYER_RE.search(c["layer"] or ""):
             continue
+        # 중심 마크 예시를 그릴 원. 나사 구멍에도 중심선은 필요하므로 치수 검사보다 앞에서 모은다.
+        if c["r"] * 2 * K >= MIN_HOLE_DIA_MM and not _in_symbol_zone(c["x"], c["y"], symbol_zones):
+            same = next((h for h in hole_circles if abs(h["x"] - c["x"]) <= tol_units
+                         and abs(h["y"] - c["y"]) <= tol_units), None)
+            if same is None:
+                hole_circles.append({"x": c["x"], "y": c["y"], "r": c["r"]})
+            elif c["r"] > same["r"]:
+                same["r"] = c["r"]      # 동심원은 가장 큰 원 하나에만 긋는다
         # 나사는 지름 치수를 안 적고 나사 호칭(M4·M6×0.75)으로 적는다.
         # 골지름 원과 바깥지름 원에 치수가 없는 것이 정상이다.
         if _is_thread_circle(c["r"] * 2 * K, threads):
@@ -1471,7 +1480,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "line_widths": _line_widths(doc),
              "text_sizes": _text_sizes(doc, msp, K),
              "views_known": bool(view_names),
-             "dims": dims, "undimensioned": undimensioned,
+             "dims": dims, "undimensioned": undimensioned, "hole_circles": hole_circles,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,
              "counts": {"circles": len(circles), "title_blocks": len(titles),
                         "SurfaceTextureSymbols": len(surfaces),
@@ -1860,7 +1869,7 @@ def _finish(doc, msp):
         msp, filter_func=lambda entity: entity.dxftype() != "POINT")
     s = back.get_string(dlayout.Page(0, 0, dlayout.Units.mm,
                                     dlayout.Margins.all(margin)))
-    return s, _transform(s, bb, margin)
+    return s, _transform(s, back)
 
 
 def _drawing_margin(bb):
@@ -1887,13 +1896,22 @@ def _prepare_preview_colors(doc):
             continue
 
 
-def _transform(svg_text, bb, margin=MARGIN_MM):
+def _transform(svg_text, back):
+    """DXF 좌표 → SVG viewBox 좌표. 화면은 svgX = x·scale + off_x, svgY = off_y − y·scale 로 쓴다.
+
+    예전에는 도면 범위와 여백으로 이 값을 어림잡았다. 렌더러가 실제로 잡는 범위와
+    여백 단위가 달라서, 단위가 아주 작은 도면(sample_autocad.dxf, 범위 0.12)에서는
+    위치가 최대 32% 밀렸고 번호를 누르면 빈 곳으로 확대됐다. 렌더러가 실제로 쓴
+    변환 행렬을 그대로 읽는다."""
     try:
+        from ezdxf.math import Vec3
+        m = back.transformation_matrix
+        o, ux, uy = (m.transform(Vec3(x, y, 0)) for x, y in ((0, 0), (1, 0), (0, 1)))
+        scale = ux.x - o.x
+        if abs(ux.y - o.y) > abs(scale) * 1e-9 or abs((uy.y - o.y) + scale) > abs(scale) * 1e-9:
+            return None         # 회전이나 x·y 배율이 다른 변환은 이 모양으로 못 적는다
         vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', svg_text).group(1).split()]
-        w_mm = float(re.search(r'width="([\d.]+)mm"', svg_text).group(1))
-        upm = vb[2] / w_mm
-        return {"scale": upm, "off_x": (-bb.extmin.x + margin) * upm,
-                "off_y": (bb.extmax.y + margin) * upm,
+        return {"scale": scale, "off_x": o.x, "off_y": o.y,
                 "view_w": vb[2], "view_h": vb[3]}
     except Exception:
         return None

@@ -206,9 +206,31 @@ def analyze_sample(body: dict, request: Request):
     if os.path.splitext(path)[1].lower() not in check.SUPPORTED:
         raise HTTPException(400, "분석할 수 없는 형식입니다.")
     job = uuid.uuid4().hex[:12]
-    os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
     stats.bump(request, "sample")
-    return _done(request, _run(job, path, name, _enabled(body)))
+    return _done(request, _run_sample(job, path, name, _enabled(body)))
+
+
+SAMPLE_RESULTS = {}         # (이름, 수정 시각, 켠 검사) -> 결과. 예제 파일은 안 바뀌니 결과도 같다
+SAMPLE_KEEP = 16
+
+
+def _run_sample(job, path, name, enabled):
+    import ai_review
+
+    key = (name, os.path.getmtime(path), None if enabled is None else tuple(sorted(enabled)))
+    hit = SAMPLE_RESULTS.get(key)
+    if hit is not None:
+        return JSONResponse({**hit, "job": job})
+    os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
+    payload = _result(job, path, name, enabled)
+    # AI 채점이 실패했거나 답변·번역이 아직이면 저장하지 않는다. 반쪽 결과가 굳는다.
+    ai_done = (payload["scorecard"] or {}).get("ai_model") or not ai_review.providers() \
+        or (enabled is not None and "AI_PROJECTION" not in enabled)
+    if ai_done and not payload["ai_extra"]:
+        if len(SAMPLE_RESULTS) >= SAMPLE_KEEP:
+            SAMPLE_RESULTS.pop(next(iter(SAMPLE_RESULTS)))
+        SAMPLE_RESULTS[key] = payload
+    return JSONResponse(payload)
 
 
 @app.post("/api/analyze-path")
@@ -369,6 +391,10 @@ def ai_extra(job: str):
 
 
 def _run(job, path, name, enabled=None):
+    return JSONResponse(_result(job, path, name, enabled))
+
+
+def _result(job, path, name, enabled=None):
     _prune_uploads()
     try:
         facts, findings, summary = check.analyze(path, enabled=enabled, alongside=_render,
@@ -395,8 +421,21 @@ def _run(job, path, name, enabled=None):
         "svg": svg, "markers_placed": marked, "marker_index": marker_index,
         "svg_tf": svg_tf,
         "svg_note": svg_note,
+        "fix": _fix_data(facts, findings),
     }
-    return JSONResponse(payload)
+    return payload
+
+
+def _fix_data(facts, findings):
+    """화면이 '수정 예시'(구멍 지름 치수 · 중심 마크)를 도면 위에 바로 그리는 데 쓰는 값.
+
+    서버에서 도면을 다시 그리면 몇 초가 걸려서, 좌표만 보내고 화면이 미리보기 위에 얹는다.
+    치수 없는 구멍은 marker_index 에 이미 있다. 중심 마크는 중심선이 하나도 없을 때만 보낸다."""
+    sheet = (facts.get("sheets") or [{}])[0]
+    codes = {f["code"] for f in findings}
+    centers = (sheet.get("hole_circles") or []) if "EX_NO_CENTERLINE" in codes else []
+    return {"mm_per_unit": facts.get("unit_mm_per_drawing_unit") or 1.0,
+            "centers": [[c["x"], c["y"], c["r"]] for c in centers]}
 
 
 def _render(facts):
