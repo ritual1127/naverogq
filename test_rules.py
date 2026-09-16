@@ -1305,3 +1305,18 @@ def test_center_mark_example_uses_every_hole_once():
 
     facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "005_undimensioned.dxf"), use_ai=False)
     assert main._fix_data(facts, findings)["centers"] == [], "중심선이 있는 도면에는 안 그린다"
+
+
+def test_ai_cache_hit_does_not_render_the_drawing(monkeypatch):
+    """캐시에 채점이 있으면 AI 에게 보낼 그림을 그리지 않는다. 배포 서버에서 몇 초가 걸린다."""
+    import ai_review
+
+    monkeypatch.setattr(ai_review, "providers", lambda: ["gemini"])
+    monkeypatch.setattr(ai_review, "_cache_get", lambda path: {"verdict": "v", "deductions": []})
+
+    def no_render(path):
+        raise AssertionError("캐시가 있는데 그림을 그렸다")
+
+    monkeypatch.setattr(ai_review, "render_png", no_render)
+    out = ai_review.judge({"dxf": __file__}, timeout=1)
+    assert out and out["score"] == 30

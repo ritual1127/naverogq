@@ -643,15 +643,18 @@ def judge(facts, timeout=120.0, defer=False):
     if not chain or not dxf or not os.path.exists(dxf):
         return None
 
-    try:
-        png = render_png(dxf)
-    except Exception:
-        return None
-
     asks = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
             "groq": _ask_groq, "mistral": _ask_mistral}
-    blob = _drawing_blob(dxf) or png
     prompt = PROMPT + _context(facts)
+    # 그림은 캐시에 없을 때만 그린다. 캐시 열쇠는 도면 파일 내용이라 그림이 필요 없고,
+    # 그리는 데 배포 서버에서 몇 초가 걸려 예제를 다시 열 때마다 그만큼 늦었다.
+    blob = _drawing_blob(dxf)
+    png = None
+    if blob is None:
+        try:
+            png = blob = render_png(dxf)
+        except Exception:
+            return None
 
     # 같은 도면을 같은 참고 정보로 이미 채점해 뒀으면 그대로 쓴다.
     for name in chain:
@@ -666,6 +669,11 @@ def judge(facts, timeout=120.0, defer=False):
             print(f"[ai] 캐시 사용 ({model}) — 할당량 소모 없음", flush=True)
         return _with_extras(hit, asks[name], timeout, cached, model, defer)
 
+    if png is None:
+        try:
+            png = render_png(dxf)
+        except Exception:
+            return None
     for name in chain:
         model = MODEL_OF[name]
         ask = asks[name]
