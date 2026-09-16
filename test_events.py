@@ -25,3 +25,12 @@ def test_sample_counts_start_and_done():
     after = client.get("/api/stats").json()["total"]
     assert after["samples"] == before["samples"] + 1
     assert after["done"] == before["done"] + 1
+
+
+def test_info_pages_are_served_but_not_counted_as_visits():
+    before = client.get("/api/stats").json()["total"]["visits"]
+    for path, page in (("/ks", "ks"), ("/accuracy", "accuracy")):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert f'data-page="{page}"' in r.text
+    assert client.get("/api/stats").json()["total"]["visits"] == before

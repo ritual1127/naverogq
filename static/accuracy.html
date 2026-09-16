@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>정확도 · CADLens</title>
+<meta name="description" content="CADLens 검사의 정확도를 실제 수험생 도면과 합성 도면으로 잰 결과, 측정의 한계, 아직 못 잡는 것을 공개합니다.">
+<link rel="icon" href="/static/favicon.ico" sizes="32x32">
+<link rel="icon" type="image/png" href="/static/favicon.png" sizes="180x180">
+<link rel="apple-touch-icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/site.css?v=20260916">
+<link rel="preload" href="/static/fonts/NanumSquareRoundR.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/NanumSquareRoundEB.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+document.documentElement.classList.add('js');
+try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=th}catch(e){}
+</script>
+</head>
+<body data-page="accuracy">
+<header class="nav" id="siteNav"></header>
+
+<main id="main">
+  <section class="page-hero">
+    <div class="wrap">
+      <p class="kicker" data-i18n="navAcc">정확도</p>
+      <h1 data-i18n="accTitle">얼마나 맞히는지, 무엇을 못 하는지 그대로 적었습니다.</h1>
+      <p class="lead" data-i18n="accLead"></p>
+      <p class="notice"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span data-i18n="accDate"></span></p>
+    </div>
+  </section>
+
+  <div class="doc">
+    <div class="wrap doc-grid">
+      <nav class="toc" id="toc" data-i18n-aria="navAcc"></nav>
+      <div>
+        <section class="dsec" id="results"><h2 data-i18n="accNumsT"></h2><div class="nums" id="nums"></div></section>
+        <section class="dsec" id="read"><h2 data-i18n="accDefsT"></h2><div class="defs" id="defs"></div></section>
+        <section class="dsec" id="weight"><h2 data-i18n="accWeightT"></h2><div class="card-text" id="weightText"></div></section>
+        <section class="dsec" id="real"><h2 data-i18n="accRealT"></h2><div class="card-text"><ul class="plain" id="realList"></ul></div></section>
+        <section class="dsec" id="ai"><h2 data-i18n="accAiT"></h2><div class="card-text" id="aiText"></div></section>
+        <section class="dsec" id="weak"><h2 data-i18n="accWeakT"></h2><p class="sub" data-i18n="accWeakD"></p><div class="weak" id="weakList"></div></section>
+        <section class="dsec" id="log"><h2 data-i18n="accLogT"></h2><p class="sub" data-i18n="accLogD"></p><ol class="timeline" id="logList"></ol></section>
+        <div class="cta-band page-cta reveal"><div><h2 data-i18n="accCtaT"></h2><p data-i18n="accCtaD"></p></div><a class="btn btn-primary btn-lg" href="https://github.com/ritual1127/naverogq/blob/main/docs/accuracy.md" target="_blank" rel="noopener"><span data-i18n="accDocLink"></span><svg class="ico" aria-hidden="true"><use href="#i-external"/></svg></a></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="foot" id="siteFoot"></footer>
+<script src="/static/common.js?v=20260916"></script>
+<script src="/static/accuracy.js?v=20260916"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KS 기준 · CADLens</title>
+<meta name="description" content="CADLens의 검사 항목이 어느 KS 제도 규격과 공개 채점 기준에서 나왔는지 채점 항목별로 정리했습니다.">
+<link rel="icon" href="/static/favicon.ico" sizes="32x32">
+<link rel="icon" type="image/png" href="/static/favicon.png" sizes="180x180">
+<link rel="apple-touch-icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/site.css?v=20260916">
+<link rel="preload" href="/static/fonts/NanumSquareRoundR.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/NanumSquareRoundEB.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+document.documentElement.classList.add('js');
+try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=th}catch(e){}
+</script>
+</head>
+<body data-page="ks">
+<header class="nav" id="siteNav"></header>
+
+<main id="main">
+  <section class="page-hero">
+    <div class="wrap">
+      <p class="kicker" data-i18n="navKs">KS 기준</p>
+      <h1 data-i18n="ksTitle">검사마다 근거가 되는 규격이 있습니다.</h1>
+      <p class="lead" data-i18n="ksLead" data-fmt></p>
+      <div class="src">
+        <span class="src-ico"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg></span>
+        <div class="src-body"><span data-i18n="ksSrcK"></span><b data-i18n="ksSrcT"></b><p data-i18n="ksSrcD"></p></div>
+        <a class="btn btn-soft btn-sm" id="ksSrc" target="_blank" rel="noopener"><span data-i18n="ksSrcLink"></span><svg class="ico" aria-hidden="true"><use href="#i-external"/></svg></a>
+      </div>
+      <p class="notice"><svg class="ico" aria-hidden="true"><use href="#i-info"/></svg><span data-i18n="ksNotice"></span></p>
+    </div>
+  </section>
+
+  <div class="doc">
+    <div class="wrap doc-grid">
+      <nav class="toc" id="toc" data-i18n-aria="navKs"></nav>
+      <div>
+        <section class="dsec" id="basics"><h2 data-i18n="ksBasicsT"></h2><p class="sub" data-i18n="ksBasicsD"></p><div class="basics" id="basicsGrid"></div></section>
+        <section class="dsec" id="dq"><h2 data-i18n="ksDqT"></h2><p class="sub" data-i18n="ksDqD"></p><div id="dqGroup"></div></section>
+        <section class="dsec" id="checks"><h2 data-i18n="ksRubT"></h2><p class="sub" data-i18n="ksRubD"></p><div id="groups"></div></section>
+        <div class="cta-band page-cta reveal"><div><h2 data-i18n="ksCtaT"></h2><p data-i18n="trust3"></p></div><a class="btn btn-primary btn-lg" href="/"><svg class="ico" aria-hidden="true"><use href="#i-upload"/></svg><span data-i18n="ctaUpload"></span></a></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="foot" id="siteFoot"></footer>
+<script src="/static/common.js?v=20260916"></script>
+<script src="/static/ks.js?v=20260916"></script>
+</body>
+</html>

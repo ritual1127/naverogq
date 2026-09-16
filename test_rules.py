@@ -946,7 +946,7 @@ def test_material_field_does_not_borrow_the_cell_below():
 def test_web_screen_knows_every_check_and_rubric_item():
     """화면의 검사 이름·묶음·배점표가 exam.py 와 어긋나지 않는다.
 
-    검사를 새로 만들 때 `static/index.html` 을 같이 안 고치면 화면에 코드가
+    검사를 새로 만들 때 `static/common.js` 를 같이 안 고치면 화면에 코드가
     그대로 뜨거나(`EX_OUTSIDE_FRAME`) 어느 항목에도 안 묶여 사라진다.
     배점표도 손으로 적어 둔 것이라 항목이 늘면 만점이 안 맞는다."""
     import re
@@ -966,7 +966,7 @@ def test_web_screen_knows_every_check_and_rubric_item():
         raise AssertionError("괄호가 안 닫혔다")
 
     here = os.path.dirname(os.path.abspath(__file__))
-    page = open(os.path.join(here, "static", "index.html"), encoding="utf-8").read()
+    page = open(os.path.join(here, "static", "common.js"), encoding="utf-8").read()
 
     checks = {c for c, *_ in exam.CHECKS}
     rubric = [c for c, _, _, _ in exam.RUBRIC]
@@ -1011,6 +1011,35 @@ def test_every_check_has_a_written_basis():
     ids = {c for c, *_ in exam.CHECKS}
     assert not ids - written, sorted(ids - written)
     assert not written - ids, sorted(written - ids)
+
+
+def test_ks_page_explains_every_check():
+    """웹사이트 /ks 페이지가 검사 전부의 근거와 설명을 네 언어로 갖고 있다.
+
+    검사를 더하거나 이름을 바꾸고 `static/ks.js` 를 안 고치면 그 검사가 페이지에서
+    빠지거나 한국어 이름이 채점 화면과 달라진다."""
+    import re
+
+    import exam
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(here, "static", "ks.js"), encoding="utf-8") as fh:
+        page = fh.read()
+
+    def body(start):
+        return re.search(start + r"=\{\n(.*?)\n\};", page, re.DOTALL).group(1)
+
+    def keys(text):
+        return re.findall(r"^([A-Z_]+):", text, re.MULTILINE)
+
+    ids = [c for c, *_ in exam.CHECKS]
+    assert keys(body("const KS_REF")) == ids
+    names = dict(re.findall(r"^([A-Z_]+):'(.*)',?$", body("const KS_KO_NAMES"), re.MULTILINE))
+    assert names == {c: label for c, label, *_ in exam.CHECKS}
+    for lang in ("ko", "en", "ja", "zh"):
+        text = re.search(r"KS_TEXT\." + lang + r"=\{(.*?)\n\};", page, re.DOTALL).group(1)
+        what = re.search(r"what:\{\n(.*)\}$", text, re.DOTALL).group(1)
+        assert keys(what) == ids, lang
 
 
 def test_holes_that_need_no_dimension_are_not_flagged():

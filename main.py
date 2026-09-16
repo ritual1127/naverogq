@@ -86,11 +86,26 @@ def _is_local(request):
     return (request.client.host if request.client else None) in LOCAL_HOSTS
 
 
+def _page(name):
+    with open(os.path.join(HERE, "static", name), encoding="utf-8") as fh:
+        return fh.read()
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     stats.bump(request, "visit")
-    with open(os.path.join(HERE, "static", "index.html"), encoding="utf-8") as fh:
-        return fh.read()
+    return _page("index.html")
+
+
+# 안내 페이지는 방문 수에 넣지 않는다. 한 사람이 페이지를 옮겨 다닐 때마다 세면 접속 수가 부푼다.
+@app.get("/ks", response_class=HTMLResponse)
+def ks_page():
+    return _page("ks.html")
+
+
+@app.get("/accuracy", response_class=HTMLResponse)
+def accuracy_page():
+    return _page("accuracy.html")
 
 
 @app.get("/favicon.ico", include_in_schema=False)

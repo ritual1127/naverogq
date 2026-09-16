@@ -58,7 +58,10 @@ flowchart LR
 
 | 파일 | 하는 일 |
 |---|---|
-| `static/index.html` | 웹 화면 전체. HTML·CSS·JS가 이 파일 하나에 다 들어 있음 |
+| `static/index.html` · `home.js` | 웹 첫 화면과 검사 결과 화면 |
+| `static/ks.html` · `ks.js` | KS 기준 페이지(`/ks`). 검사마다 근거 규격 |
+| `static/accuracy.html` · `accuracy.js` | 정확도 페이지(`/accuracy`). 측정 결과와 한계 |
+| `static/common.js` · `site.css` | 세 페이지가 같이 쓰는 머리글·바닥글·번역·화면 설정과 스타일 |
 | `main.py` | 서버. 파일을 받고 결과를 돌려줌 |
 | `check.py` | 읽기 → AI 채점 → 규칙 채점 순서를 이어주는 부분 |
 | `dwg.py` | 도면 읽기. DWG 변환, 정보 뽑기, 도면 그림 그리기 |
