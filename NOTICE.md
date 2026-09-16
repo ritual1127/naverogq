@@ -7,10 +7,10 @@
 
 | 구성요소 | 용도 | 라이선스 | 위치 |
 |---|---|---|---|
-| [three.js](https://github.com/mrdoob/three.js) | 브라우저 3D STL 미리보기 | MIT | `static/vendor/three.min.js` |
+| [나눔스퀘어라운드](https://hangeul.naver.com/font) (NAVER) | 웹 화면 글꼴 R·B·EB | SIL OFL 1.1 | `static/fonts/` (라이선스 전문 `static/fonts/OFL.txt`) |
 
-three.js는 MIT이므로 MIT 저장소에 그대로 포함해도 문제가 없습니다. CDN을 쓰지
-않고 로컬에 두는 이유는 외부 네트워크 없이도 뷰어가 동작해야 하기 때문입니다.
+나눔스퀘어라운드는 SIL Open Font License 1.1이라 글꼴 파일을 고치지 않고 라이선스 전문과 함께 두면
+재배포할 수 있습니다. 글꼴 CDN을 쓰지 않고 서버에 두는 이유는 접속 정보를 외부 글꼴 서버로 보내지 않기 위해서입니다.
 
 ## 저장소에 포함하지 **않는** 것 (의도적)
 
@@ -39,7 +39,7 @@ LibreDWG는 별도 프로세스(`dwg2dxf.exe`)로 실행하고 파일만 주고�
 | google-genai | 2.16.0 | Apache-2.0 |
 
 개발 전용(런타임 미포함): pytest (MIT, 회귀 테스트), fontTools (MIT, `tools_wordmark.py`에서
-3D 워드마크 좌표를 오프라인 생성).
+예전 홈 화면의 3D 워드마크 좌표를 오프라인 생성. 지금 화면은 워드마크를 쓰지 않음).
 
 ### PyMuPDF의 AGPL에 대해
 
@@ -52,8 +52,8 @@ PyMuPDF는 AI 검토용으로 DXF를 PNG로 렌더할 때만 씁니다(`ai_revie
 
 ## 폰트
 
-홈 화면의 3D 워드마크는 Segoe UI Black(`C:\Windows\Fonts\seguibl.ttf`, Microsoft 독점 폰트)의
-글자 외곽선을 오프라인에서 좌표로 변환한 값입니다. **폰트 파일은 저장소에 포함하지 않습니다.**
+웹 화면 글꼴은 나눔스퀘어라운드(NAVER, SIL OFL 1.1)이고 `static/fonts/`에 woff2 3개와 라이선스 전문(`OFL.txt`)을
+함께 둡니다. 일본어·중국어 화면의 가나·한자는 사용자 기기의 시스템 글꼴로 표시합니다.
 Docker 이미지에는 도면 텍스트 렌더용으로 `fonts-dejavu-core`(Bitstream Vera / 공개 라이선스)와
 `fonts-nanum`(SIL Open Font License 1.1)만 설치합니다.
 

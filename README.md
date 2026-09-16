@@ -90,7 +90,7 @@ flowchart LR
 | Cloudflare · Mistral · Groq 연결 | Requests (REST 직접 호출, 전용 SDK 없음) | 2.34.2 | Apache-2.0 |
 | DWG 변환 | GNU LibreDWG (`dwg2dxf`) | 0.14 | **GPL-3.0-or-later** |
 | 웹 화면 | 그냥 HTML + CSS + JS | — | 프레임워크와 빌드 도구 없음 |
-| 3D 로고 | three.js | — | MIT |
+| 화면 글꼴 | 나눔스퀘어라운드 (서버에 직접 올림) | — | SIL OFL 1.1 |
 | 배포 | Docker + Render.com | — | — |
 
 GPL과 AGPL을 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 적어 뒀습니다.
@@ -256,7 +256,7 @@ DWG를 DXF로 바꾸는 일은 **서버 안에 설치된 LibreDWG**가 합니다
 | Claude Opus 5 / Sonnet 5 / Sonnet 4.8 | Anthropic | 만들 때 — 코드 작성·정리, 문서와 번역 초안 (Claude Code) |
 | GPT-5.6 Sol | OpenAI | 만들 때 — 코드 작성 도움 |
 
-**사용한 오픈소스** — 서버는 ezdxf 1.4.4(MIT), Pillow 12.3.0(MIT-CMU), FastAPI 0.141.1(MIT), Uvicorn 0.52.0(BSD-3-Clause), python-multipart 0.0.32(Apache-2.0), Requests 2.34.2(Apache-2.0), PyMuPDF 1.28.0(**AGPL-3.0**/상용), google-genai 2.16.0(Apache-2.0). Cloudflare Workers AI · Mistral · Groq 는 전용 SDK 없이 Requests로 REST를 직접 부릅니다. 브라우저에서는 three.js(MIT)를 외부에서 안 불러오고 직접 올려서 씁니다. 서버에는 GNU LibreDWG `dwg2dxf` 0.14(**GPL-3.0-or-later**)가 DWG 변환용으로 들어가 있고, ODA File Converter(상용 무료)와 CloudConvert(외부 유료 API)를 변환 대체 경로로 붙여 뒀습니다. **대체 경로는 공개 서버에서 쓰지 않습니다.** 개발할 때만 pytest(MIT)와 fontTools(MIT)를 씁니다. 라이선스를 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 더 자세히 있습니다.
+**사용한 오픈소스** — 서버는 ezdxf 1.4.4(MIT), Pillow 12.3.0(MIT-CMU), FastAPI 0.141.1(MIT), Uvicorn 0.52.0(BSD-3-Clause), python-multipart 0.0.32(Apache-2.0), Requests 2.34.2(Apache-2.0), PyMuPDF 1.28.0(**AGPL-3.0**/상용), google-genai 2.16.0(Apache-2.0). Cloudflare Workers AI · Mistral · Groq 는 전용 SDK 없이 Requests로 REST를 직접 부릅니다. 화면 글꼴 나눔스퀘어라운드(SIL OFL 1.1)는 외부에서 안 불러오고 서버에 직접 올려서 씁니다. 서버에는 GNU LibreDWG `dwg2dxf` 0.14(**GPL-3.0-or-later**)가 DWG 변환용으로 들어가 있고, ODA File Converter(상용 무료)와 CloudConvert(외부 유료 API)를 변환 대체 경로로 붙여 뒀습니다. **대체 경로는 공개 서버에서 쓰지 않습니다.** 개발할 때만 pytest(MIT)와 fontTools(MIT)를 씁니다. 라이선스를 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 더 자세히 있습니다.
 
 **외부 자문** — **구미전자공업고등학교 김민정 선생님**께 실기 채점 항목을 수업에서 어떻게 확인하시는지, 학생들이 실제로 자주 틀리는 게 뭔지 자문을 받았습니다. 들은 내용은 검사 항목을 고르고 지적 문구를 쓰는 데 반영했습니다. 도와주신 분이 이 프로젝트 결과에 책임을 지시는 건 아닙니다.
 
