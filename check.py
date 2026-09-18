@@ -62,6 +62,11 @@ def analyze(path: str, enabled: Iterable[str] | None = None,
     started = time.monotonic()
     facts = dwg.analyze(path)
     # AI 채점은 대부분 네트워크 대기다. 그동안 미리보기 같은 일을 같이 한다.
+    # 도면을 훑어 그림으로 기록해 둔다. 미리보기와 AI 에게 보낼 그림이 이 기록을 같이 쓴다 —
+    # 각각 한 번씩 훑던 때는 GIL 때문에 스레드로 나눠도 시간이 그대로 더해졌다.
+    if alongside or use_ai:
+        facts["record"] = dwg.record(facts)
+    facts.pop("_doc", None)
     read = time.monotonic() - started
     pool = ThreadPoolExecutor(max_workers=1)
     try:

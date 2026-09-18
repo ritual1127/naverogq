@@ -515,7 +515,8 @@ def _render(facts):
                           "dxf_x": c["dxf_x"], "dxf_y": c["dxf_y"],
                           "dxf_r": c.get("dxf_r")})
     try:
-        svg, tf, placed = dwg.render_svg(dxf, markers)
+        rec = facts.get("record") or dwg.record(facts)
+        svg, tf, placed = dwg.svg_from(rec, markers)
     except Exception as e:
         traceback.print_exc()
         print(f"[svg] 렌더 실패: {type(e).__name__}: {e}", flush=True)

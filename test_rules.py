@@ -64,22 +64,28 @@ def test_render_margin_scales_for_meter_drawings():
     assert abs(margin_for(0.12) - 0.006) < 1e-9
     assert margin_for(210) == dwg.MARGIN_MM
 
-    doc = ezdxf.new("R2010")
-    doc.layers.add("SOURCE_RED", color=1)
-    doc.layers.add(dwg.ERR_LAYER, color=1)
-    source = doc.modelspace().add_line((0, 0), (1, 1),
-                                       dxfattribs={"layer": "SOURCE_RED",
-                                                   "color": 1})
-    marker = doc.modelspace().add_circle((0, 0), 1,
-                                         dxfattribs={"layer": dwg.ERR_LAYER,
-                                                     "color": 1})
-    dwg._prepare_preview_colors(doc)
-    assert source.dxf.color == 7
-    assert doc.layers.get("SOURCE_RED").color == 7
-    assert marker.dxf.color == 1
-    assert doc.layers.get(dwg.ERR_LAYER).color == 1
 
-    svg, _ = dwg._finish(doc, doc.modelspace())
+def test_preview_draws_the_drawing_white_and_the_markers_red():
+    """미리보기는 도면에 적힌 색을 따르지 않고 흰 선으로 그리고, 번호 표시만 빨간색이다.
+
+    도면 색을 그대로 쓰면 어두운 미리보기에서 검은 선이 안 보이고, 빨간 선이 있는 도면은
+    번호 표시와 구별이 안 된다. 번호 표시는 따로 기록해 얹으므로 AI 에게 보낼 그림에는
+    들어가지 않는다."""
+    import ezdxf
+
+    import dwg
+
+    doc = ezdxf.new("R2013")
+    msp = doc.modelspace()
+    msp.add_line((0, 0), (100, 60), dxfattribs={"color": 1})      # 도면에 빨간 선이 있어도
+    msp.add_circle((50, 30), 5)
+    path = os.path.join(tempfile.mkdtemp(), "colors.dxf")
+    doc.saveas(path)
+
+    svg, _, placed = dwg.render_svg(path, [{"dxf_x": 50.0, "dxf_y": 30.0, "dxf_r": 5.0}])
+    assert placed == 1
+    colors = set(re.findall(r"stroke: (#[0-9a-f]{6})", svg))
+    assert "#ffffff" in colors and "#ff0000" in colors, colors
     widths = [int(value) for value in re.findall(r"stroke-width: (\d+)", svg)]
     assert widths and max(widths) < 5000, widths
 

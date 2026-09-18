@@ -95,6 +95,22 @@ RENDER_MARGIN_MM = 5.0
 MIN_RENDER_DPI = 40
 
 
+def png_of(facts):
+    """AI 에게 보여줄 그림. 검사가 이미 훑어 둔 기록(`facts["record"]`)이 있으면 그걸 쓴다."""
+    rec = facts.get("record")
+    if rec is None:
+        return render_png(facts["dxf"])
+    from ezdxf.addons.drawing import layout as dlayout
+    from ezdxf.addons.drawing import pymupdf as dpymupdf
+
+    backend = dpymupdf.PyMuPdfBackend()
+    rec.copy().replay(backend)
+    page = dlayout.Page(0, 0, dlayout.Units.mm, dlayout.Margins.all(RENDER_MARGIN_MM))
+    settings = dlayout.Settings(fit_page=False, scale=rec.mm_per_unit)
+    return backend.get_pixmap_bytes(page, fmt="png", settings=settings,
+                                    dpi=_dpi_for(rec.bbox, rec.mm_per_unit))
+
+
 def render_png(dxf_path):
     """도면을 AI에게 보여줄 그림으로 만든다.
 
@@ -136,10 +152,15 @@ def _fitting_dpi(msp, mm_per_unit):
     from ezdxf import bbox
 
     try:
-        size = bbox.extents(msp).size
-        span_mm = max(size.x, size.y) * mm_per_unit + 2 * RENDER_MARGIN_MM
+        return _dpi_for(bbox.extents(msp), mm_per_unit)
     except Exception:
         return RENDER_DPI
+
+
+def _dpi_for(box, mm_per_unit):
+    if not getattr(box, "has_data", False):
+        return RENDER_DPI
+    span_mm = max(box.size.x, box.size.y) * mm_per_unit + 2 * RENDER_MARGIN_MM
     if span_mm <= 0:
         return RENDER_DPI
     return max(MIN_RENDER_DPI,
@@ -666,7 +687,7 @@ def judge(facts, timeout=ASK_SEC, defer=False):
     png = None
     if blob is None:
         try:
-            png = blob = render_png(dxf)
+            png = blob = png_of(facts)
         except Exception:
             return None
 
@@ -685,7 +706,7 @@ def judge(facts, timeout=ASK_SEC, defer=False):
 
     if png is None:
         try:
-            png = render_png(dxf)
+            png = png_of(facts)
         except Exception:
             return None
     until = time.monotonic() + BUDGET_SEC

@@ -18,6 +18,7 @@ from ezdxf.addons.drawing import Frontend, RenderContext
 from ezdxf.addons.drawing import layout as dlayout
 from ezdxf.addons.drawing import svg as dsvg
 from ezdxf.addons.drawing.config import Configuration, LineweightPolicy
+from ezdxf.addons.drawing.recorder import Override, Recorder
 
 MARGIN_MM = 5.0
 CENTER_TOL = 0.5
@@ -1541,6 +1542,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                                      bool(spec["spec_tables"])),
         "title_attributes": titles,
         "unit_mm_per_drawing_unit": K, "unit_source": unit_why,
+        # 읽어 둔 도면. record() 가 그림을 기록하면서 가져가고 비운다.
+        "_doc": doc,
     }
 
 
@@ -1808,22 +1811,77 @@ def drawable_space(doc):
     return msp, True
 
 
+class Recording:
+    """도면을 한 번 훑어 둔 그림. 미리보기(SVG)와 AI 에게 보낼 그림(PNG)이 같이 쓴다.
+
+    ezdxf 의 Frontend 는 순수 파이썬이라 검사에서 가장 오래 걸리는 단계다(배포 서버 실측
+    3초). 전에는 미리보기와 AI 그림이 이 단계를 각각 한 번씩 했는데, 파이썬 GIL 때문에
+    스레드로 나눠도 동시에 돌지 못해 시간이 그대로 더해졌다."""
+
+    def __init__(self, player, mm_per_unit, is_model, font=""):
+        self.player = player
+        self.mm_per_unit = mm_per_unit
+        self.is_model = is_model
+        self.font = font            # 도면이 쓰는 글꼴. 번호 표시 숫자를 같은 글꼴로 쓴다
+        self.bbox = player.bbox()
+
+    def copy(self):
+        return self.player.copy()
+
+
+def record(facts):
+    """검사 중인 도면을 한 번 훑어 그림으로 기록한다.
+
+    `facts["_doc"]` 에 읽어 둔 도면이 있으면 그것을 쓰고 비운다 — 같은 파일을 또 여는 데만
+    배포 서버에서 1초 넘게 든다."""
+    doc = facts.pop("_doc", None)
+    if doc is None:
+        doc = readfile(facts["dxf"])
+    space, is_model = drawable_space(doc)
+    rec = Recorder()
+    Frontend(RenderContext(doc), rec).draw_layout(
+        space, finalize=True, filter_func=lambda entity: entity.dxftype() != "POINT")
+    mm_per_unit, _ = detect_mm_per_unit(doc, doc.modelspace())
+    try:
+        font = doc.styles.get("Standard").dxf.font or ""
+    except Exception:                                         # noqa: BLE001
+        font = ""
+    return Recording(rec.player(), mm_per_unit, is_model, font)
+
+
+class _Settings:
+    """replay 가 기록해 둔 설정을 그대로 밀어 넣는 것을 막고 우리 설정으로 바꾼다.
+
+    기록은 AI 그림 기준(ezdxf 기본값)으로 남기고, 미리보기만 선 굵기를 종이 크기에 맞춰
+    키운다(RELATIVE). 기본값으로 그리면 A2 도면을 화면 폭에 맞췄을 때 선이 안 보인다."""
+
+    def __init__(self, backend, config):
+        self._backend, self._config = backend, config
+
+    def configure(self, _config):
+        self._backend.configure(self._config)
+
+    def __getattr__(self, name):
+        return getattr(self._backend, name)
+
+
 def render_svg(dxf_path, markers=()):
+    """Preview SVG with a numbered badge on each marker. Reads and records the drawing
+    itself; inside a check use record() once and pass its result to svg_from()."""
+    return svg_from(record({"dxf": dxf_path}), markers)
+
+
+def svg_from(rec, markers=()):
     """Preview SVG with a numbered badge on each marker.
 
     Returns (svg, tf, placed). tf maps model-space DXF coordinates to the SVG; it is None
     when a paper-space layout was drawn instead, because model coordinates do not land
     there. Each marker that got a badge gets m["badge"] = [x, y, radius] in DXF units so
     the fix preview can keep clear of it."""
-    doc = readfile(dxf_path)
-    space, is_model = drawable_space(doc)
-    if ERR_LAYER not in doc.layers:
-        doc.layers.add(ERR_LAYER, color=1)
-
-    placed = 0
-    if is_model:
-        bb0 = bbox.extents(space)
-        span = max(bb0.size.x, bb0.size.y) if bb0.has_data else 100.0
+    bb0 = rec.bbox
+    span = max(bb0.size.x, bb0.size.y) if bb0.has_data else 100.0
+    placed, badges = 0, None
+    if rec.is_model:
         usable = [(i, m) for i, m in enumerate(markers, 1)
                   if m.get("dxf_x") is not None and m.get("dxf_y") is not None]
         if usable:
@@ -1831,12 +1889,47 @@ def render_svg(dxf_path, markers=()):
                          span * 0.018) for _, m in usable]
             spots = _badge_positions(
                 bb0, span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable], rings)
-            for (i, m), ring, (bx, by) in zip(usable, rings, spots):
-                _arrow(space, m["dxf_x"], m["dxf_y"], ring, span, str(i), bx, by)
-                m["badge"] = [bx, by, span * BADGE_R]
-                placed += 1
-    svg, tf = _finish(doc, space)
-    return svg, tf if is_model else None, placed
+            badges = _badge_recording(usable, rings, spots, span, rec.font)
+            placed = len(usable)
+
+    back = dsvg.SVGBackend()
+    white = Configuration(lineweight_policy=LineweightPolicy.RELATIVE)
+    rec.copy().replay(_Settings(back, white), override=_as_white)
+    if badges is not None:
+        badges.replay(_Settings(back, white))
+    margin = _drawing_margin(bb0)
+    svg = back.get_string(dlayout.Page(0, 0, dlayout.Units.mm, dlayout.Margins.all(margin)))
+    return svg, _transform(svg, back) if rec.is_model else None, placed
+
+
+_WHITE = "#ffffff"
+
+
+def _as_white(properties):
+    """미리보기는 도면에 적힌 색을 따르지 않고 흰 선으로 그린다. 빨간 번호 표시는 따로
+    기록해 두고 그대로 얹으므로 여기 오지 않는다."""
+    return Override(properties._replace(color=_WHITE))
+
+
+def _badge_recording(usable, rings, spots, span, font=""):
+    """번호 표시를 따로 기록한다. 도면 기록에 섞으면 AI 에게 보낼 그림에도 번호가 들어간다.
+
+    숫자는 도면이 쓰는 글꼴로 쓴다. 빈 문서의 기본 글꼴은 획으로만 그려져 속이 빈 숫자가
+    된다."""
+    doc = ezdxf.new("R2013")
+    doc.layers.add(ERR_LAYER, color=1)
+    if font:
+        try:
+            doc.styles.get("Standard").dxf.font = font
+        except Exception:                                     # noqa: BLE001
+            pass
+    msp = doc.modelspace()
+    for (i, m), ring, (bx, by) in zip(usable, rings, spots):
+        _arrow(msp, m["dxf_x"], m["dxf_y"], ring, span, str(i), bx, by)
+        m["badge"] = [bx, by, span * BADGE_R]
+    rec = Recorder()
+    Frontend(RenderContext(doc), rec).draw_layout(msp, finalize=True)
+    return rec.player()
 
 
 BADGE_ANGLES = (45, 0, 90, -45, 135, -90, 180, 20, 70, 110, 160, 200, 250, 290, 340)
@@ -1912,41 +2005,11 @@ def _arrow(msp, x, y, ring, span, label, label_x, label_y):
         (label_x, label_y), align=TextEntityAlignment.MIDDLE_CENTER)
 
 
-def _finish(doc, msp):
-    bb = bbox.extents(msp)
-    margin = _drawing_margin(bb)
-    _prepare_preview_colors(doc)
-    back = dsvg.SVGBackend()
-    config = Configuration(lineweight_policy=LineweightPolicy.RELATIVE)
-    Frontend(RenderContext(doc), back, config=config).draw_layout(
-        msp, filter_func=lambda entity: entity.dxftype() != "POINT")
-    s = back.get_string(dlayout.Page(0, 0, dlayout.Units.mm,
-                                    dlayout.Margins.all(margin)))
-    return s, _transform(s, back)
-
-
 def _drawing_margin(bb):
     if not bb.has_data:
         return MARGIN_MM
     span = max(bb.size.x, bb.size.y)
     return min(MARGIN_MM, max(span * 0.05, 1e-6))
-
-
-def _prepare_preview_colors(doc):
-    for layer in doc.layers:
-        if layer.dxf.name == ERR_LAYER:
-            continue
-        layer.dxf.color = 7
-        layer.dxf.discard("true_color")
-    for entity in doc.entitydb.values():
-        try:
-            if entity.dxf.get("layer", "0") == ERR_LAYER:
-                continue
-            if entity.dxf.hasattr("color"):
-                entity.dxf.color = 7
-            entity.dxf.discard("true_color")
-        except (AttributeError, TypeError):
-            continue
 
 
 def _transform(svg_text, back):
