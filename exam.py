@@ -639,6 +639,12 @@ def _appearance(facts):
     return out
 
 
+def lacks_center_lines(sheet):
+    """중심선도 중심마크도 하나 없는 도면. '수정 예시'가 중심선을 그릴지도 이걸로 정한다."""
+    counts = sheet.get("counts") or {}
+    return not counts.get("Centerlines", 0) and not counts.get("Centermarks", 0)
+
+
 def _projection(facts):
     sh = _sheet_of(facts)
     counts, views = sh.get("counts", {}), sh.get("views", [])
@@ -664,7 +670,7 @@ def _projection(facts):
             "부품 형상을 표현하기에 투상도가 부족해 보입니다.",
             "정면도 기준으로 평면도·측면도, 필요시 단면도·상세도를 배치하세요.",
             "PROJECTION_LAYOUT"))
-    if not counts.get("Centerlines", 0) and not counts.get("Centermarks", 0):
+    if lacks_center_lines(sh):
         out.append(_f(
             "EX_NO_CENTERLINE", SEV_WARN, "중심선·중심마크 없음",
             "원·구멍에 중심선이나 중심마크가 없습니다. KS 제도규격 위반입니다.",

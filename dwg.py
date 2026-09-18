@@ -1071,6 +1071,42 @@ def _mark_front_view(msp, views, mm_per_unit):
         views[order[0]]["is_front"] = True
 
 
+VIEW_PAD_MM = 0.5
+
+
+def _view_index(x_mm, y_mm, views):
+    """이 점을 담은 뷰 중 가장 작은 뷰의 순번. 어느 뷰에도 없으면 None."""
+    hits = [(v["w_mm"] * v["h_mm"], i) for i, v in enumerate(views)
+            if v.get("x_mm") is not None and v.get("w_mm") and v.get("h_mm")
+            and abs(x_mm - v["x_mm"]) <= v["w_mm"] / 2 + VIEW_PAD_MM
+            and abs(y_mm - v["y_mm"]) <= v["h_mm"] / 2 + VIEW_PAD_MM]
+    return min(hits)[1] if hits else None
+
+
+def _settle_on_view(group, views, mm_per_unit):
+    """치수 없는 같은 지름 원 묶음에서 번호를 붙일 원을 고른다.
+
+    같은 지름 원이 가장 많이 모인 뷰의 보이는 원이다. 번호 표시 · 번호를 눌렀을 때
+    확대 · '수정 예시'의 `4-Ø6` 지시선이 모두 이 원을 가리킨다. 전에는 도면 파일에
+    먼저 나온 원을 썼는데, 그 원이 다른 뷰에 혼자 있으면 번호와 묶음이 따로 놀았다.
+
+    어느 뷰에도 안 든 원은 같은 구멍이라는 근거가 없어 하나씩 센다. 뷰를 아예 못 찾은
+    도면은 도면 전체를 한 뷰로 본다."""
+    members = group["members"]
+    visible = [m for m in members if not m[2]]
+    pool = visible or members
+    placed = any(v.get("x_mm") is not None for v in views)
+    buckets = {}
+    for n, (x, y, _) in enumerate(pool):
+        key = _view_index(x * mm_per_unit, y * mm_per_unit, views) if placed else "sheet"
+        buckets.setdefault(("solo", n) if key is None else key, []).append(pool[n])
+    best = max(buckets.values(), key=len)       # 같은 수면 파일에 먼저 나온 쪽
+    x, y, _ = best[0]
+    group.update(dxf_x=x, dxf_y=y, x_cm=x * mm_per_unit / 10, y_cm=y * mm_per_unit / 10,
+                 view_members=[[mx, my] for mx, my, _ in best],
+                 hidden_only=not visible)
+
+
 # 두 뷰가 한 줄에 놓였다고 볼 겹침 비율과, 이웃으로 볼 최대 간격(큰 쪽 크기의 배수).
 VIEW_ALIGN_OVERLAP = 0.5
 VIEW_ALIGN_GAP = 2.5
@@ -1313,7 +1349,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                 try:
                     c = e.dxf.center
                     circles.append({"x": c.x, "y": c.y, "r": float(e.dxf.radius),
-                                    "layer": e.dxf.layer, "kind": t})
+                                    "layer": e.dxf.layer, "kind": t,
+                                    "hidden": _is_hidden(e, hidden_layers)})
                 except Exception:
                     continue
             elif t in ("TEXT", "MTEXT"):
@@ -1371,6 +1408,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     tol_units = CENTER_TOL / K if K else CENTER_TOL
     groups = {}
     hole_circles = []
+    outline_circles = []
     for c in circles:
         if c["layer"] == ERR_LAYER:
             continue
@@ -1383,6 +1421,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         # 동그라미), 절단선, 작도용 스케치는 부품의 구멍이 아니다.
         if _NON_SHAPE_LAYER_RE.search(c["layer"] or ""):
             continue
+        # '수정 예시'가 지시선 화살표를 다른 원 둘레에 대지 않게 피하는 데 쓴다
+        outline_circles.append([c["x"], c["y"], c["r"]])
         # 중심 마크 예시를 그릴 원. 나사 구멍에도 중심선은 필요하므로 치수 검사보다 앞에서 모은다.
         if c["r"] * 2 * K >= MIN_HOLE_DIA_MM and not _in_symbol_zone(c["x"], c["y"], symbol_zones):
             same = next((h for h in hole_circles if abs(h["x"] - c["x"]) <= tol_units
@@ -1411,9 +1451,12 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         if g:
             g["count"] += 1
         else:
-            groups[dia] = {"id": None, "diameter_mm": c["r"] * 2 * K, "count": 1,
-                           "x_cm": c["x"] * K / 10, "y_cm": c["y"] * K / 10,
-                           "dxf_x": c["x"], "dxf_y": c["y"], "dxf_r": c["r"]}
+            g = groups[dia] = {"id": None, "diameter_mm": c["r"] * 2 * K, "count": 1,
+                               "x_cm": c["x"] * K / 10, "y_cm": c["y"] * K / 10,
+                               "dxf_x": c["x"], "dxf_y": c["y"], "dxf_r": c["r"],
+                               "members": []}
+        # '수정 예시'가 뷰마다 4-Ø6 처럼 묶고, 숨은선 원은 피해 가는 데 쓴다
+        g["members"].append([c["x"], c["y"], c["hidden"]])
     undimensioned = sorted(groups.values(), key=lambda c: -c["diameter_mm"])
 
     props = _props_from_titles(titles)
@@ -1454,6 +1497,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         views = _cluster_views(msp, K)
     _mark_front_view(msp, views, K)
     layout = analyze_layout(views)
+    for g in undimensioned:
+        _settle_on_view(g, views, K)
 
     fields = _title_fields(plain_texts, K)
     # 도면틀도 표제란도 없으면 그려진 것의 범위가 곧 도면 크기라고 볼 수 없다.
@@ -1481,6 +1526,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "text_sizes": _text_sizes(doc, msp, K),
              "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned, "hole_circles": hole_circles,
+             "outline_circles": outline_circles,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,
              "counts": {"circles": len(circles), "title_blocks": len(titles),
                         "SurfaceTextureSymbols": len(surfaces),
@@ -1763,6 +1809,12 @@ def drawable_space(doc):
 
 
 def render_svg(dxf_path, markers=()):
+    """Preview SVG with a numbered badge on each marker.
+
+    Returns (svg, tf, placed). tf maps model-space DXF coordinates to the SVG; it is None
+    when a paper-space layout was drawn instead, because model coordinates do not land
+    there. Each marker that got a badge gets m["badge"] = [x, y, radius] in DXF units so
+    the fix preview can keep clear of it."""
     doc = readfile(dxf_path)
     space, is_model = drawable_space(doc)
     if ERR_LAYER not in doc.layers:
@@ -1781,9 +1833,10 @@ def render_svg(dxf_path, markers=()):
                 bb0, span, [(m["dxf_x"], m["dxf_y"]) for _, m in usable], rings)
             for (i, m), ring, (bx, by) in zip(usable, rings, spots):
                 _arrow(space, m["dxf_x"], m["dxf_y"], ring, span, str(i), bx, by)
+                m["badge"] = [bx, by, span * BADGE_R]
                 placed += 1
     svg, tf = _finish(doc, space)
-    return svg, tf, placed
+    return svg, tf if is_model else None, placed
 
 
 BADGE_ANGLES = (45, 0, 90, -45, 135, -90, 180, 20, 70, 110, 160, 200, 250, 290, 340)

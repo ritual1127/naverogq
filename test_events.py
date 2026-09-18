@@ -52,7 +52,39 @@ def test_ai_answers_are_fetched_after_the_result():
         if got["ready"]:
             break
         time.sleep(0.05)
-    assert got == {"ready": True, "findings": fake["findings"], "verdict_i18n": {"en": "v"}}
+    assert got == {"ready": True, "full": False, "more": False,
+                   "findings": fake["findings"], "verdict_i18n": {"en": "v"}}
+
+
+def test_late_ai_grade_is_sent_after_the_result():
+    """AI 채점이 상한 안에 안 끝나면 결과를 먼저 보내고, 채점이 오면 다시 채점해 올려 둔다."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    import main
+
+    facts = {"kind": "dwg", "sheets": [{"name": "Model", "counts": {}, "dims": [],
+                                        "undimensioned": [], "views": []}]}
+    projection = {"findings": [{"code": "AI_PROJECTION", "severity": "warn", "title": "t",
+                                "detail": "d", "fix": "f", "item": "PROJECTION_LAYOUT",
+                                "deduct": 4, "where": {}, "ai_index": 0}],
+                  "verdict": "v", "score": 26, "model": "m"}
+    # 답변·번역까지 채운 판. 실제로는 ai_review.judge 가 넣어 주는 함수다.
+    projection["later"] = lambda: {**projection, "verdict_i18n": {"en": "v"}}
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        main._start_late_ai("job-late", facts, None,
+                            pool.submit(lambda: (time.sleep(0.2), projection)[1]))
+        for _ in range(60):
+            got = client.get("/api/ai-extra/job-late").json()
+            if got["ready"] and not got["more"]:
+                break
+            time.sleep(0.05)
+    assert got["ready"] and got["full"] and not got["more"], got
+    assert got["scorecard"]["ai_verdict"] == "v"
+    assert [f["code"] for f in got["findings"]].count("AI_PROJECTION") == 1
+    # 30점짜리 투상도 항목이 '사람 확인'에서 AI 채점으로 바뀐다
+    item = next(i for i in got["scorecard"]["items"] if i["code"] == "PROJECTION_LAYOUT")
+    assert item["mode"] == "ai" and item["score"] == 26
 
 
 def test_sample_results_are_reused(monkeypatch):

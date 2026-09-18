@@ -227,11 +227,11 @@ def test_marker_index_targets_the_actual_dimension_finding():
 
     facts = {"dxf": path, "sheets": [
         {"name": "Model", "dims": [], "undimensioned": [circle]}]}
-    _, _, index, _, _ = main._render(facts)
+    index = main._render(facts)[2]
     assert index[0]["finding_code"] == "EX_NO_DIMS"
 
     facts["sheets"][0]["dims"] = [{"value_mm": 10.0}]
-    _, _, index, _, _ = main._render(facts)
+    index = main._render(facts)[2]
     assert index[0]["finding_code"] == "EX_DIM_MISSING"
 
 
@@ -1287,6 +1287,76 @@ def test_preview_coordinates_match_the_drawing_at_any_unit():
         assert abs(top - (tf["view_h"] - bottom)) < tf["view_h"] * 0.01, size
 
 
+def _fix_example(build, centers=False):
+    """도면을 한 장 지어 '수정 예시'가 무엇을 어디에 그릴지 계산해 돌려준다."""
+    import ezdxf
+
+    import dwg
+    import fixdraw
+
+    doc = ezdxf.new("R2013", setup=True)
+    doc.header["$INSUNITS"] = 4
+    msp = doc.modelspace()
+    msp.add_lwpolyline([(0, 0), (594, 0), (594, 420), (0, 420)], close=True)   # 윤곽선
+    build(doc, msp)
+    path = os.path.join(tempfile.mkdtemp(), "fix.dxf")
+    doc.saveas(path)
+    facts = dwg.analyze(path)
+    sheet = facts["sheets"][0]
+    markers = [c for c in sheet["undimensioned"] if c.get("dxf_x") is not None]
+    svg, tf, _ = dwg.render_svg(path, markers)
+    k = facts["unit_mm_per_drawing_unit"]
+    return sheet, fixdraw.plan(sheet, k, svg, tf, centers=centers), fixdraw._Geometry(tf, k)
+
+
+def test_fix_callouts_point_at_their_own_circle_and_keep_clear():
+    """동심원 다섯 개에 지름 치수를 넣어도 서로, 번호 표시와 겹치지 않는다.
+
+    전에는 지시선이 무조건 왼쪽 위 45°로 같은 길이라 한 점에 다섯 개가 겹쳐 쌓였다."""
+    import math
+
+    import fixdraw
+
+    def build(doc, msp):
+        for r in (30, 25, 22, 21, 19):
+            msp.add_circle((200, 220), r)
+
+    sheet, plan, geo = _fix_example(build)
+    cs = plan["_callouts"]
+    assert plan["dim_count"] == 5 and plan["skipped"] == 0
+    for c in cs:
+        # 화살표 끝은 그 치수가 가리키는 원 둘레에 닿는다
+        reach = math.hypot(c["tip"][0] - c["center"][0], c["tip"][1] - c["center"][1])
+        assert abs(reach - c["radius"]) < 1.0, (c["text"], reach, c["radius"])
+    for i, a in enumerate(cs):
+        for b in cs[i + 1:]:
+            assert not fixdraw._boxes_overlap(a["box"], b["box"]), (a["text"], b["text"])
+            for leg in a["legs"]:
+                assert not fixdraw._segment_hits_box(*leg, b["box"]), (a["text"], b["text"])
+            for leg in b["legs"]:
+                assert not fixdraw._segment_hits_box(*leg, a["box"]), (b["text"], a["text"])
+    for g in sheet["undimensioned"]:
+        spot, radius = geo.point(*g["badge"][:2]), geo.length(g["badge"][2])
+        for c in cs:
+            assert not fixdraw._box_near_point(c["box"], spot, radius), c["text"]
+            for leg in c["legs"]:
+                assert fixdraw._point_segment(spot, *leg) >= radius, c["text"]
+
+
+def test_fix_callout_counts_same_holes_and_leaves_hidden_ones_alone():
+    """같은 뷰의 같은 지름 구멍은 `4-Ø6` 하나로 묶고, 숨은선 원에는 치수를 넣지 않는다."""
+    def build(doc, msp):
+        doc.layers.add("은선", linetype="HIDDEN")
+        msp.add_lwpolyline([(100, 150), (260, 150), (260, 290), (100, 290)], close=True)
+        for x, y in ((130, 180), (230, 180), (130, 260), (230, 260)):
+            msp.add_circle((x, y), 3)
+        msp.add_circle((180, 220), 7, dxfattribs={"layer": "은선"})
+
+    _, plan, _ = _fix_example(build)
+    assert [c["text"] for c in plan["_callouts"]] == ["4-Ø6"]
+    assert plan["hidden"] == ["14"] and plan["grouped"] is True
+
+
 def test_center_mark_example_uses_every_hole_once():
     """'수정 예시'의 중심 마크는 중심선이 없는 도면에서만, 원마다 한 번씩 그린다.
 
@@ -1295,16 +1365,34 @@ def test_center_mark_example_uses_every_hole_once():
     import main
 
     here = os.path.dirname(os.path.abspath(__file__))
-    facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "000_no_center.dxf"), use_ai=False)
-    centers = main._fix_data(facts, findings)["centers"]
-    assert "EX_NO_CENTERLINE" in {f["code"] for f in findings}
-    assert len(centers) == 7
-    for i, (x, y, r) in enumerate(centers):
-        assert r > 0
-        assert all(abs(x - x2) > 1 or abs(y - y2) > 1 for x2, y2, _ in centers[i + 1:])
+    facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "000_no_center.dxf"),
+                                       use_ai=False, alongside=main._render)
+    assert "EX_NO_CENTERLINE" in codes(findings)
+    fix = main._fix_layer(facts["alongside"][5], findings)
+    assert fix["centers"] == 7 and fix["dims"] == 0
+    marks = facts["alongside"][5]["_marks"]
+    for i, m in enumerate(marks):
+        assert all(abs(m["c"][0] - o["c"][0]) > 1 or abs(m["c"][1] - o["c"][1]) > 1
+                   for o in marks[i + 1:])
 
-    facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "005_undimensioned.dxf"), use_ai=False)
-    assert main._fix_data(facts, findings)["centers"] == [], "중심선이 있는 도면에는 안 그린다"
+    facts, findings, _ = check.analyze(os.path.join(here, "합성도면", "005_undimensioned.dxf"),
+                                       use_ai=False, alongside=main._render)
+    assert "EX_NO_CENTERLINE" not in codes(findings)
+    assert main._fix_layer(facts["alongside"][5], findings)["centers"] == 0,         "중심선이 있는 도면에는 안 그린다"
+
+
+def test_center_marks_stop_between_neighbouring_holes():
+    """이웃한 원의 중심선이 같은 줄에서 겹치면 두 중심 사이 가운데서 끊는다."""
+    def build(doc, msp):
+        msp.add_circle((150, 220), 10)
+        msp.add_circle((172, 220), 10)      # 바깥선 사이가 2mm — 중심선 팔(3mm)이 겹친다
+
+    _, plan, geo = _fix_example(build, centers=True)
+    left, right = sorted(plan["_marks"], key=lambda m: m["c"][0])
+    middle = geo.point(161, 220)[0]
+    assert abs(left["right"] - middle) < 1.0 and abs(right["left"] - middle) < 1.0
+    # 반대쪽 팔은 원 밖으로 3mm 나간 그대로다
+    assert abs(left["left"] - (left["c"][0] - geo.length(10) - geo.mm(3))) < 1.0
 
 
 def test_ai_cache_hit_does_not_render_the_drawing(monkeypatch):

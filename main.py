@@ -217,12 +217,15 @@ SAMPLE_KEEP = 16
 def _run_sample(job, path, name, enabled):
     import ai_review
 
+    started = time.monotonic()
     key = (name, os.path.getmtime(path), None if enabled is None else tuple(sorted(enabled)))
     hit = SAMPLE_RESULTS.get(key)
     if hit is not None:
-        return JSONResponse({**hit, "job": job})
+        return JSONResponse({**hit, "job": job},
+                            headers=_timing({}, time.monotonic() - started))
     os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
     payload = _result(job, path, name, enabled)
+    headers = _timing(payload, time.monotonic() - started)
     # AI 채점이 실패했거나 답변·번역이 아직이면 저장하지 않는다. 반쪽 결과가 굳는다.
     ai_done = (payload["scorecard"] or {}).get("ai_model") or not ai_review.providers() \
         or (enabled is not None and "AI_PROJECTION" not in enabled)
@@ -230,7 +233,7 @@ def _run_sample(job, path, name, enabled):
         if len(SAMPLE_RESULTS) >= SAMPLE_KEEP:
             SAMPLE_RESULTS.pop(next(iter(SAMPLE_RESULTS)))
         SAMPLE_RESULTS[key] = payload
-    return JSONResponse(payload)
+    return JSONResponse(payload, headers=headers)
 
 
 @app.post("/api/analyze-path")
@@ -348,23 +351,19 @@ def _unzip(zpath, workdir):
     return found[0], os.path.basename(found[0])
 
 
-EXTRAS = {}                 # job -> [started, result or None]
+EXTRAS = {}                 # job -> [started, 화면에 보낼 몫 or None]
 EXTRAS_LOCK = threading.Lock()
 
 
-def _start_extras(job, later):
-    """AI 질문 답변·번역을 결과 응답 뒤에 만든다. 점수와 지적은 이미 나가 있고,
-    기다리면 호출 하나(실측 13초)만큼 결과가 늦어진다.
+def _background(job, work):
+    """결과 응답 뒤에 이어지는 일. 화면은 /api/ai-extra/{job} 으로 받아 간다.
     ponytail: 서버 메모리에만 두므로 프로세스가 하나일 때만 맞다. 늘리면 캐시 파일로 옮긴다."""
     def run():
         try:
-            out = later()
+            work(lambda body: _put_extra(job, body))
         except Exception:                                     # noqa: BLE001
             traceback.print_exc()
-            out = {}                 # 화면이 기다리기를 멈추게 빈 결과라도 남긴다
-        with EXTRAS_LOCK:
-            if job in EXTRAS:
-                EXTRAS[job][1] = out
+            _put_extra(job, {"full": False, "more": False, "findings": []})
 
     with EXTRAS_LOCK:
         cutoff = time.time() - JOB_TTL_SEC
@@ -374,42 +373,100 @@ def _start_extras(job, later):
     threading.Thread(target=run, daemon=True).start()
 
 
+def _put_extra(job, body):
+    with EXTRAS_LOCK:
+        if job in EXTRAS:
+            EXTRAS[job][1] = body
+
+
+def _start_extras(job, later):
+    """AI 질문 답변·번역을 결과 응답 뒤에 만든다. 점수와 지적은 이미 나가 있고,
+    기다리면 호출 하나(실측 13초)만큼 결과가 늦어진다."""
+    def work(put):
+        put(_extras_body(later()))
+
+    _background(job, work)
+
+
+def _extras_body(out):
+    return {"full": False, "more": False,
+            "findings": [{"ai_index": f.get("ai_index"), "i18n": f.get("i18n") or {},
+                          "followups": f.get("followups") or {}}
+                         for f in (out or {}).get("findings") or []],
+            "verdict_i18n": (out or {}).get("verdict_i18n") or {}}
+
+
+def _start_late_ai(job, facts, enabled, pending):
+    """AI 채점이 상한 안에 안 끝났을 때. 결과는 이미 나갔고, 채점이 오면 그 점수까지
+    넣어 다시 채점한 판을 올려 둔다. 화면이 받아 점수·지적을 바꿔 그린다."""
+    def work(put):
+        projection = pending.result()
+        later = (projection or {}).pop("later", None)
+        put(_regraded(facts, enabled, projection, more=bool(later)))
+        if later:
+            put(_regraded(facts, enabled, later(), more=False))
+
+    _background(job, work)
+
+
+def _regraded(facts, enabled, projection, more):
+    import exam
+
+    findings, scorecard = exam.grade(facts, enabled, projection)
+    facts["scorecard"] = scorecard
+    return {"full": True, "more": more, "scorecard": scorecard,
+            "summary": scorecard["summary"], "findings": findings,
+            "verdict_i18n": (projection or {}).get("verdict_i18n") or {}}
+
+
 @app.get("/api/ai-extra/{job}")
 def ai_extra(job: str):
     with EXTRAS_LOCK:
         item = EXTRAS.get(job)
-        out = item[1] if item else None
+        body = item[1] if item else None
     if item is None:
         raise HTTPException(404, "그런 검사가 없습니다.")
-    if out is None:
+    if body is None:
         return {"ready": False}
-    return {"ready": True,
-            "findings": [{"ai_index": f.get("ai_index"), "i18n": f.get("i18n") or {},
-                          "followups": f.get("followups") or {}}
-                         for f in out.get("findings") or []],
-            "verdict_i18n": out.get("verdict_i18n") or {}}
+    return {"ready": True, **body}
 
 
 def _run(job, path, name, enabled=None):
-    return JSONResponse(_result(job, path, name, enabled))
+    started = time.monotonic()
+    payload = _result(job, path, name, enabled)
+    return JSONResponse(payload, headers=_timing(payload, time.monotonic() - started))
+
+
+def _timing(payload, total):
+    """어디서 시간이 갔는지 브라우저 개발자도구와 curl 로 볼 수 있게 남긴다."""
+    spent = payload.pop("timing", None) or {}
+    parts = [f"{k};dur={v * 1000:.0f}" for k, v in spent.items()]
+    return {"Server-Timing": ", ".join([*parts, f"total;dur={total * 1000:.0f}"])}
+
+
+# 검사 한 번을 이 안에 끝낸다. AI 채점이 늦으면 기다리지 않고 나머지 결과를 먼저 보내고,
+# 채점이 오면 화면이 /api/ai-extra 로 받아 채운다.
+AI_WAIT_SEC = float(os.environ.get("CADLENS_AI_WAIT", "8"))
 
 
 def _result(job, path, name, enabled=None):
     _prune_uploads()
     try:
         facts, findings, summary = check.analyze(path, enabled=enabled, alongside=_render,
-                                                 defer_extras=True)
+                                                 defer_extras=True, ai_wait=AI_WAIT_SEC)
     except Exception as e:
         traceback.print_exc()
         # Traceback already went to the log; the client only needs the summary.
         raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}") from None
 
-    svg, marked, marker_index, svg_note, svg_tf = facts["alongside"]
-    later = facts.get("ai_later")
-    if later:
+    svg, marked, marker_index, svg_note, svg_tf, fix = facts["alongside"]
+    later, pending = facts.get("ai_later"), facts.get("ai_late")
+    if pending is not None:
+        _start_late_ai(job, facts, enabled, pending)
+    elif later:
         _start_extras(job, later)
     payload = {
-        "ai_extra": bool(later),
+        "ai_extra": bool(later or pending), "ai_pending": pending is not None,
         "job": job, "file": name, "kind": facts.get("kind"),
         "props": facts.get("props", {}),
         "standard": facts.get("standard"),
@@ -421,27 +478,28 @@ def _result(job, path, name, enabled=None):
         "svg": svg, "markers_placed": marked, "marker_index": marker_index,
         "svg_tf": svg_tf,
         "svg_note": svg_note,
-        "fix": _fix_data(facts, findings),
+        "fix": _fix_layer(fix, findings),
+        "timing": facts.get("timing") or {},
     }
     return payload
 
 
-def _fix_data(facts, findings):
-    """화면이 '수정 예시'(구멍 지름 치수 · 중심 마크)를 도면 위에 바로 그리는 데 쓰는 값.
+DIM_CODES = ("EX_DIM_MISSING", "EX_NO_DIMS")
 
-    서버에서 도면을 다시 그리면 몇 초가 걸려서, 좌표만 보내고 화면이 미리보기 위에 얹는다.
-    치수 없는 구멍은 marker_index 에 이미 있다. 중심 마크는 중심선이 하나도 없을 때만 보낸다."""
-    sheet = (facts.get("sheets") or [{}])[0]
+
+def _fix_layer(fix, findings):
+    """'수정 예시' 로 화면에 얹을 것. 지적이 안 뜬 쪽(검사를 끈 경우)은 뺀다."""
+    import fixdraw
+
     codes = {f["code"] for f in findings}
-    centers = (sheet.get("hole_circles") or []) if "EX_NO_CENTERLINE" in codes else []
-    return {"mm_per_unit": facts.get("unit_mm_per_drawing_unit") or 1.0,
-            "centers": [[c["x"], c["y"], c["r"]] for c in centers]}
+    return fixdraw.layer(fix, dims=any(c in codes for c in DIM_CODES),
+                         centers="EX_NO_CENTERLINE" in codes)
 
 
 def _render(facts):
     dxf = facts.get("dxf")
     if not dxf or not os.path.exists(dxf):
-        return None, False, [], "이 형식은 2D 도면 미리보기를 만들지 않습니다.", None
+        return None, False, [], "이 형식은 2D 도면 미리보기를 만들지 않습니다.", None, None
     import dwg
     markers, index = [], []
     for sh in facts.get("sheets", []):
@@ -458,11 +516,29 @@ def _render(facts):
                           "dxf_r": c.get("dxf_r")})
     try:
         svg, tf, placed = dwg.render_svg(dxf, markers)
-        return svg, bool(placed), index[:placed], None, tf
     except Exception as e:
         traceback.print_exc()
         print(f"[svg] 렌더 실패: {type(e).__name__}: {e}", flush=True)
-        return None, False, [], f"도면 미리보기를 만들지 못했습니다 — {type(e).__name__}: {e}", None
+        return None, False, [], f"도면 미리보기를 만들지 못했습니다 — {type(e).__name__}: {e}", None, None
+    return svg, bool(placed), index[:placed], None, tf, _fix_plan(facts, svg, tf)
+
+
+def _fix_plan(facts, svg, tf):
+    """'수정 예시' 로 그릴 것을 미리 계산해 둔다. AI 채점을 기다리는 동안 같이 한다.
+
+    지적이 뜨는지(검사를 껐는지)는 채점이 끝나야 알 수 있어서, 치수와 중심선을 따로
+    담아 두고 `_fix_layer` 가 뜬 지적만 골라 얹는다."""
+    import exam
+    import fixdraw
+
+    sheet = (facts.get("sheets") or [{}])[0]
+    try:
+        return fixdraw.plan(sheet, facts.get("unit_mm_per_drawing_unit"), svg, tf,
+                            centers=exam.lacks_center_lines(sheet))
+    except Exception as e:                                    # noqa: BLE001
+        traceback.print_exc()
+        print(f"[fix] 수정 예시 계산 실패: {type(e).__name__}: {e}", flush=True)
+        return None
 
 
 def _stats(facts):

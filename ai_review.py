@@ -6,7 +6,12 @@ import os
 import re
 import time
 
-GEMINI_MODEL = "gemini-3.6-flash"
+# 실제 수험생 도면 10장으로 잰 값(2026-09-18, docs/ai_usage.md "모델 선택 근거 — 실측").
+# gemini-3.6-flash 는 20번 중 18번이 503(사용량 폭주)·40초 시간초과·429(무료 한도)로
+# 실패했고 성공한 호출도 7~8초였다. gemini-3.1-flash-lite 는 중앙값 3.2초·최대 5.9초에,
+# 판정도 가장 자세한 gemini-3.5-flash(중앙값 14.3초)와 평균 2.7점 차이였다. 더 빠른
+# gemini-3.5-flash-lite(2.1초)는 20번 모두 감점 0이라 채점기로 쓸 수 없었다.
+GEMINI_MODEL = "gemini-3.1-flash-lite"
 CLOUDFLARE_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
 GROQ_MODEL = "qwen/qwen3.6-27b"
 MISTRAL_MODEL = "mistral-small-latest"
@@ -630,9 +635,18 @@ def _cache_put(path, data):
         pass
 
 
-def judge(facts, timeout=120.0, defer=False):
+ASK_SEC = 20.0            # 채점 한 번을 기다리는 최대 시간
+EXTRA_SEC = 40.0          # 답변·번역은 결과가 나간 뒤 뒤에서 만드니 더 기다려도 된다
+BUDGET_SEC = 45.0         # 채점기를 차례로 시도하다가 이만큼 넘으면 그만둔다
+
+
+def judge(facts, timeout=ASK_SEC, defer=False):
     """투상도 30점을 채점한다. 쓸 수 있는 채점기를 우선순위대로 실제로 다
     시도한다 — 앞이 503·429로 막혀도 뒤가 살아 있으면 채점이 이어진다.
+
+    한 곳에 매달리지 않는다. 채점기 하나를 `timeout` 초까지만 기다리고, 다 합쳐
+    `BUDGET_SEC` 를 넘으면 남은 곳은 건너뛴다. 예전에는 한 번에 120초까지 기다려
+    Gemini 가 503 을 늦게 내는 날이면 검사 전체가 그만큼 멈춰 있었다.
 
     defer=True 면 질문 답변·번역을 기다리지 않는다. 점수와 지적은 채점 호출
     하나로 다 나오고, 답변·번역은 그 뒤 호출 하나가 더 걸린다(실측 5초 + 13초).
@@ -674,11 +688,16 @@ def judge(facts, timeout=120.0, defer=False):
             png = render_png(dxf)
         except Exception:
             return None
+    until = time.monotonic() + BUDGET_SEC
     for name in chain:
         model = MODEL_OF[name]
         ask = asks[name]
+        left = until - time.monotonic()
+        if left <= 1.0:
+            print(f"[ai] {BUDGET_SEC:.0f}초를 넘겨 {name} 은 건너뛴다", flush=True)
+            break
         try:
-            text = ask(png, prompt, timeout)
+            text = ask(png, prompt, min(timeout, left))
         except Exception as e:
             print(f"[ai] {name} {type(e).__name__}: {str(e)[:300]}", flush=True)
             continue
@@ -725,7 +744,7 @@ def _with_extras(data, ask, timeout, cached, model, defer):
         return _to_findings(data, model)
 
     def extras():
-        if _enrich(data, ask, timeout):
+        if _enrich(data, ask, max(timeout, EXTRA_SEC)):
             _cache_put(cached, data)
         return _to_findings(data, model)
 

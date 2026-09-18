@@ -147,17 +147,24 @@ function render(raw,relang){
   if(raw.ai_extra&&!relang)waitExtras(raw.job);
 }
 
-// Scores and findings arrive first; the AI answers and translations follow a few seconds later.
+// Scores and findings arrive first. What follows is either the AI grade itself (when it ran
+// past the time budget and the result went out without it) or the AI answers and translations.
 function waitExtras(job){
   let tries=0;
   const poll=()=>{if(!RAW||RAW.job!==job)return;
     fetch(`/api/ai-extra/${job}`).then(r=>r.ok?r.json():{ready:true,findings:[]}).catch(()=>null).then(x=>{
       if(!RAW||RAW.job!==job)return;
-      if(!x||!x.ready){if(++tries<120)setTimeout(poll,1500);else{RAW.ai_extra=false;render(RAW,true)}return}
-      const byIndex=new Map((x.findings||[]).map(e=>[e.ai_index,e]));
-      RAW.findings.forEach(f=>{const e=f.code==='AI_PROJECTION'&&byIndex.get(f.ai_index);if(e){f.i18n=e.i18n;f.followups=e.followups}});
+      if(!x||!x.ready){if(++tries<120)setTimeout(poll,1500);else{RAW.ai_extra=RAW.ai_pending=false;render(RAW,true)}return}
+      if(x.full){  // the late AI grade: score, rubric and findings all change
+        RAW.scorecard=x.scorecard;RAW.summary=x.summary;RAW.findings=x.findings;RAW.ai_pending=false;
+        CMP.delete(job);   // compare against the previous run again, now that the score is whole
+      }else{
+        const byIndex=new Map((x.findings||[]).map(e=>[e.ai_index,e]));
+        RAW.findings.forEach(f=>{const e=f.code==='AI_PROJECTION'&&byIndex.get(f.ai_index);if(e){f.i18n=e.i18n;f.followups=e.followups}});
+      }
       if(RAW.scorecard&&x.verdict_i18n)RAW.scorecard.ai_verdict_i18n=x.verdict_i18n;
-      RAW.ai_extra=false;render(RAW,true);
+      RAW.ai_extra=!!x.more;render(RAW,true);
+      if(x.more&&++tries<120)setTimeout(poll,1500);
     })};
   setTimeout(poll,1500);
 }
@@ -180,7 +187,9 @@ function drawScore(sc,sum){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=$('#score .val');if(v)v.style.strokeDashoffset=v.dataset.off}));
 }
 function drawItems(sc){
-  $('#items').innerHTML=(sc.items||[]).map(it=>{const rev=it.mode==='review',ai=it.mode==='ai';const val=rev?`${t('review')} / ${it.max}`:`${it.score} / ${it.max}`;const w=rev||!it.max?0:(it.score/it.max)*100;
+  $('#items').innerHTML=(sc.items||[]).map(it=>{const rev=it.mode==='review',ai=it.mode==='ai';
+    const waiting=rev&&RAW&&RAW.ai_pending&&it.code==='PROJECTION_LAYOUT';   // AI 채점이 상한을 넘겨 뒤따라온다
+    const val=rev?(waiting?t('aiWait'):`${t('review')} / ${it.max}`):`${it.score} / ${it.max}`;const w=rev||!it.max?0:(it.score/it.max)*100;
     return `<div class="item${ai?' ai':''}"><div class="item-top"><span>${esc((CHECK_LABELS[lang]||{})[it.code]||it.label)}${ai?` <span class="tag ai">${ico('spark')}AI</span>`:''}</span><span class="sc">${esc(val)}</span></div><div class="bar"><i style="width:${w}%"></i></div></div>`}).join('');
   $('#verdict').innerHTML=sc.ai_verdict?`<div class="ai-verdict"><b>${ico('spark')}${esc(t('aiTotal'))}</b>${esc(sc.ai_verdict)}</div>`:'';
 }
@@ -250,37 +259,22 @@ $('#zin').onclick=()=>{pan.classList.remove('dragging');setZoom(zoom*1.4)};
 $('#zout').onclick=()=>{pan.classList.remove('dragging');setZoom(zoom/1.4)};
 $('#zfit').onclick=()=>{pan.classList.remove('dragging');fit()};
 
-// Fix preview: hole diameter callouts and center marks drawn straight onto the preview, in green.
-// Positions come from the drawing's own coordinates (svg_tf maps DXF to SVG units); nothing is generated,
-// and nothing is sent to the server, so it shows at once.
+// Fix preview: hole diameter callouts and center marks drawn onto the preview, in green.
+// The server works out where each one goes -- it knows what the drawing already has where --
+// and sends the finished SVG group with the result, so pressing the button shows it at once.
 let fixOn=false;
-const DIM_CODES=['EX_DIM_MISSING','EX_NO_DIMS'],CANT_CODES=['DQ_NO_SURFACE_SYMBOL','DQ_NO_GEOMETRIC_TOL','DQ_NO_FIT'];
-function fixCounts(d){if(!d||!d.svg_tf)return null;
-  const holes=d.markers_placed&&(d.findings||[]).some(f=>DIM_CODES.includes(f.code))?(d.marker_index||[]):[];
-  const centers=(d.fix&&d.fix.centers)||[];
-  return holes.length||centers.length?{holes,centers}:null}
-function fixLayer(d){const c=fixCounts(d);if(!c)return '';
-  const tf=d.svg_tf,K=(d.fix&&d.fix.mm_per_unit)||1,s=tf.scale;
-  const X=x=>x*s+tf.off_x,Y=y=>tf.off_y-y*s,mm=v=>v/K*s,n=v=>+v.toFixed(3);  // mm on paper -> SVG units
-  const out=[];
-  c.centers.forEach(([x,y,r])=>{const cx=X(x),cy=Y(y),e=r*s+mm(3);
-    out.push(`<path d="M${n(cx-e)} ${n(cy)}H${n(cx+e)}M${n(cx)} ${n(cy-e)}V${n(cy+e)}" stroke-dasharray="${n(mm(8))} ${n(mm(1.5))} ${n(mm(.8))} ${n(mm(1.5))}"/>`)});
-  // Leader goes up-left: the numbered marker badge already sits up-right of the hole.
-  c.holes.forEach(h=>{const cx=X(h.dxf_x),cy=Y(h.dxf_y),r=h.dxf_r*s,u=Math.SQRT1_2;
-    const px=cx-r*u,py=cy-r*u,qx=px-mm(9)*u,qy=py-mm(9)*u,len=mm(3.5)*(String(+h.diameter_mm.toFixed(2)).length+1)*.62;
-    const bx=px-mm(2.6)*u,by=py-mm(2.6)*u,w=mm(.9)*u;
-    out.push(`<path d="M${n(px)} ${n(py)}L${n(qx)} ${n(qy)}H${n(qx-len)}"/>`,
-      `<path class="fixfill" d="M${n(px)} ${n(py)}L${n(bx+w)} ${n(by-w)}L${n(bx-w)} ${n(by+w)}Z"/>`,
-      `<text x="${n(qx-mm(.8))}" y="${n(qy-mm(1.2))}" text-anchor="end" font-size="${n(mm(3.5))}">Ø${+h.diameter_mm.toFixed(2)}</text>`)});
-  return `<g class="fixlayer" stroke-width="${n(Math.max(mm(.5),tf.view_w/1600))}">${out.join('')}</g>`}
-function drawFixNote(d){const c=fixCounts(d);if(!c)return;
-  const bits=[];if(c.holes.length)bits.push(fmt(t('fixDims'),{n:c.holes.length}));if(c.centers.length)bits.push(fmt(t('fixCenters'),{n:c.centers.length}));
-  const codes=new Set((d.findings||[]).map(f=>f.code));
+const CANT_CODES=['DQ_NO_SURFACE_SYMBOL','DQ_NO_GEOMETRIC_TOL','DQ_NO_FIT'];
+function fixCounts(d){const f=d&&d.fix;return f&&f.svg?f:null}
+function drawFixNote(d){const f=fixCounts(d);if(!f)return;
+  const bits=[];if(f.dims)bits.push(fmt(t('fixDims'),{n:f.dims}));if(f.centers)bits.push(fmt(t('fixCenters'),{n:f.centers}));
+  const codes=new Set((d.findings||[]).map(x=>x.code));
   $('#fixNote').innerHTML=`<p><b>${esc(t('fixLegend'))}</b> ${esc(bits.join(' · '))}. ${esc(t('fixCheck'))}</p>`
-    +(c.holes.some(h=>(h.count||1)>1)?`<p>${esc(t('fixSame'))}</p>`:'')
+    +(f.grouped?`<p>${esc(t('fixSame'))}</p>`:'')
+    +((f.hidden||[]).length?`<p>${esc(fmt(t('fixHidden'),{v:f.hidden.map(v=>'Ø'+v).join(', ')}))}</p>`:'')
+    +(f.skipped?`<p>${esc(fmt(t('fixSkipped'),{n:f.skipped}))}</p>`:'')
     +(CANT_CODES.some(k=>codes.has(k))?`<p class="cant">${esc(t('fixCant'))}</p>`:'')}
-function setFix(on){const svg=pan.querySelector('svg');fixOn=!!(on&&svg&&fixCounts(RES));
-  if(fixOn&&!svg.querySelector('.fixlayer'))svg.insertAdjacentHTML('beforeend',fixLayer(RES));
+function setFix(on){const svg=pan.querySelector('svg'),f=fixCounts(RES);fixOn=!!(on&&svg&&f);
+  if(fixOn&&!svg.querySelector('.fixlayer'))svg.insertAdjacentHTML('beforeend',f.svg);
   const g=svg&&svg.querySelector('.fixlayer');if(g)g.style.display=fixOn?'':'none';
   $('#fixBtn').setAttribute('aria-pressed',String(fixOn));$('#fixNote').hidden=!fixOn;if(fixOn)drawFixNote(RES)}
 $('#fixBtn').onclick=()=>setFix(!fixOn);
@@ -306,12 +300,14 @@ function codeName(code,fallback){return (CHECK_LABELS[lang]||{})[code]||fallback
 function buildDiff(prev,now){const p=Object.keys(prev.codes||{}),n=Object.keys(now.codes||{});
   return {prev,now,fixed:p.filter(c=>!n.includes(c)).map(c=>[c,prev.codes[c]]),added:n.filter(c=>!p.includes(c)).map(c=>[c,now.codes[c]]),stayed:n.filter(c=>p.includes(c)),
     dScore:(prev.percent!=null&&now.percent!=null)?Math.round(now.percent)-Math.round(prev.percent):null}}
-const CMP=new Map();
+const CMP=new Map(),COUNTED=new Set();
 function compareFor(d){if(CMP.has(d.job))return CMP.get(d.job);
   const prev=histGet(d.file),now=snapshot(d),diff=(prev&&prev.job!==d.job)?buildDiff(prev,now):null;
   CMP.set(d.job,diff);histSave(now);
   // 같은 파일을 고쳐서 다시 올린 것 = 재검사. 종류 이름만 보낸다(파일명은 안 보냄).
-  if(diff)fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'recheck'})}).catch(()=>{});
+  // 늦게 온 AI 점수로 한 번 더 비교할 때가 있어, 검사 한 번은 한 번만 센다.
+  if(diff&&!COUNTED.has(d.job)){COUNTED.add(d.job);
+    fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'recheck'})}).catch(()=>{})}
   return diff}
 function drawCompare(diff){const box=$('#cmp');
   if(!diff){box.innerHTML=`<div class="cmp-hint">${ico('refresh')}<span>${esc(t('cmpFirst'))}</span></div>`;return}

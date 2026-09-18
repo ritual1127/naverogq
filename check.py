@@ -1,4 +1,5 @@
 import os
+import time
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -32,7 +33,8 @@ Summary = dict[str, int]
 
 def analyze(path: str, enabled: Iterable[str] | None = None,
             use_ai: bool = True, alongside: Callable[[Facts], Any] | None = None,
-            defer_extras: bool = False) -> tuple[Facts, list[Finding], Summary]:
+            defer_extras: bool = False,
+            ai_wait: float | None = None) -> tuple[Facts, list[Finding], Summary]:
     """Read one drawing and return (facts, findings, summary).
 
     enabled=None turns every check on. With use_ai off the projection-layout
@@ -41,7 +43,12 @@ def analyze(path: str, enabled: Iterable[str] | None = None,
     alongside(facts) runs while the AI grader is waiting on the network; its
     return value lands in facts["alongside"]. With defer_extras the AI answers
     and translations are not awaited: facts["ai_later"] is a function that
-    makes them (see ai_review.judge)."""
+    makes them (see ai_review.judge).
+
+    ai_wait 초 안에 AI 채점이 안 끝나면 기다리지 않고 나머지 결과를 돌려준다.
+    검사 한 번이 AI 가 느린 날에 끌려가지 않게 하는 상한이다. 멈춘 뒤에도 채점은
+    뒤에서 계속 돌아가며, 그 자리가 facts["ai_late"] 에 남는다 — 부르는 쪽이
+    결과를 먼저 보여 주고 채점이 오면 채워 넣는다."""
     ext = os.path.splitext(path)[1].lower()
     if ext in INVENTOR_EXT:
         raise ValueError(inventor_help(ext))
@@ -51,15 +58,34 @@ def analyze(path: str, enabled: Iterable[str] | None = None,
     import ai_review
     import dwg
     import exam
+    wanted = enabled is None or "AI_PROJECTION" in set(enabled)
+    started = time.monotonic()
     facts = dwg.analyze(path)
     # AI 채점은 대부분 네트워크 대기다. 그동안 미리보기 같은 일을 같이 한다.
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        ai = pool.submit(ai_review.judge, facts, defer=defer_extras) if use_ai else None
+    read = time.monotonic() - started
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        ai = pool.submit(ai_review.judge, facts, defer=defer_extras) if use_ai and wanted else None
         if alongside:
             facts["alongside"] = alongside(facts)
-        projection = ai.result() if ai else None
+        drawn = time.monotonic() - started
+        projection = None
+        if ai:
+            # 도면을 읽는 데 쓴 시간도 상한 안에 든다 — 기다림이 아니라 검사 전체의 상한이다.
+            left = None if ai_wait is None else max(0.2, ai_wait - (time.monotonic() - started))
+            try:
+                projection = ai.result(timeout=left)
+            except TimeoutError:        # 3.11 부터 concurrent.futures.TimeoutError 와 같다
+                # 채점은 뒤에서 계속 간다. 결과를 먼저 보여 주고 오면 채워 넣는다.
+                facts["ai_late"] = ai
+                print(f"[ai] {ai_wait:.0f}초 안에 안 끝나 결과부터 보낸다", flush=True)
+    finally:
+        pool.shutdown(wait=False)
+    # 어디서 시간이 갔는지 남긴다. 화면·배포 서버에서 Server-Timing 으로 볼 수 있다.
+    facts["timing"] = {"read": read, "draw": drawn - read,
+                       "ai": time.monotonic() - started - drawn}
     later = (projection or {}).pop("later", None)
-    if later and (enabled is None or "AI_PROJECTION" in set(enabled)):
+    if later and wanted:
         facts["ai_later"] = later
     findings, scorecard = exam.grade(facts, enabled, projection)
     facts["scorecard"] = scorecard
