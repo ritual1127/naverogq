@@ -44,10 +44,35 @@ async def _lifespan(_app):
             _prune_uploads()
             await asyncio.sleep(PRUNE_EVERY_SEC)
     task = asyncio.create_task(loop())
+    warm = asyncio.create_task(_warm_samples())
     try:
         yield
     finally:
         task.cancel()
+        warm.cancel()
+
+
+WARMUP_AFTER_SEC = float(os.environ.get("CADLENS_WARMUP_AFTER", "20"))
+
+
+async def _warm_samples():
+    """서버가 뜬 뒤 예제 도면을 한 번씩 미리 검사해 둔다.
+
+    예제 결과는 (파일, 켠 검사)가 같으면 다시 쓰므로, 처음 한 번만 느리다. 그런데 그 한 번이
+    무료 서버(CPU 0.1)에서 25초였다 — 배포 직후 '예제로 먼저 보기'를 누른 사람이 그걸 다 맞았다.
+    들어오는 요청과 CPU 를 다투지 않게 잠깐 기다렸다가, 한 장씩 천천히 돌린다."""
+    await asyncio.sleep(WARMUP_AFTER_SEC)
+    for name in sorted(SAMPLE_NOTES):
+        path = os.path.join(SAMPLES, name)
+        if not os.path.isfile(path) or os.path.splitext(name)[1].lower() not in _openable():
+            continue
+        try:
+            started = time.monotonic()
+            await asyncio.to_thread(_run_sample, "warmup" + uuid.uuid4().hex[:6], path, name, None)
+            print(f"[warm] {name} {time.monotonic() - started:.1f}초", flush=True)
+        except Exception as e:                                # noqa: BLE001
+            print(f"[warm] {name} 실패: {type(e).__name__}: {e}", flush=True)
+        await asyncio.sleep(1)
 
 
 app = FastAPI(title="CADLens 도면 검사기", lifespan=_lifespan)
