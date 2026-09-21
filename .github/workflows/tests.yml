@@ -15,5 +15,5 @@ jobs:
           python-version: "3.13"
           cache: pip
       - run: pip install -r requirements.txt pytest
-      - run: pytest -q test_rules.py
+      - run: pytest -q test_rules.py test_events.py test_prune.py
       - run: python bench.py --check

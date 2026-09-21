@@ -295,7 +295,8 @@ def _too_many(*pairs):
         del _sent[key]
     mine = {who: (cap, [x for x in _sent.get(who, []) if now - x < FEEDBACK_WINDOW])
             for who, cap in pairs}
-    if len(_sent_all) >= FEEDBACK_GLOBAL_MAX             or any(len(seen) >= cap for cap, seen in mine.values()):
+    if (len(_sent_all) >= FEEDBACK_GLOBAL_MAX
+            or any(len(seen) >= cap for cap, seen in mine.values())):
         return True
     for who, (_, seen) in mine.items():
         _sent[who] = [*seen, now]
@@ -440,7 +441,8 @@ def admin_file(body: dict, request: Request):
     _admin_check(request, body.get("token"))
     job, name = _job_id(body.get("job")), os.path.basename(str(body.get("file") or ""))
     path = os.path.abspath(os.path.join(KEEP, job, name))
-    if not job or not name or not path.startswith(os.path.abspath(KEEP) + os.sep)             or not os.path.isfile(path):
+    if (not job or not name or not path.startswith(os.path.abspath(KEEP) + os.sep)
+            or not os.path.isfile(path)):
         raise HTTPException(404, "그 도면은 이미 지워졌습니다 (최대 30일 · 50건).")
     return FileResponse(path, filename=name, media_type="application/octet-stream",
                         headers=NO_STORE)
