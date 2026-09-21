@@ -150,30 +150,37 @@ def _bump_d1(row):
 """
 NOTES_DDL = """CREATE TABLE IF NOT EXISTS notes(
     id TEXT PRIMARY KEY, at TEXT NOT NULL, kind TEXT NOT NULL,
-    text TEXT NOT NULL, spot TEXT, contact TEXT, job TEXT, file TEXT)"""
+    text TEXT NOT NULL, spot TEXT, contact TEXT, job TEXT, file TEXT, shot TEXT)"""
 
-NOTE_INSERT = ("INSERT INTO notes(id, at, kind, text, spot, contact, job, file) "
-               "VALUES(?,?,?,?,?,?,?,?)")
-NOTE_LIST = ("SELECT id, at, kind, text, spot, contact, job, file FROM notes "
+NOTE_INSERT = ("INSERT INTO notes(id, at, kind, text, spot, contact, job, file, shot) "
+               "VALUES(?,?,?,?,?,?,?,?,?)")
+NOTE_LIST = ("SELECT id, at, kind, text, spot, contact, job, file, shot FROM notes "
              "ORDER BY at DESC LIMIT {n}")
-NOTE_COLS = ("id", "at", "kind", "text", "spot", "contact", "job", "file")
+NOTE_COLS = ("id", "at", "kind", "text", "spot", "contact", "job", "file", "shot")
 
 _notes_ready = [False]
 
 
 def _d1_notes():
-    """D1 에는 표를 만들어 둔 적이 없을 수 있다. 프로세스마다 한 번만 확인한다."""
+    """D1 에는 표를 만들어 둔 적이 없을 수 있다. 프로세스마다 한 번만 확인한다.
+    칸을 늦게 더한 적이 있어서(도면에서 고른 부분) 이미 있는 표에도 한 번 붙여 본다 —
+    이미 있으면 D1 이 거절하고, 그건 그냥 넘어가면 되는 일이다."""
     if not _notes_ready[0]:
         _d1(NOTES_DDL)
+        try:
+            _d1("ALTER TABLE notes ADD COLUMN shot TEXT")
+        except Exception:                                     # noqa: BLE001
+            pass
         _notes_ready[0] = True
 
 
-def note(kind, text, spot="", contact="", job="", file=""):
+def note(kind, text, spot="", contact="", job="", file="", shot=""):
     """한 건 남기고 그 id 를 돌려준다. 못 남기면 RuntimeError.
 
-    `spot` 은 사용자가 결과 화면에서 고른 자리다 — 몇 번 지적인지, 점수인지, 미리보기인지."""
+    `spot` 은 사용자가 결과 화면에서 고른 자리다 — 몇 번 지적인지, 점수인지, 미리보기인지.
+    `shot` 은 도면에서 끌어 고른 부분을 그림으로 저장한 파일 이름이다."""
     row = (secrets.token_hex(8), datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
-           kind, text, spot, contact, job, file)
+           kind, text, spot, contact, job, file, shot)
     if d1_conf():
         _d1_notes()
         _d1(NOTE_INSERT, row)
@@ -187,7 +194,7 @@ def note(kind, text, spot="", contact="", job="", file=""):
     return row[0]
 
 
-NOTE_PICK = "SELECT job, file FROM notes WHERE id = ?"
+NOTE_PICK = "SELECT job, file FROM notes WHERE id = ?"   # 도면과 고른 부분은 job 폴더째 지운다
 NOTE_DELETE = "DELETE FROM notes WHERE id = ?"
 
 

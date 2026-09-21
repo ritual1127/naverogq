@@ -18,6 +18,7 @@ onLang.push(()=>{
   $('#ctaBandT').textContent=t('guide')[0][0];
   drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();
   if(!$('#guide').hidden)drawGuide();
+  if(picking)$('#pickHint').textContent=t('pickHint');
   if(RAW)render(RAW,true);else setTitle();
 });
 
@@ -250,15 +251,73 @@ function apply(){pan.style.transform=`translate(${ox}px,${oy}px) scale(${zoom})`
 function showZoom(){$('#zoomv').textContent=Math.round(zoom/(fitZoom||1)*100)+'%'}
 function fit(){const svg=pan.querySelector('svg');if(!svg)return;const r=stage.getBoundingClientRect();stageSize=Math.round(r.width)+'x'+Math.round(r.height);const w=svg.viewBox.baseVal.width||svg.clientWidth||1,h=svg.viewBox.baseVal.height||svg.clientHeight||1;zoom=Math.min(r.width/w,r.height/h)*.98;ox=(r.width-w*zoom)/2;oy=(r.height-h*zoom)/2;apply();fitZoom=zoom;showZoom()}
 function setZoom(z,cx,cy){const r=stage.getBoundingClientRect();cx=cx==null?r.width/2:cx;cy=cy==null?r.height/2:cy;const next=clampZ(z);ox=cx-(cx-ox)*(next/zoom);oy=cy-(cy-oy)*(next/zoom);zoom=next;apply();showZoom()}
-function drawSvg(d,keep){const has=!!d.svg;$('#viewer').classList.toggle('hide',!has);$('#novw').classList.toggle('hide',has||!d.svg_note);
+function drawSvg(d,keep){const has=!!d.svg;$('#viewer').classList.toggle('hide',!has);$('#pickBtn').hidden=!has;$('#novw').classList.toggle('hide',has||!d.svg_note);
   if(!has){if(d.svg_note)$('#novw').innerHTML=`${ico('warn')}<span>${esc(d.svg_note)}</span>`;return}
   if(keep){if(fixOn)drawFixNote(d);return}
-  pan.innerHTML=d.svg;setFix(false);$('#fixBtn').hidden=!fixCounts(d);const svg=pan.querySelector('svg');if(svg&&svg.viewBox.baseVal.width){svg.setAttribute('width',svg.viewBox.baseVal.width);svg.setAttribute('height',svg.viewBox.baseVal.height)}requestAnimationFrame(fit)}
+  pan.innerHTML=d.svg;setFix(false);setPick(false);$('#fixBtn').hidden=!fixCounts(d);const svg=pan.querySelector('svg');if(svg&&svg.viewBox.baseVal.width){svg.setAttribute('width',svg.viewBox.baseVal.width);svg.setAttribute('height',svg.viewBox.baseVal.height)}requestAnimationFrame(fit)}
+
+// 도면에서 문의할 부분을 끌어서 고른다. 고른 네모만 그림(PNG)으로 만들어 신고에 붙인다.
+// 벡터(SVG) 를 그대로 보내지 않는 이유: 그 안에 스크립트를 숨겨 보낼 수 있어서,
+// 관리자 화면에서 열 때 도는 문이 된다. 그림은 그런 것이 못 들어간다.
+let picking=false,sel=null;
+const selbox=$('#selbox');
+function setPick(on){
+  picking=!!(on&&pan.querySelector('svg'));
+  stage.classList.toggle('picking',picking);
+  $('#pickBtn').setAttribute('aria-pressed',String(picking));
+  $('#pickHint').textContent=t('pickHint');$('#pickHint').hidden=!picking;
+  if(!picking){sel=null;selbox.hidden=true}
+}
+$('#pickBtn').onclick=()=>setPick(!picking);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&picking)setPick(false)});
+function selRect(e){
+  const r=stage.getBoundingClientRect();
+  return {x0:Math.min(sel.x,e.clientX),y0:Math.min(sel.y,e.clientY),
+          x1:Math.max(sel.x,e.clientX),y1:Math.max(sel.y,e.clientY),top:r.top,left:r.left};
+}
+function drawSel(b){
+  selbox.hidden=false;selbox.style.left=(b.x0-b.left)+'px';selbox.style.top=(b.y0-b.top)+'px';
+  selbox.style.width=(b.x1-b.x0)+'px';selbox.style.height=(b.y1-b.y0)+'px';
+}
+const PICK_MIN=24,SHOT_W=1000,SHOT_H=1400;
+function cropShot(b,done){
+  const svg=pan.querySelector('svg');
+  if(!svg||!svg.getScreenCTM)return done(null);
+  const m=svg.getScreenCTM().inverse();
+  const p1=new DOMPoint(b.x0,b.y0).matrixTransform(m),p2=new DOMPoint(b.x1,b.y1).matrixTransform(m);
+  const x=Math.min(p1.x,p2.x),y=Math.min(p1.y,p2.y),w=Math.abs(p2.x-p1.x),h=Math.abs(p2.y-p1.y);
+  if(!(w>0&&h>0))return done(null);
+  let W=Math.max(320,Math.min(SHOT_W,Math.round((b.x1-b.x0)*2))),H=Math.round(W*h/w);
+  if(H>SHOT_H){H=SHOT_H;W=Math.max(1,Math.round(H*w/h))}
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('viewBox',`${x} ${y} ${w} ${h}`);
+  clone.setAttribute('width',W);clone.setAttribute('height',H);
+  const img=new Image();
+  img.onload=()=>{
+    try{
+      const c=document.createElement('canvas');c.width=W;c.height=H;
+      c.getContext('2d').drawImage(img,0,0,W,H);
+      done(c.toDataURL('image/png'));
+    }catch(err){done(null)}
+  };
+  img.onerror=()=>done(null);
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(new XMLSerializer().serializeToString(clone));
+}
+function askAbout(b){
+  cropShot(b,png=>{setPick(false);openNote('report',RAW&&RAW.job,spotList(),t('noteSpotView'),png||'')});
+}
+
 addEventListener('resize',()=>{if($('#res').hidden||$('#viewer').classList.contains('hide'))return;const r=stage.getBoundingClientRect();if(Math.round(r.width)+'x'+Math.round(r.height)!==stageSize)fit()});
 stage.addEventListener('wheel',e=>{if(!pan.querySelector('svg'))return;e.preventDefault();const r=stage.getBoundingClientRect();pan.classList.add('dragging');setZoom(zoom*(e.deltaY<0?1.18:1/1.18),e.clientX-r.left,e.clientY-r.top)},{passive:false});
-stage.addEventListener('pointerdown',e=>{if(!pan.querySelector('svg'))return;drag={x:e.clientX,y:e.clientY,ox,oy};stage.classList.add('grabbing');pan.classList.add('dragging');stage.setPointerCapture(e.pointerId)});
-stage.addEventListener('pointermove',e=>{if(!drag)return;ox=drag.ox+(e.clientX-drag.x);oy=drag.oy+(e.clientY-drag.y);apply()});
-const endDrag=()=>{drag=null;stage.classList.remove('grabbing')};
+stage.addEventListener('pointerdown',e=>{if(!pan.querySelector('svg'))return;
+  if(picking){sel={x:e.clientX,y:e.clientY};drawSel(selRect(e));stage.setPointerCapture(e.pointerId);return}
+  drag={x:e.clientX,y:e.clientY,ox,oy};stage.classList.add('grabbing');pan.classList.add('dragging');stage.setPointerCapture(e.pointerId)});
+stage.addEventListener('pointermove',e=>{if(sel){drawSel(selRect(e));return}if(!drag)return;ox=drag.ox+(e.clientX-drag.x);oy=drag.oy+(e.clientY-drag.y);apply()});
+const endDrag=e=>{
+  if(sel){const b=selRect(e);sel=null;selbox.hidden=true;
+    if(b.x1-b.x0<PICK_MIN||b.y1-b.y0<PICK_MIN){$('#pickHint').textContent=t('pickSmall');return}
+    askAbout(b);return}
+  drag=null;stage.classList.remove('grabbing')};
 stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
 $('#zin').onclick=()=>{pan.classList.remove('dragging');setZoom(zoom*1.4)};
 $('#zout').onclick=()=>{pan.classList.remove('dragging');setZoom(zoom/1.4)};

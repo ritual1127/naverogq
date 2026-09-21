@@ -235,6 +235,8 @@ def event(body: dict, request: Request):
 
 NOTE_KINDS = {"report", "ask"}
 NOTE_MAX = 2000
+SHOT_MAX = 1200 * 1024                  # 도면에서 끌어 고른 부분 그림 (PNG) 상한
+PNG_MAGIC = bytes.fromhex("89504e470d0a1a0a")   # PNG 파일 첫 8바이트
 CONTACT_MAX = 120
 SPOT_MAX = 200
 
@@ -304,6 +306,34 @@ def _too_many(*pairs):
     return False
 
 
+def _keep_shot(job, data_url):
+    """도면에서 끌어 고른 부분. 화면이 그 부분만 PNG 로 그려 보낸다.
+
+    글자 그대로의 PNG 인지 바이트로 확인하고 파일로 적는다 — SVG 나 HTML 을 그대로
+    받아 두면 나중에 관리자 화면에서 열 때 그 안의 스크립트가 도는 문이 된다."""
+    import base64
+    import binascii
+
+    head = "data:image/png;base64,"
+    if not job or not isinstance(data_url, str) or not data_url.startswith(head):
+        return ""
+    body = data_url[len(head):]
+    if len(body) > SHOT_MAX:
+        return ""
+    try:
+        raw = base64.b64decode(body, validate=True)
+    except (binascii.Error, ValueError):
+        return ""
+    if not raw.startswith(PNG_MAGIC) or len(raw) > SHOT_MAX:
+        return ""
+    name = f"spot-{uuid.uuid4().hex[:8]}.png"
+    dest = os.path.join(KEEP, job)
+    os.makedirs(dest, exist_ok=True)
+    with open(os.path.join(dest, name), "wb") as out:
+        out.write(raw)
+    return name
+
+
 @app.post("/api/feedback")
 def feedback(body: dict, request: Request):
     """오류 신고와 문의. 연락처는 적고 싶은 사람만 적고, 도면은 켠 사람의 것만 남는다."""
@@ -321,12 +351,13 @@ def feedback(body: dict, request: Request):
         raise HTTPException(429, "잠시 뒤에 다시 보내 주세요. 짧은 시간에 너무 많이 왔습니다.")
     job = _job_id(body.get("job"))
     kept = _keep_drawing(job) if body.get("share") and job else ""
+    shot = _keep_shot(job, body.get("shot"))
     try:
-        stats.note(kind, text, spot, contact, job, kept)
+        stats.note(kind, text, spot, contact, job, kept, shot)
     except Exception as e:                                    # noqa: BLE001
         print(f"[note] 저장 실패: {type(e).__name__}: {e}", flush=True)
         raise HTTPException(503, "지금은 보낼 수 없습니다. 잠시 뒤 다시 시도해 주세요.") from None
-    return {"ok": True, "drawing": bool(kept)}
+    return {"ok": True, "drawing": bool(kept), "shot": bool(shot)}
 
 
 # 관리자 화면. 비밀번호는 환경변수(CADLENS_ADMIN_PW)로만 받는다 — 저장소가 공개라
@@ -444,8 +475,8 @@ def admin_file(body: dict, request: Request):
     if (not job or not name or not path.startswith(os.path.abspath(KEEP) + os.sep)
             or not os.path.isfile(path)):
         raise HTTPException(404, "그 도면은 이미 지워졌습니다 (최대 30일 · 50건).")
-    return FileResponse(path, filename=name, media_type="application/octet-stream",
-                        headers=NO_STORE)
+    kind = "image/png" if name.lower().endswith(".png") else "application/octet-stream"
+    return FileResponse(path, filename=name, media_type=kind, headers=NO_STORE)
 
 
 @app.post("/api/analyze-sample")

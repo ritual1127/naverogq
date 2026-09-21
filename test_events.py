@@ -217,7 +217,8 @@ def test_long_and_odd_feedback_is_cut_not_crashed(monkeypatch):
         "kind": "report", "text": "가" * 9000, "contact": "나" * 9000,
         "spot": "다" * 9000, "job": "../../evil", "share": True})
     assert ok.status_code == 200
-    assert ok.json() == {"ok": True, "drawing": False}   # 검사 번호가 아니면 도면은 안 남는다
+    # 검사 번호가 아니면 도면도 고른 부분도 안 남는다
+    assert ok.json() == {"ok": True, "drawing": False, "shot": False}
     token = client.post("/api/admin/login", json={"pw": "test-pw-1234"}).json()["token"]
     # 같은 초에 들어온 글이 여럿이라 순서로 찾지 않는다
     notes = client.post("/api/admin/notes", json={"token": token}).json()["notes"]
@@ -249,5 +250,45 @@ def test_admin_can_delete_a_note_and_its_drawing(monkeypatch):
     assert client.post("/api/admin/delete",
                        json={"token": token, "id": "../../x"}).status_code == 400
     assert client.post("/api/admin/delete", json={"id": mine["id"]}).status_code == 401
+    main._sent.clear()
+    main._sent_all.clear()
+
+
+PNG_1PX = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+           "AAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+
+
+def test_picked_region_is_kept_as_a_picture_only(monkeypatch):
+    """도면에서 끌어 고른 부분. 그림(PNG)만 받고 그 밖의 것은 안 받는다."""
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._sent.clear()
+    main._sent_all.clear()
+    main._fails.clear()
+    main._fails_all.clear()
+    job = client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"}).json()["job"]
+    ok = client.post("/api/feedback", json={
+        "kind": "report", "text": "여기가 이상합니다 봐 주세요",
+        "job": job, "shot": PNG_1PX}).json()
+    assert ok == {"ok": True, "drawing": False, "shot": True}
+
+    # 그림이 아닌 것, 검사 번호 없는 것, 너무 큰 것은 안 남는다
+    svg = "data:image/png;base64,PHN2Zz48c2NyaXB0PmFsZXJ0KDEpPC9zY3JpcHQ+PC9zdmc+"
+    for bad in ({"job": job, "shot": svg},
+                {"job": "", "shot": PNG_1PX},
+                {"job": job, "shot": "data:image/png;base64," + "A" * (main.SHOT_MAX + 4)},
+                {"job": job, "shot": "<svg onload=alert(1)>"}):
+        got = client.post("/api/feedback", json={
+            "kind": "ask", "text": "이건 그림이 아닙니다", **bad}).json()
+        assert got["shot"] is False, bad
+
+    token = client.post("/api/admin/login", json={"pw": "test-pw-1234"}).json()["token"]
+    notes = client.post("/api/admin/notes", json={"token": token}).json()["notes"]
+    mine = next(n for n in notes if n["text"] == "여기가 이상합니다 봐 주세요")
+    assert mine["shot"].startswith("spot-") and mine["shot"].endswith(".png")
+    got = client.post("/api/admin/file",
+                      json={"token": token, "job": job, "file": mine["shot"]})
+    assert got.status_code == 200
+    assert got.headers["content-type"] == "image/png"
+    assert got.content.startswith(main.PNG_MAGIC)
     main._sent.clear()
     main._sent_all.clear()
