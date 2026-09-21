@@ -4,31 +4,25 @@
 <meta charset="utf-8">
 <title>CADLens W5 제출본</title>
 <style>
-@page{size:A4;margin:11mm 10mm}
+@page{size:A4;margin:12mm 11mm}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Malgun Gothic","맑은 고딕",sans-serif;font-size:8.3pt;line-height:1.45;color:#15202b}
-h1{font-size:14.5pt;letter-spacing:-.4px}
-h2{font-size:9.4pt;margin:0 0 3px;padding-bottom:2px;border-bottom:1.6px solid #123a5c;color:#123a5c}
-h3{font-size:8.3pt;margin:5px 0 2px;color:#123a5c}
-.head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;border-bottom:2.4px solid #123a5c;padding-bottom:5px;margin-bottom:7px}
-.head .sub{font-size:7.9pt;color:#4a5a6a;text-align:right;line-height:1.5}
-.tag{display:inline-block;background:#123a5c;color:#fff;font-size:7.4pt;padding:1px 6px;border-radius:9px;margin-right:4px}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:7px 11px}
-section{break-inside:avoid;margin-bottom:6px}
-p{margin:2px 0}
-ul{margin:2px 0 0 11px}
-li{margin-bottom:1.5px}
-table{width:100%;border-collapse:collapse;margin-top:3px;font-size:7.7pt}
-th,td{border:.6px solid #c2ccd6;padding:1.8px 4px;text-align:left;vertical-align:top}
+body{font-family:"Malgun Gothic","맑은 고딕",sans-serif;font-size:8.6pt;line-height:1.5;color:#15202b}
+h1{font-size:15pt;letter-spacing:-.4px}
+h2{font-size:9.6pt;margin:0 0 4px;padding-bottom:2px;border-bottom:1.6px solid #123a5c;color:#123a5c}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2.4px solid #123a5c;padding-bottom:6px;margin-bottom:8px}
+.head .sub{flex:0 0 auto;font-size:7.7pt;color:#4a5a6a;text-align:right;line-height:1.55;white-space:nowrap}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+section{break-inside:avoid;margin-bottom:8px}
+p{margin:3px 0}
+table{width:100%;border-collapse:collapse;margin-top:4px;font-size:8pt}
+th,td{border:.6px solid #c2ccd6;padding:2.2px 5px;text-align:left;vertical-align:top}
 th{background:#eef3f8;font-weight:700;color:#123a5c}
-td.n{text-align:right;font-variant-numeric:tabular-nums}
-.quote{background:#f4f8fc;border-left:2.6px solid #123a5c;padding:4px 7px;margin:3px 0;font-size:8.6pt;font-weight:700}
+td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.quote{background:#f4f8fc;border-left:3px solid #123a5c;padding:5px 8px;margin:3px 0;font-size:8.8pt;font-weight:700;line-height:1.55}
 .mut{color:#5a6a7a}
-.ok{color:#0a7a46;font-weight:700}
 .warn{color:#b4600a;font-weight:700}
-.miss{color:#8a95a0;font-weight:700}
-.foot{margin-top:5px;border-top:1.2px solid #c2ccd6;padding-top:4px;font-size:7.4pt;color:#5a6a7a;display:flex;justify-content:space-between;gap:8px}
 b.hl{background:#fff2c2;padding:0 2px}
+.foot{margin-top:6px;border-top:1.2px solid #c2ccd6;padding-top:4px;font-size:7.5pt;color:#5a6a7a;display:flex;justify-content:space-between;gap:10px}
 </style>
 </head>
 <body>
@@ -36,11 +30,11 @@ b.hl{background:#fff2c2;padding:0 2px}
 <div class="head">
   <div>
     <h1>CADLens — W5 제출본 · 런칭과 첫 사용자</h1>
-    <div class="mut">팀 네이놈 · 전산응용기계제도기능사 실기 도면 자동 검사기 · 2026-09-15 ~ 09-21</div>
+    <div class="mut">팀 네이놈 · 전산응용기계제도기능사 실기 도면 자동 검사기 · 2026-09-15~21</div>
   </div>
   <div class="sub">
-    서비스 <b>naverogq.onrender.com</b> (회원가입·설치 없음)<br>
-    저장소 <b>github.com/ritual1127/naverogq</b> · 작성 2026-09-21
+    <b>naverogq.onrender.com</b> · 회원가입·설치 없음<br>
+    github.com/ritual1127/naverogq<br>숫자는 2026-09-21 기준
   </div>
 </div>
 
@@ -50,22 +44,12 @@ b.hl{background:#fff2c2;padding:0 2px}
 <section>
 <h2>① 한 줄 소개</h2>
 <div class="quote">전산응용기계제도기능사 실기를 준비하는 학생을 위한 도면 검사기입니다. 실기 시험처럼 그린 도면을 올리면 오작(실격)과 감점 자리를 도면 위에서 바로 볼 수 있어요.</div>
-<table>
-<tr><th style="width:58px">누가</th><td>전산응용기계제도기능사 실기를 준비하는 학생</td></tr>
-<tr><th>무엇</th><td>도면 검사기</td></tr>
-<tr><th>어떤 상황</th><td>실기 시험처럼 그린 도면을 올리면</td></tr>
-<tr><th>무엇을</th><td>오작(실격)과 감점 자리를 도면 위에서 바로 본다</td></tr>
-</table>
-<p class="mut">기술 용어(DXF 파싱·멀티모달·규칙 엔진)를 빼고, "AI로"를 앞세우지 않고, 한 문장으로 맞췄습니다. 첫 화면과 영어·일본어·중국어 화면에도 같은 문장을 넣었습니다.</p>
+<p class="mut">첫 화면과 영어·일본어·중국어 화면에 같은 문장을 넣었습니다.</p>
 </section>
 
 <section>
 <h2>② 런칭 증거</h2>
-<ul>
-<li><b>공개 주소</b> naverogq.onrender.com — 로그인도 설치도 없이 바로 도면을 올립니다.</li>
-<li><b>09-16(수) 게시</b> 친구들 단톡방 + 전산응용기계제도 네이버 카페에 링크를 올렸습니다.</li>
-<li><b>서버가 직접 센 유입</b> — 화면 아래 "사용 현황"과 <span class="mut">/api/stats</span> 에 누구나 볼 수 있게 공개합니다.</li>
-</ul>
+<p><b>09-16(수)</b> 친구들 단톡방 + 전산응용기계제도 네이버 카페에 링크를 올렸습니다. 광고·검색이 아니라 아는 사람과 같은 시험을 보는 사람에게 직접 보냈습니다. 캡처는 없고, 공개 서버가 직접 센 값이 증거입니다(화면 아래 "사용 현황"·<span class="mut">/api/stats</span> 에 공개).</p>
 <table>
 <tr><th>날짜</th><th class="n">방문자</th><th class="n">검사</th><th>메모</th></tr>
 <tr><td>09-15 (화)</td><td class="n">2</td><td class="n">0</td><td class="mut">배포만</td></tr>
@@ -73,21 +57,21 @@ b.hl{background:#fff2c2;padding:0 2px}
 <tr><td>09-17 (목)</td><td class="n">2</td><td class="n">2</td><td class="mut"></td></tr>
 <tr><td>09-18 (금)</td><td class="n">7</td><td class="n">21</td><td class="mut">대부분 팀 속도 측정</td></tr>
 <tr><td>09-19~20 (토·일)</td><td class="n">0</td><td class="n">0</td><td class="mut">유입 없음</td></tr>
-<tr><td>09-21 (월)</td><td class="n">3</td><td class="n">0</td><td class="mut">오늘 배포</td></tr>
+<tr><td>09-21 (월)</td><td class="n">17</td><td class="n">3</td><td class="mut">팀 확인 섞임</td></tr>
 </table>
 </section>
 
 <section>
 <h2>③ 사용자 기록</h2>
-<p>핵심 행동은 <b>"도면을 올려 검사 결과를 끝까지 본다"</b> 입니다. 쿠키를 쓰지 않고, IP 는 그 주에만 쓰는 값과 함께 해시한 16자만 남깁니다.</p>
+<p>핵심 행동은 <b>"도면을 올려 검사 결과를 끝까지 본다"</b> 입니다.</p>
 <table>
-<tr><th>이번 주 (09-15~21)</th><th class="n">수</th><th>누적 (08-30~09-21, 20일)</th><th class="n">수</th></tr>
-<tr><td>방문자(일별 합)</td><td class="n">34</td><td>방문</td><td class="n">231</td></tr>
-<tr><td>검사(업로드+예제)</td><td class="n">36</td><td>업로드 검사 / 예제</td><td class="n">64 / 19</td></tr>
-<tr><td>링크 올린 날 검사</td><td class="n">13</td><td>결과까지 본 것</td><td class="n">81</td></tr>
-<tr><td>재검사(누적)</td><td class="n">24</td><td><b>핵심 행동 완료율</b></td><td class="n"><b>98%</b></td></tr>
+<tr><th>이번 주 (09-15~21)</th><th class="n">수</th><th>누적 (08-30~09-21 · 20일)</th><th class="n">수</th></tr>
+<tr><td>방문자(일별 합)</td><td class="n">48</td><td>방문</td><td class="n">248</td></tr>
+<tr><td>검사(업로드+예제)</td><td class="n">39</td><td>업로드 검사 / 예제</td><td class="n">66 / 20</td></tr>
+<tr><td><b>재검사 사용자(북극성)</b></td><td class="n"><b>7명</b></td><td>결과까지 본 것</td><td class="n">84</td></tr>
+<tr><td class="mut">목표 주 20명 · 08-22 엔 0명</td><td class="n mut">1/3</td><td><b>핵심 행동 완료율</b></td><td class="n"><b>98%</b></td></tr>
 </table>
-<p class="mut"><b>정직하게 덜어낼 것</b> — 09-18 의 21건은 대부분 팀이 속도를 재려고 올린 합성 도면입니다. 09-16 의 13건은 팀이 아닙니다. 검사 횟수는 사람 수가 아니고, 표본이 작아 비율로 말하지 않습니다.</p>
+<p class="mut"><b>덜어낼 것</b> — 09-18 의 21건은 대부분 팀이 속도를 재려고 올린 합성 도면이고, 09-21 의 3건에도 팀 확인이 섞여 있습니다. <b>09-16 의 13건은 팀이 아닙니다.</b> 검사 횟수는 사람 수가 아니라 표본이 작아 비율로 말하지 않습니다.</p>
 </section>
 
 </div>
@@ -95,40 +79,35 @@ b.hl{background:#fff2c2;padding:0 2px}
 
 <section>
 <h2>④ 이탈 지점 — 첫 화면(도면을 올리기 전)</h2>
-<p>이번 주 들어온 사람 대부분이 <b>도면을 올리지 않고</b> 나갔습니다. 실제로 확인한 이유 둘과, 그 때문에 고친 것입니다.</p>
+<p>들어와서 <b>도면을 안 올리고 나가는 쪽</b>이 가장 큽니다. 이유 둘을 실제로 확인하고 <b>09-18 에 고쳐 배포</b>했습니다.</p>
 <table>
-<tr><th style="width:96px">무엇이 막았나</th><th>전</th><th>후 (09-18 배포)</th></tr>
-<tr><td>검사가 느림</td><td>공개 서버에서 <b>16.9초</b><br>AI 한 곳을 120초까지 기다림</td><td>상한 <b>8초</b> — 안 오면 결과부터 보여 주고 AI 점수는 나중에 채움</td></tr>
-<tr><td>AI 채점기</td><td>gemini-3.6-flash<br>20번 중 18번 실패</td><td>gemini-3.1-flash-lite<br>중앙값 3.2초 · 최대 5.9초</td></tr>
-<tr><td>고칠 자리가 안 읽힘</td><td>치수 지시선이 45° 고정<br>동심원에서 다섯 개가 겹침</td><td>서버가 도면을 그려 보고 선·문자를 피해 놓음 — <b>도면 139장 겹침 0건</b></td></tr>
-<tr><td>같은 지름 구멍</td><td>Ø6 하나만</td><td>4-Ø6 으로 묶어 적음 (KS B 0001)</td></tr>
+<tr><th style="width:84px">막은 것</th><th>전</th><th>후</th></tr>
+<tr><td>검사가 느림</td><td>공개 서버 <b>16.9초</b> · AI 한 곳을 120초까지 기다림</td><td>상한 <b>8초</b> — 안 오면 결과부터, AI 점수는 나중에 채움</td></tr>
+<tr><td>AI 채점기</td><td>gemini-3.6-flash · 20번 중 18번 실패</td><td>gemini-3.1-flash-lite · 중앙값 3.2초</td></tr>
+<tr><td>수정 예시가 안 읽힘</td><td>지시선 45° 고정 · 동심원에서 다섯 개 겹침</td><td>서버가 선·문자를 피해 자리 잡음 — <b>139장 겹침 0건</b></td></tr>
 </table>
-<p style="margin-top:3px">고친 뒤 공개 서버 실측: <b>새 도면 9.9초 · 다시 올린 도면 5.2초 · 예제 1.0~2.3초</b>.</p>
-<p class="mut"><b>한계</b> — 화면 단위 계측이 아직 없어 "방문 → 업로드" 단계까지만 말할 수 있습니다.</p>
+<p>고친 뒤 공개 서버 실측 <b>새 도면 9.9초 · 다시 올린 도면 5.2초 · 예제 1.0~2.3초</b>. <span class="mut">한계 — 화면 단위 계측이 없어 "방문 → 업로드"까지만 말할 수 있습니다.</span></p>
 </section>
 
 <section>
 <h2>⑤ 안 쓴 사람 3명의 이유</h2>
-<p><b class="warn">아직 못 받았습니다.</b> 서버 기록으로는 만들 수 없고 지어내지 않습니다. 대신 <b>오늘(09-21) 이유가 서비스 안으로 들어오는 길</b>을 만들어 배포했습니다.</p>
+<p><span class="warn">아직 못 받았습니다.</span> 서버 기록으로 만들 수 없어 지어내지 않고 비워 둡니다. 대신 <b>이유가 들어오는 길을 09-21 에 만들어 배포</b>했습니다 — 공개 서버에서 신고부터 삭제까지 한 바퀴 확인했습니다.</p>
 <table>
-<tr><th style="width:86px">오늘 붙인 것</th><th>무엇을 받나</th></tr>
-<tr><td>오류 신고</td><td>결과 화면의 <b>지적마다</b> 신고 단추. 어느 지적이 틀렸는지 <b>골라서</b> 보냅니다("3. 구멍 치수 누락")</td></tr>
-<tr><td>문의하기</td><td>모든 화면 아래. 연락처는 <b>적고 싶은 사람만</b></td></tr>
-<tr><td>도면 수집 동의</td><td>"이 도면도 같이 보냅니다"를 <b>직접 켠 경우에만</b> 최대 30일 보관 — 재현용</td></tr>
-<tr><td>관리자 화면</td><td>/admin 에서 받은 글을 접힌 목록으로 보고, <b>AI 수정 프롬프트 복사</b>·도면 내려받기</td></tr>
-<tr><td>보안</td><td>비밀번호는 코드에 없고 환경변수에만. 로그인하면 2시간 표, 15분 5회·1시간 20회 틀리면 잠금, 검색 차단·캐시 금지</td></tr>
+<tr><td style="width:84px"><b>오류 신고</b></td><td>결과 화면 <b>지적마다</b> 신고 단추 · 도면에서 <b>네모를 끌면 그 부분만 그림</b>으로 함께 감</td></tr>
+<tr><td><b>문의하기</b></td><td>상단 바와 화면 아래 · 연락처는 적고 싶은 사람만</td></tr>
+<tr><td><b>도면 수집</b></td><td>"같이 보냄"을 직접 켠 경우에만 최대 30일, 재현용</td></tr>
+<tr><td><b>관리자 화면</b></td><td>/admin · 받은 글 + AI 수정 프롬프트 복사 + 지우기</td></tr>
 </table>
-<p style="margin-top:3px"><b>다음 주에 채울 것</b> — 링크를 받고 안 쓴 3명에게 직접 묻고(물을 문장 준비됨), 신고로 들어온 것부터 고칩니다.</p>
+<p>다음 주에 링크 받고 <b>안 들어온</b> 3명에게 직접 묻습니다(물을 문장 준비됨).</p>
 </section>
 
 <section>
-<h2>자가 점검 · 다음 주에 측정할 것</h2>
+<h2>지난 지적에 대한 답 · 다음 주(W6)</h2>
 <table>
-<tr><td style="width:14px" class="ok">✅</td><td>팀 밖의 사람이 링크로 들어와 핵심 행동을 끝까지 했다 <span class="mut">(09-16 방문 20 · 검사 13 · 완료율 98%)</span></td></tr>
-<tr><td class="warn">🔺</td><td>어디서 멈췄는지 말할 수 있다 <span class="mut">(방문 → 업로드 단계까지만. 화면 단위는 W6)</span></td></tr>
-<tr><td class="ok">✅</td><td>사용자 반응 때문에 고친 것이 있다 <span class="mut">(검사 16.9초 · 수정 예시 겹침 → 09-18 배포)</span></td></tr>
-<tr><td class="miss">⬜</td><td>처음 듣는 사람이 한 줄 소개를 되묻지 않고 이해했다 <span class="mut">(다음 주 대면 때 3명)</span></td></tr>
-<tr><td class="ok">✅</td><td>다음 주 지표를 정했다 — <b>사람 단위 방문→업로드 전환 · 화면별 이탈 · 주간 재검사 사용자 수(북극성)</b></td></tr>
+<tr><th style="width:84px">실제 수험생 도면</th><td>서로 다른 <b>23장</b>으로 09-11 측정 — 완전 일치 23/23, 검출률·정확도 100%(63/63). 단 <b>검사 항목 6개 · 한 학생 도면</b>이라 전체 정확도로 말하지 않음</td></tr>
+<tr><th>AI 점수 편차</th><td>같은 도면 5회 폭 <b>18점 → 0~3점</b>. 잰 도면이 2장뿐이라 <b>아직 열어 둠</b>(P02)</td></tr>
+<tr><th>배포 서버 확인</th><td>폴백 전환을 09-18 실측으로 확인(1순위가 20번 중 18번 실패). 단계별 시간은 <span class="mut">Server-Timing</span> 헤더에 찍힘. 업로드 삭제 주기는 부분 해결(P15)</td></tr>
+<tr><th>W6 에 할 것</th><td>① 사람 단위 방문→업로드 전환 ② 화면별 이탈 ③ 주간 재검사 사용자 수 ④ ⑤칸 채우기 ⑤ 한 줄 소개를 처음 듣는 3명에게 검증</td></tr>
 </table>
 </section>
 
@@ -136,7 +115,7 @@ b.hl{background:#fff2c2;padding:0 2px}
 </div>
 
 <div class="foot">
-  <span>숫자는 모두 공개 서버가 직접 센 값(<b>/api/stats</b>)이고 2026-09-21 기준입니다. 받지 못한 칸은 빈칸으로 두었습니다.</span>
+  <span>숫자는 모두 공개 서버가 직접 센 값입니다(<b>/api/stats</b>, 2026-09-21). 받지 못한 칸은 비워 두었습니다.</span>
   <span>CADLens · 팀 네이놈</span>
 </div>
 
