@@ -259,6 +259,37 @@ DAILY_SQL = ("SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END
              "FROM hits WHERE day>=?1 GROUP BY day ORDER BY day")
 
 
+# 주 단위 기록 — 북극성 지표(주간 재검사 사용자)를 주마다 남긴다.
+# 방문자 값은 주가 바뀌면 달라지므로 주 안에서만 사람을 셀 수 있다. 그래서 주가 단위다.
+MONDAY = "date(day, '-' || ((CAST(strftime('%w', day) AS INTEGER) + 6) % 7) || ' days')"
+
+WEEKLY_SQL = f"""SELECT {MONDAY} AS wk,
+ COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v,
+ COUNT(DISTINCT CASE WHEN kind IN ('check','sample') THEN visitor END) c,
+ COUNT(DISTINCT CASE WHEN kind='done' THEN visitor END) f
+ FROM hits GROUP BY wk ORDER BY wk DESC LIMIT {{n}}"""
+
+WEEKLY_AGAIN_SQL = f"""SELECT wk, COUNT(*) AS r FROM (
+ SELECT {MONDAY} AS wk, visitor, SUM(n) s FROM hits WHERE kind IN ('check','sample')
+ GROUP BY wk, visitor HAVING s >= 2) GROUP BY wk"""
+
+
+def _weeks(rows, again):
+    return [{"since": r[0], "visitors": r[1] or 0, "checkers": r[2] or 0,
+             "finishers": r[3] or 0, "recheckers": again.get(r[0], 0)} for r in rows]
+
+
+def weekly(con=None, limit=6):
+    """최근 몇 주를 한 줄씩. 화면과 제출본이 같은 값을 보게 여기서 한 번만 센다."""
+    if d1_conf():
+        rows = _d1(WEEKLY_SQL.format(n=int(limit)))[0]
+        again = {r["wk"]: r["r"] for r in _d1(WEEKLY_AGAIN_SQL)[0]}
+        return _weeks([(r["wk"], r["v"], r["c"], r["f"]) for r in rows], again)
+    rows = con.execute(WEEKLY_SQL.format(n=int(limit))).fetchall()
+    again = dict(con.execute(WEEKLY_AGAIN_SQL).fetchall())
+    return _weeks(rows, again)
+
+
 def _summary_d1(today, days):
     monday = today - datetime.timedelta(days=today.weekday())
     first = (today - datetime.timedelta(days=days - 1)).isoformat()
@@ -279,6 +310,7 @@ def _summary_d1(today, days):
                   "days": nday or 0, "since": since or today.isoformat()},
         "daily": [{"day": r["day"], "visitors": r["v"] or 0, "checks": r["c"] or 0}
                   for r in daily],
+        "weeks": weekly(),
     }
 
 
@@ -355,5 +387,6 @@ def summary(today=None, days=14):
             (*CHECK_KINDS, first)).fetchall()
         out["daily"] = [{"day": d, "visitors": v or 0, "checks": c or 0}
                         for d, v, c in rows]
+        out["weeks"] = weekly(con)
     con.close()
     return out

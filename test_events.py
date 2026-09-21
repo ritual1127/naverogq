@@ -344,3 +344,14 @@ def test_conversion_is_counted_by_person_not_by_count():
     assert week["finishers"] - before.get("finishers", 0) == 1  # 결과까지 간 사람도 하나
     assert week["checks"] - before["checks"] == 3       # 횟수는 셋
     assert stats.summary()["week"]["checkers"] >= 1
+
+
+def test_weeks_are_recorded_one_row_per_week():
+    """북극성 지표를 주마다 남긴다. 주 안에서만 사람을 셀 수 있으므로 단위는 주다."""
+    weeks = client.get("/api/stats").json()["weeks"]
+    assert weeks, "주 기록이 비어 있으면 목표 달성 여부를 볼 수 없다"
+    first = weeks[0]
+    assert set(first) == {"since", "visitors", "checkers", "finishers", "recheckers"}
+    assert first["since"] <= __import__("datetime").date.today().isoformat()
+    assert first["checkers"] <= first["visitors"] or first["visitors"] == 0
+    assert [w["since"] for w in weeks] == sorted((w["since"] for w in weeks), reverse=True)
