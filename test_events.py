@@ -374,3 +374,14 @@ def test_a_flood_of_checks_is_stopped(monkeypatch):
                        headers=_proxied("198.51.100.9", real="10.0.0.9")).status_code == 200
     main._ran.clear()
     main._ran_all.clear()
+
+
+def test_link_preview_tags_and_image_exist():
+    """링크 미리보기는 깨져도 눈에 안 띈다 — 남이 공유해 봐야 안다. 여기서 잡는다."""
+    page = client.get("/").text
+    for tag in ('property="og:image"', 'property="og:title"', 'name="twitter:card"'):
+        assert tag in page, tag
+    shot = client.get("/static/og.png")
+    assert shot.status_code == 200
+    assert shot.content[:8] == main.PNG_MAGIC
+    assert len(shot.content) < 5 * 1024 * 1024        # 카카오톡·트위터가 받는 크기 안

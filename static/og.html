@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>CADLens 링크 미리보기</title>
+<!--
+  링크 미리보기(og:image) 원본입니다. 1200x630 으로 찍어 og.png 로 씁니다.
+
+      chrome --headless --screenshot=static/og.png --window-size=1200,630 static/og.html
+
+  글자를 고치면 다시 찍어야 바뀝니다. 폰트는 같은 폴더의 woff2 를 씁니다.
+-->
+<style>
+@font-face{font-family:"NSR";src:url(fonts/NanumSquareRoundR.woff2) format("woff2");font-weight:400}
+@font-face{font-family:"NSR";src:url(fonts/NanumSquareRoundB.woff2) format("woff2");font-weight:700}
+@font-face{font-family:"NSR";src:url(fonts/NanumSquareRoundEB.woff2) format("woff2");font-weight:800}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1200px;height:630px}
+body{
+  font-family:"NSR","Malgun Gothic",sans-serif;
+  background:
+    radial-gradient(900px 520px at 78% 12%,rgba(58,169,255,.20),transparent 62%),
+    radial-gradient(700px 480px at 6% 96%,rgba(46,217,160,.10),transparent 60%),
+    #0f1720;
+  color:#e9eff7;display:flex;align-items:center;overflow:hidden;position:relative;
+}
+.grid{position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:48px 48px;
+  -webkit-mask-image:radial-gradient(1000px 560px at 50% 40%,#000 55%,transparent 100%)}
+.wrap{position:relative;display:flex;align-items:center;gap:52px;padding:0 68px;width:100%}
+.left{flex:1 1 auto;min-width:0}
+.brand{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.brand img{width:52px;height:52px;border-radius:13px}
+.brand .name{font-size:31px;font-weight:800;letter-spacing:-.02em}
+.brand .sub{padding:5px 12px;border-radius:999px;background:rgba(58,169,255,.16);
+  color:#7fc8ff;font-size:15px;font-weight:800}
+h1{font-size:54px;line-height:1.24;font-weight:800;letter-spacing:-.033em;text-wrap:balance}
+h1 .hi{color:#3aa9ff}
+p.lead{margin-top:20px;font-size:23px;line-height:1.56;color:#9aa8b8;font-weight:400;max-width:20em}
+p.lead b{color:#dce4ec;font-weight:700}
+.chips{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap}
+.chip{padding:9px 16px;border-radius:999px;font-size:17px;font-weight:700;
+  background:rgba(255,255,255,.055);color:#c3cede;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+.url{margin-top:34px;display:inline-flex;align-items:center;gap:11px;font-size:21px;font-weight:800;color:#e9eff7}
+.url .dot{width:11px;height:11px;border-radius:50%;background:#2ed9a0;box-shadow:0 0 0 5px rgba(46,217,160,.17)}
+.card{flex:0 0 430px;padding:24px;border-radius:26px;background:#141b25;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 34px 70px -30px rgba(0,0,0,.8)}
+.card svg{width:100%;height:auto;display:block}
+.art-sheet{fill:#1b2331;stroke:#3a4759;stroke-width:1.5}
+.art-line{fill:none;stroke:#8593a8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.art-thin{fill:none;stroke:#55637a;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.art-center{fill:none;stroke:#55637a;stroke-width:1.2;stroke-dasharray:9 3 2 3}
+.art-dim{fill:none;stroke:#3aa9ff;stroke-width:1.5;stroke-linecap:round}
+.art-txt{fill:#7fc8ff;font:800 12px "NSR",sans-serif}
+.art-ring{fill:none;stroke:#ff6f61;stroke-width:2.6}
+.art-lead{fill:none;stroke:#ff6f61;stroke-width:1.9;stroke-linecap:round}
+.art-badge{fill:#ff6f61}
+.art-num{fill:#0f1720;font:800 12px "NSR",sans-serif;text-anchor:middle;dominant-baseline:central}
+.cap{margin-top:16px;display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:#9aa8b8}
+.cap i{width:22px;height:22px;border-radius:50%;background:#ff6f61;color:#0f1720;font-style:normal;
+  font-size:13px;font-weight:800;display:grid;place-items:center}
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<div class="wrap">
+  <div class="left">
+    <div class="brand">
+      <img src="logo.png" alt="">
+      <span class="name">CADLens</span>
+      <span class="sub">전산응용기계제도기능사</span>
+    </div>
+    <h1>도면을 올리면,<br><span class="hi">떨어질 이유</span>부터 보입니다.</h1>
+    <p class="lead">실기 시험처럼 그린 도면을 올리면 <b>오작(실격)과 감점 자리</b>를 도면 위에서 바로 볼 수 있어요.</p>
+    <div class="chips">
+      <span class="chip">회원가입 없음</span>
+      <span class="chip">도면 1시간 안에 삭제</span>
+      <span class="chip">DWG · DXF</span>
+    </div>
+    <div class="url"><span class="dot"></span>naverogq.onrender.com</div>
+  </div>
+
+  <div class="card">
+    <svg viewBox="0 0 340 210" aria-hidden="true">
+      <rect class="art-sheet" x="6" y="6" width="328" height="198" rx="14"/>
+      <rect class="art-thin" x="18" y="18" width="304" height="174" rx="4"/>
+      <path class="art-thin" d="M226 154h96M226 167h96M258 154v38"/>
+      <path class="art-dim" d="M46 46h132M46 40v12M178 40v12M252 62v84M246 62h12M246 146h12"/>
+      <text class="art-txt" x="112" y="38" text-anchor="middle">132</text>
+      <text class="art-txt" x="270" y="108" text-anchor="middle">84</text>
+      <rect class="art-line" x="46" y="62" width="132" height="84" rx="8"/>
+      <circle class="art-line" cx="84" cy="104" r="15"/>
+      <circle class="art-line" cx="146" cy="104" r="10"/>
+      <path class="art-center" d="M60 104h48M84 80v48M128 104h36M146 88v32"/>
+      <rect class="art-line" x="206" y="62" width="30" height="84" rx="4"/>
+      <path class="art-center" d="M198 104h46"/>
+      <g><circle class="art-ring" cx="84" cy="104" r="22"/><path class="art-lead" d="M69 120L44 152"/><circle class="art-badge" cx="37" cy="162" r="12"/><text class="art-num" x="37" y="162">1</text></g>
+      <g><circle class="art-ring" cx="146" cy="104" r="16"/><path class="art-lead" d="M156 117l26 42"/><circle class="art-badge" cx="188" cy="170" r="12"/><text class="art-num" x="188" y="170">2</text></g>
+    </svg>
+    <div class="cap"><i>1</i>치수가 빠진 자리를 도면 위에 번호로</div>
+  </div>
+</div>
+</body>
+</html>
