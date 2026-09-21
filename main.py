@@ -288,22 +288,48 @@ _sent = {}                  # 접속자 -> 보낸 시각들
 _sent_all = []              # 서버 전체가 보낸 시각들
 
 
-def _too_many(*pairs):
+def _too_many(bucket, window, gmax, gwindow, *pairs):
     """헤더를 지어내며 보내는 것까지 막으려고 접속자별과 서버 전체를 같이 센다.
-    접속자 값은 둘이다 — 화면이 보내는 값과 프록시가 붙인 값. 둘 중 하나만 넘어도 막는다."""
+    접속자 값은 둘이다 — 화면이 보내는 값과 프록시가 붙인 값. 둘 중 하나만 넘어도 막는다.
+    ponytail: 프로세스 메모리에 센다. 서버를 여럿 띄우면 그 수만큼 늘어난다."""
+    seen, seen_all = bucket
     now = time.time()
-    _sent_all[:] = [x for x in _sent_all if now - x < FEEDBACK_GLOBAL_WINDOW]
-    for key in [k for k, v in _sent.items() if not v or now - v[-1] > FEEDBACK_WINDOW]:
-        del _sent[key]
-    mine = {who: (cap, [x for x in _sent.get(who, []) if now - x < FEEDBACK_WINDOW])
+    seen_all[:] = [x for x in seen_all if now - x < gwindow]
+    for key in [k for k, v in seen.items() if not v or now - v[-1] > window]:
+        del seen[key]
+    mine = {who: (cap, [x for x in seen.get(who, []) if now - x < window])
             for who, cap in pairs}
-    if (len(_sent_all) >= FEEDBACK_GLOBAL_MAX
-            or any(len(seen) >= cap for cap, seen in mine.values())):
+    if len(seen_all) >= gmax or any(len(at) >= cap for cap, at in mine.values()):
         return True
-    for who, (_, seen) in mine.items():
-        _sent[who] = [*seen, now]
-    _sent_all.append(now)
+    for who, (_, at) in mine.items():
+        seen[who] = [*at, now]
+    seen_all.append(now)
     return False
+
+
+def _whos(request):
+    """화면이 보낸 값과 프록시가 붙인 값. 둘 다로 센다."""
+    return stats.client_ip(request), _trusted_who(request)
+
+
+# 검사도 같은 방법으로 막는다. 도면 한 장이 CPU 몇 초와 AI 호출 하나를 쓰므로
+# 자동으로 반복되면 무료 서버와 AI 할당량이 같이 마른다.
+# 한 학교에서 한 IP 로 같이 들어오는 것을 생각해 사람 쪽은 넉넉히 둔다.
+CHECK_MAX = 40                          # 한 접속자가 10분에
+CHECK_TRUSTED_MAX = 120                 # 프록시가 붙인 값 기준 (모두에게 같을 수 있다)
+CHECK_WINDOW = 10 * 60
+CHECK_GLOBAL_MAX = 600                  # 서버 전체가 1시간에
+CHECK_GLOBAL_WINDOW = 60 * 60
+_ran = {}
+_ran_all = []
+
+
+def _guard_check(request):
+    ip, trusted = _whos(request)
+    if _too_many((_ran, _ran_all), CHECK_WINDOW, CHECK_GLOBAL_MAX, CHECK_GLOBAL_WINDOW,
+                 (ip, CHECK_MAX), (trusted, CHECK_TRUSTED_MAX)):
+        raise HTTPException(429, "잠시 뒤에 다시 검사해 주세요. 짧은 시간에 검사가 너무 많이 왔습니다.",
+                            headers={"Retry-After": str(CHECK_WINDOW)})
 
 
 def _keep_shot(job, data_url):
@@ -346,8 +372,9 @@ def feedback(body: dict, request: Request):
         raise HTTPException(400, "받을 수 없는 종류입니다.")
     if len(text) < 5:
         raise HTTPException(400, "내용을 5자 이상 적어 주세요.")
-    if _too_many((stats.client_ip(request), FEEDBACK_MAX),
-                 (_trusted_who(request), FEEDBACK_TRUSTED_MAX)):
+    ip, trusted = _whos(request)
+    if _too_many((_sent, _sent_all), FEEDBACK_WINDOW, FEEDBACK_GLOBAL_MAX,
+                 FEEDBACK_GLOBAL_WINDOW, (ip, FEEDBACK_MAX), (trusted, FEEDBACK_TRUSTED_MAX)):
         raise HTTPException(429, "잠시 뒤에 다시 보내 주세요. 짧은 시간에 너무 많이 왔습니다.")
     job = _job_id(body.get("job"))
     kept = _keep_drawing(job) if body.get("share") and job else ""
@@ -481,6 +508,7 @@ def admin_file(body: dict, request: Request):
 
 @app.post("/api/analyze-sample")
 def analyze_sample(body: dict, request: Request):
+    _guard_check(request)
     name = os.path.basename((body or {}).get("name", ""))
     path = os.path.abspath(os.path.join(SAMPLES, name))
     if not name or not path.startswith(os.path.abspath(SAMPLES) + os.sep) \
@@ -554,6 +582,7 @@ def _enabled(src):
 def analyze(request: Request,
             file: UploadFile = File(...),  # noqa: B008 -- FastAPI declares deps this way
             checks: str = Form(None)):
+    _guard_check(request)
     name = os.path.basename(file.filename or "upload")
     ext = os.path.splitext(name)[1].lower()
     openable = _openable()

@@ -355,3 +355,22 @@ def test_weeks_are_recorded_one_row_per_week():
     assert first["since"] <= __import__("datetime").date.today().isoformat()
     assert first["checkers"] <= first["visitors"] or first["visitors"] == 0
     assert [w["since"] for w in weeks] == sorted((w["since"] for w in weeks), reverse=True)
+
+
+def test_a_flood_of_checks_is_stopped(monkeypatch):
+    """도면 한 장이 CPU 와 AI 호출을 쓴다. 자동으로 반복되면 막아야 한다."""
+    main._ran.clear()
+    main._ran_all.clear()
+    monkeypatch.setattr(main, "CHECK_MAX", 3)
+    body = {"name": "sample_plate.dxf"}
+    ok = [client.post("/api/analyze-sample", json=body,
+                      headers=_proxied("198.51.100.5")).status_code for _ in range(3)]
+    assert ok == [200, 200, 200]
+    blocked = client.post("/api/analyze-sample", json=body, headers=_proxied("198.51.100.5"))
+    assert blocked.status_code == 429
+    assert blocked.headers["retry-after"] == str(main.CHECK_WINDOW)
+    # 다른 사람은 그대로 쓸 수 있다
+    assert client.post("/api/analyze-sample", json=body,
+                       headers=_proxied("198.51.100.9", real="10.0.0.9")).status_code == 200
+    main._ran.clear()
+    main._ran_all.clear()

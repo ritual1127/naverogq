@@ -252,10 +252,10 @@ h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;lett
 
 html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 /* guide dialog + busy overlay */
-.modal,.busy{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px}
+.modal,.busy{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;overscroll-behavior:contain}
 .busy{z-index:80}
 .modal-bg,.busy::before{content:"";position:absolute;inset:0;background:rgba(6,10,18,.55);backdrop-filter:blur(5px);animation:fade .2s ease}
-.modal-card,.busy-card{position:relative;width:min(520px,100%);max-height:calc(100vh - 40px);overflow:auto;border-radius:30px;background:var(--panel);box-shadow:0 30px 90px -24px rgba(0,0,0,.55);animation:rise .3s cubic-bezier(.2,.8,.2,1)}
+.modal-card,.busy-card{overscroll-behavior:contain;position:relative;width:min(520px,100%);max-height:calc(100vh - 40px);overflow:auto;border-radius:30px;background:var(--panel);box-shadow:0 30px 90px -24px rgba(0,0,0,.55);animation:rise .3s cubic-bezier(.2,.8,.2,1)}
 .modal-x{position:absolute;top:14px;right:14px;z-index:1;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:var(--panel);color:var(--muted);box-shadow:var(--shadow)}
 .modal-x:hover{color:var(--text)}
 .g-art{height:228px;display:grid;place-items:center;background:radial-gradient(420px 220px at 50% 0%,var(--glow),transparent 75%),var(--panel2)}
@@ -648,6 +648,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 
 /* 오류 신고 · 문의 */
 .nlead{margin:6px 0 14px;font-size:14px;line-height:1.7;color:var(--muted)}
+.nhint{margin:-6px 0 14px;padding:10px 12px;border-radius:14px;background:var(--tint-blue);color:var(--cyan-ink);font-size:12.5px;font-weight:700;line-height:1.7}
 .nf{display:block;margin-bottom:12px;font-size:13.5px;font-weight:800}
 .nf>span{display:block;margin-bottom:6px}
 .nf textarea,.nf input,.nf select{width:100%;padding:11px 13px;border-radius:14px;font:inherit;font-size:14.5px;font-weight:600;color:var(--text);background:var(--panel2);box-shadow:inset 0 0 0 1.5px var(--line2);resize:vertical}
@@ -677,3 +678,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .nshot{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;border-radius:16px;background:var(--panel2)}
 .nshot img{width:104px;height:72px;object-fit:contain;border-radius:8px;background:var(--stage)}
 .nshot span{font-size:12.5px;font-weight:700;line-height:1.6;color:var(--muted)}
+
+/* 폰에서 두 번 탭할 때의 지연과 탭마다 번쩍이는 회색 사각형을 없앤다 */
+html{-webkit-tap-highlight-color:transparent}
+button,a,label,summary,.drop{touch-action:manipulation}
