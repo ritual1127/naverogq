@@ -138,3 +138,109 @@ def test_admin_locks_after_repeated_wrong_passwords(monkeypatch):
     assert client.post("/api/admin/login", json={"pw": "test-pw-1234"}).status_code == 429
     main._fails.clear()
     main._fails_all.clear()
+
+
+def _proxied(fake, real="10.0.0.5"):
+    """Render 처럼 프록시가 뒤에 진짜 접속자를 붙인 모양. 앞의 값은 접속자가 지어낸 것."""
+    return {"x-forwarded-for": f"{fake}, {real}"}
+
+
+def test_feedback_flood_is_stopped_even_with_made_up_ips():
+    main._sent.clear()
+    main._sent_all.clear()
+    body = {"kind": "ask", "text": "사람이 직접 쓴 문의 글"}
+    for i in range(main.FEEDBACK_MAX):
+        assert client.post("/api/feedback", json=body,
+                           headers=_proxied(f"9.9.9.{i}")).status_code == 200
+    # 헤더의 IP 를 바꿔 가며 보내도 프록시가 붙인 값이 같으면 막힌다
+    assert client.post("/api/feedback", json=body,
+                       headers=_proxied("9.9.9.99")).status_code == 429
+    main._sent.clear()
+    main._sent_all.clear()
+
+
+def test_admin_lock_is_not_fooled_by_a_made_up_ip(monkeypatch):
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._fails.clear()
+    main._fails_all.clear()
+    for i in range(main.ADMIN_FAIL_MAX):
+        assert client.post("/api/admin/login", json={"pw": "nope"},
+                           headers=_proxied(f"1.2.3.{i}")).status_code == 403
+    assert client.post("/api/admin/login", json={"pw": "test-pw-1234"},
+                       headers=_proxied("1.2.3.50")).status_code == 429
+    main._fails.clear()
+    main._fails_all.clear()
+
+
+def test_admin_token_is_bound_and_paths_cannot_escape(monkeypatch):
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._fails.clear()
+    main._fails_all.clear()
+    mine = _proxied("1.1.1.1")
+    # 이상한 값을 줘도 500 이 아니라 403 이어야 한다
+    for junk in (12345, None, "한글 비밀번호", "x" * 5000):
+        assert client.post("/api/admin/login", json={"pw": junk},
+                           headers=_proxied("2.2.2.2")).status_code in (403, 429)
+    main._fails.clear()
+    main._fails_all.clear()
+    token = client.post("/api/admin/login", json={"pw": "test-pw-1234"},
+                        headers=mine).json()["token"]
+    assert client.post("/api/admin/notes", json={"token": token}, headers=mine).status_code == 200
+    # 같은 표라도 프록시가 붙인 접속자가 다르면 안 듣는다
+    assert client.post("/api/admin/notes", json={"token": token},
+                       headers=_proxied("1.1.1.1", real="10.9.9.9")).status_code == 401
+    token = client.post("/api/admin/login", json={"pw": "test-pw-1234"},
+                        headers=mine).json()["token"]
+    for bad in ({"job": "../../etc", "file": "passwd"},
+                {"job": "deadbeefcafe", "file": "../../../etc/passwd"},
+                {"job": "..", "file": "stats.db"}):
+        assert client.post("/api/admin/file", json={"token": token, **bad},
+                           headers=mine).status_code == 404
+    main._fails.clear()
+    main._fails_all.clear()
+
+
+def test_long_and_odd_feedback_is_cut_not_crashed(monkeypatch):
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._sent.clear()
+    main._sent_all.clear()
+    main._fails.clear()
+    main._fails_all.clear()
+    ok = client.post("/api/feedback", json={
+        "kind": "report", "text": "가" * 9000, "contact": "나" * 9000,
+        "spot": "다" * 9000, "job": "../../evil", "share": True})
+    assert ok.status_code == 200
+    assert ok.json() == {"ok": True, "drawing": False}   # 검사 번호가 아니면 도면은 안 남는다
+    token = client.post("/api/admin/login", json={"pw": "test-pw-1234"}).json()["token"]
+    # 같은 초에 들어온 글이 여럿이라 순서로 찾지 않는다
+    notes = client.post("/api/admin/notes", json={"token": token}).json()["notes"]
+    got = next(n for n in notes if n["text"].startswith("가가"))
+    assert len(got["text"]) == main.NOTE_MAX
+    assert len(got["contact"]) == main.CONTACT_MAX
+    assert len(got["spot"]) == main.SPOT_MAX
+    assert got["job"] == "" and got["file"] == ""
+    main._sent.clear()
+    main._sent_all.clear()
+
+
+def test_admin_can_delete_a_note_and_its_drawing(monkeypatch):
+    """지워 달라는 요청을 받으면 글과 도면이 같이 없어져야 한다."""
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._sent.clear()
+    main._sent_all.clear()
+    main._fails.clear()
+    main._fails_all.clear()
+    assert client.post("/api/feedback", json={
+        "kind": "ask", "text": "이 글은 지워 주세요"}).status_code == 200
+    token = client.post("/api/admin/login", json={"pw": "test-pw-1234"}).json()["token"]
+    notes = client.post("/api/admin/notes", json={"token": token}).json()["notes"]
+    mine = next(n for n in notes if n["text"] == "이 글은 지워 주세요")
+    assert client.post("/api/admin/delete", json={"token": token, "id": mine["id"]}).status_code == 200
+    left = client.post("/api/admin/notes", json={"token": token}).json()["notes"]
+    assert all(n["id"] != mine["id"] for n in left)
+    assert client.post("/api/admin/delete", json={"token": token, "id": mine["id"]}).status_code == 404
+    assert client.post("/api/admin/delete",
+                       json={"token": token, "id": "../../x"}).status_code == 400
+    assert client.post("/api/admin/delete", json={"id": mine["id"]}).status_code == 401
+    main._sent.clear()
+    main._sent_all.clear()

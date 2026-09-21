@@ -86,7 +86,7 @@ JOB_KEEP = 20
 # 보내도 된다고 한 도면. 화면에 적은 대로 30일까지만 두고, 그 안이어도 50건을 넘기지 않는다.
 KEPT_TTL_SEC = 30 * 24 * 60 * 60
 KEPT_KEEP = 50
-KEPT_MAX_BYTES = 30 * 1024 * 1024
+KEPT_MAX_BYTES = 10 * 1024 * 1024
 
 
 def _prune(root, keep, ttl):
@@ -264,6 +264,41 @@ def _keep_drawing(job):
     return ""
 
 
+def _trusted_who(request):
+    """관리자 잠금과 표에 쓰는 값. `stats.client_ip` 는 맨 앞 값을 쓰는데, 그 값은
+    접속자가 헤더에 지어 넣을 수 있다 — 그걸로 잠금을 세면 IP 를 바꿔 가며
+    비밀번호를 무한히 두드릴 수 있다. 프록시가 **마지막에 붙인** 값만 믿는다."""
+    fwd = [x.strip() for x in request.headers.get("x-forwarded-for", "").split(",") if x.strip()]
+    if fwd:
+        return fwd[-1]
+    return request.client.host if request.client else "?"
+
+
+# 신고·문의를 보낼 수 있는 수. D1 과 디스크가 한 사람에게 채워지지 않게 막는다.
+FEEDBACK_MAX = 5                        # 한 접속자가 10분에
+FEEDBACK_WINDOW = 10 * 60
+FEEDBACK_GLOBAL_MAX = 60                # 서버 전체가 1시간에 (지금 하루 방문이 20명 안팎이다)
+FEEDBACK_GLOBAL_WINDOW = 60 * 60
+_sent = {}                  # 접속자 -> 보낸 시각들
+_sent_all = []              # 서버 전체가 보낸 시각들
+
+
+def _too_many(*whos):
+    """헤더를 지어내며 보내는 것까지 막으려고 접속자별과 서버 전체를 같이 센다.
+    접속자 값은 둘이다 — 화면이 보내는 값과 프록시가 붙인 값. 둘 중 하나만 넘어도 막는다."""
+    now = time.time()
+    _sent_all[:] = [x for x in _sent_all if now - x < FEEDBACK_GLOBAL_WINDOW]
+    for key in [k for k, v in _sent.items() if not v or now - v[-1] > FEEDBACK_WINDOW]:
+        del _sent[key]
+    mine = {w: [x for x in _sent.get(w, []) if now - x < FEEDBACK_WINDOW] for w in set(whos)}
+    if len(_sent_all) >= FEEDBACK_GLOBAL_MAX or any(len(v) >= FEEDBACK_MAX for v in mine.values()):
+        return True
+    for w, seen in mine.items():
+        _sent[w] = [*seen, now]
+    _sent_all.append(now)
+    return False
+
+
 @app.post("/api/feedback")
 def feedback(body: dict, request: Request):
     """오류 신고와 문의. 연락처는 적고 싶은 사람만 적고, 도면은 켠 사람의 것만 남는다."""
@@ -276,6 +311,8 @@ def feedback(body: dict, request: Request):
         raise HTTPException(400, "받을 수 없는 종류입니다.")
     if len(text) < 5:
         raise HTTPException(400, "내용을 5자 이상 적어 주세요.")
+    if _too_many(stats.client_ip(request), _trusted_who(request)):
+        raise HTTPException(429, "잠시 뒤에 다시 보내 주세요. 짧은 시간에 너무 많이 왔습니다.")
     job = _job_id(body.get("job"))
     kept = _keep_drawing(job) if body.get("share") and job else ""
     try:
@@ -295,7 +332,9 @@ ADMIN_FAIL_WINDOW = 15 * 60
 ADMIN_GLOBAL_MAX = 20                   # IP 를 바꿔 가며 두드리는 것까지 묶어서 막는다
 ADMIN_GLOBAL_WINDOW = 60 * 60
 ADMIN_TOKEN_TTL = 2 * 60 * 60
-NO_STORE = {"Cache-Control": "no-store, private", "X-Robots-Tag": "noindex, nofollow"}
+NO_STORE = {"Cache-Control": "no-store, private", "X-Robots-Tag": "noindex, nofollow",
+            "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer",
+            "X-Content-Type-Options": "nosniff"}
 
 _fails = {}                 # 접속자 -> (틀린 횟수, 마지막으로 틀린 때)
 _fails_all = []             # 서버 전체의 실패 시각
@@ -308,6 +347,8 @@ def _locked(who):
     if now - at > ADMIN_FAIL_WINDOW:
         n = 0
     _fails_all[:] = [x for x in _fails_all if now - x < ADMIN_GLOBAL_WINDOW]
+    for old in [k for k, (_, t0) in _fails.items() if now - t0 > ADMIN_FAIL_WINDOW]:
+        del _fails[old]                  # 지어낸 헤더로 쌓이는 값을 그때그때 버린다
     return n >= ADMIN_FAIL_MAX or len(_fails_all) >= ADMIN_GLOBAL_MAX
 
 
@@ -315,7 +356,7 @@ def _admin_login(request, pw):
     """비밀번호를 한 번만 받고, 그 뒤로는 임시 표로 다닌다.
     ponytail: 실패 수와 표를 프로세스 메모리에 둔다 — 서버가 하나일 때만 맞다.
     여러 대로 늘리면 D1 로 옮긴다."""
-    who = stats.client_ip(request)
+    who = _trusted_who(request)
     if _locked(who):
         raise HTTPException(429, "비밀번호를 너무 여러 번 틀렸습니다. 잠시 뒤에 다시 하세요.")
     want = os.environ.get("CADLENS_ADMIN_PW") or ""
@@ -340,7 +381,7 @@ def _admin_login(request, pw):
 def _admin_check(request, token):
     """표가 맞는지 본다. 표는 받은 그 접속자에게만 듣는다."""
     exp, who = _tokens.get(str(token or ""), (0.0, ""))
-    if exp < time.time() or who != stats.client_ip(request):
+    if exp < time.time() or who != _trusted_who(request):
         _tokens.pop(str(token or ""), None)
         raise HTTPException(401, "다시 로그인하세요.")
 
@@ -367,6 +408,24 @@ def admin_notes(body: dict, request: Request):
     _admin_check(request, (body or {}).get("token"))
     return JSONResponse({"notes": stats.notes(200), "stats": stats.summary()},
                         headers=NO_STORE)
+
+
+@app.post("/api/admin/delete")
+def admin_delete(body: dict, request: Request):
+    """지워 달라는 요청을 받으면 글과 같이 받은 도면을 함께 지운다.
+    같은 검사에 신고가 둘이면 도면은 한 번에 같이 지워진다."""
+    body = body or {}
+    _admin_check(request, body.get("token"))
+    note_id = str(body.get("id") or "")[:32]
+    if not note_id or not note_id.isalnum():
+        raise HTTPException(400, "그런 글이 없습니다.")
+    gone = stats.delete_note(note_id)
+    if gone is None:
+        raise HTTPException(404, "그런 글이 없습니다.")
+    job = _job_id(gone[0])
+    if job:
+        shutil.rmtree(os.path.join(KEEP, job), ignore_errors=True)
+    return JSONResponse({"ok": True}, headers=NO_STORE)
 
 
 @app.post("/api/admin/file")

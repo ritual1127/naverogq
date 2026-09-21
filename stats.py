@@ -187,6 +187,32 @@ def note(kind, text, spot="", contact="", job="", file=""):
     return row[0]
 
 
+NOTE_PICK = "SELECT job, file FROM notes WHERE id = ?"
+NOTE_DELETE = "DELETE FROM notes WHERE id = ?"
+
+
+def delete_note(note_id):
+    """지워 달라는 요청을 받았을 때. 지운 글의 (검사 번호, 파일 이름) 을 돌려준다.
+    그런 글이 없으면 None."""
+    if d1_conf():
+        _d1_notes()
+        rows = _d1(NOTE_PICK, (note_id,))[0]
+        if not rows:
+            return None
+        _d1(NOTE_DELETE, (note_id,))
+        return rows[0].get("job") or "", rows[0].get("file") or ""
+    con = _connect()
+    try:
+        row = con.execute(NOTE_PICK, (note_id,)).fetchone()
+        if not row:
+            return None
+        with con:
+            con.execute(NOTE_DELETE, (note_id,))
+    finally:
+        con.close()
+    return row[0] or "", row[1] or ""
+
+
 def notes(limit=200):
     if d1_conf():
         _d1_notes()
