@@ -144,17 +144,21 @@ def _bump_d1(row):
 
 """사용자가 보낸 말 — 오류 신고와 문의.
 
+표 이름이 `cadlens_notes` 인 이유: 이 D1 은 인터뷰 폼과 같이 쓰는데 거기에 이미
+`notes` 표가 있다(답변에 직접 적은 글). 같은 이름으로 만들면 우리 INSERT 가
+남의 표에 가서 깨진다 — 실제로 그렇게 깨져 봤다. 우리 표는 이름 앞에 프로젝트를 붙인다.
+
 `hits` 와 달리 사람이 직접 쓴 글이 들어온다. 연락처는 적고 싶은 사람만 적는다.
 도면 파일은 여기 넣지 않는다. 보내도 된다고 한 경우에만 서버 디스크에 따로 두고
 여기에는 파일 이름만 남긴다.
 """
-NOTES_DDL = """CREATE TABLE IF NOT EXISTS notes(
+NOTES_DDL = """CREATE TABLE IF NOT EXISTS cadlens_notes(
     id TEXT PRIMARY KEY, at TEXT NOT NULL, kind TEXT NOT NULL,
     text TEXT NOT NULL, spot TEXT, contact TEXT, job TEXT, file TEXT, shot TEXT)"""
 
-NOTE_INSERT = ("INSERT INTO notes(id, at, kind, text, spot, contact, job, file, shot) "
+NOTE_INSERT = ("INSERT INTO cadlens_notes(id, at, kind, text, spot, contact, job, file, shot) "
                "VALUES(?,?,?,?,?,?,?,?,?)")
-NOTE_LIST = ("SELECT id, at, kind, text, spot, contact, job, file, shot FROM notes "
+NOTE_LIST = ("SELECT id, at, kind, text, spot, contact, job, file, shot FROM cadlens_notes "
              "ORDER BY at DESC LIMIT {n}")
 NOTE_COLS = ("id", "at", "kind", "text", "spot", "contact", "job", "file", "shot")
 
@@ -162,15 +166,9 @@ _notes_ready = [False]
 
 
 def _d1_notes():
-    """D1 에는 표를 만들어 둔 적이 없을 수 있다. 프로세스마다 한 번만 확인한다.
-    칸을 늦게 더한 적이 있어서(도면에서 고른 부분) 이미 있는 표에도 한 번 붙여 본다 —
-    이미 있으면 D1 이 거절하고, 그건 그냥 넘어가면 되는 일이다."""
+    """D1 에는 표를 만들어 둔 적이 없을 수 있다. 프로세스마다 한 번만 확인한다."""
     if not _notes_ready[0]:
         _d1(NOTES_DDL)
-        try:
-            _d1("ALTER TABLE notes ADD COLUMN shot TEXT")
-        except Exception:                                     # noqa: BLE001
-            pass
         _notes_ready[0] = True
 
 
@@ -194,8 +192,8 @@ def note(kind, text, spot="", contact="", job="", file="", shot=""):
     return row[0]
 
 
-NOTE_PICK = "SELECT job, file FROM notes WHERE id = ?"   # 도면과 고른 부분은 job 폴더째 지운다
-NOTE_DELETE = "DELETE FROM notes WHERE id = ?"
+NOTE_PICK = "SELECT job, file FROM cadlens_notes WHERE id = ?"   # 도면과 고른 부분은 job 폴더째 지운다
+NOTE_DELETE = "DELETE FROM cadlens_notes WHERE id = ?"
 
 
 def delete_note(note_id):

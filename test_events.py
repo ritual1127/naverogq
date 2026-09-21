@@ -292,3 +292,36 @@ def test_picked_region_is_kept_as_a_picture_only(monkeypatch):
     assert got.content.startswith(main.PNG_MAGIC)
     main._sent.clear()
     main._sent_all.clear()
+
+
+def test_our_notes_do_not_land_in_someone_elses_table():
+    """이 D1 은 인터뷰 폼과 같이 쓴다. 거기 `notes` 표가 이미 있어서 우리 글이
+    남의 표로 가 INSERT 가 깨진 적이 있다. 우리 표는 `cadlens_notes` 다."""
+    import sqlite3
+
+    import stats
+
+    main._sent.clear()
+    main._sent_all.clear()
+    con = sqlite3.connect(stats.db_path())
+    with con:
+        con.execute("CREATE TABLE IF NOT EXISTS notes("
+                    "answer_id INTEGER, field TEXT, text TEXT)")
+        con.execute("DELETE FROM notes")
+        con.execute("INSERT INTO notes VALUES(1,'why','남의 표에 이미 있던 글')")
+    con.close()
+
+    assert client.post("/api/feedback", json={
+        "kind": "ask", "text": "우리 표로 들어가야 합니다"}).status_code == 200
+
+    con = sqlite3.connect(stats.db_path())
+    rows = con.execute("SELECT field, text FROM notes").fetchall()
+    cols = [r[1] for r in con.execute("PRAGMA table_info(notes)")]
+    ours = con.execute("SELECT COUNT(*) FROM cadlens_notes WHERE text=?",
+                       ("우리 표로 들어가야 합니다",)).fetchone()[0]
+    con.close()
+    assert rows == [("why", "남의 표에 이미 있던 글")]   # 남의 글은 그대로
+    assert cols == ["answer_id", "field", "text"]       # 칸도 안 늘어남
+    assert ours == 1
+    main._sent.clear()
+    main._sent_all.clear()

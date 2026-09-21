@@ -667,7 +667,8 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 /* 위쪽 바의 문의하기 · 도면에서 부분 고르기 */
 .nav-links button[data-note]{padding:8px 14px;border-radius:999px;font-size:14.5px;font-weight:700;color:var(--head-sub);transition:color .2s,background .2s}
 .nav-links button[data-note]:hover{color:#fff;background:var(--head-btn)}
-.pick-btn{margin-left:0;background:var(--tint-blue);color:var(--cyan-ink)}
+.pick-btn{margin-left:auto;background:var(--tint-blue);color:var(--cyan-ink)}
+.fix-btn:not([hidden])+.pick-btn{margin-left:0}   /* 수정 예시 단추가 있으면 그 옆에 붙는다 */
 .pick-btn:hover{background:var(--edge-blue)}
 .pick-btn[aria-pressed="true"]{background:var(--cyan);color:#04111e}
 .stage.picking{cursor:crosshair}
