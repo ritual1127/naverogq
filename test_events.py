@@ -325,3 +325,22 @@ def test_our_notes_do_not_land_in_someone_elses_table():
     assert ours == 1
     main._sent.clear()
     main._sent_all.clear()
+
+
+def test_conversion_is_counted_by_person_not_by_count():
+    """전환율은 사람 단위여야 한다 — 한 사람이 여러 번 올린 것이 여러 명으로 보이면 안 된다."""
+    import stats
+
+    here = {"x-forwarded-for": "203.0.113.7"}
+    there = {"x-forwarded-for": "203.0.113.8"}
+    before = client.get("/api/stats").json()["week"]
+    client.get("/", headers=here)
+    client.get("/", headers=there)                      # 들어왔지만 검사는 안 한 사람
+    for _ in range(3):                                  # 한 사람이 세 번 검사
+        client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"}, headers=here)
+    week = client.get("/api/stats").json()["week"]
+    assert week["visitors"] - before["visitors"] == 2   # 사람 둘
+    assert week["checkers"] - before.get("checkers", 0) == 1    # 그중 검사한 사람은 하나
+    assert week["finishers"] - before.get("finishers", 0) == 1  # 결과까지 간 사람도 하나
+    assert week["checks"] - before["checks"] == 3       # 횟수는 셋
+    assert stats.summary()["week"]["checkers"] >= 1

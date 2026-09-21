@@ -250,7 +250,9 @@ SUMMARY_SQL = """SELECT
  (SELECT COALESCE(MIN(day),?1) FROM hits),
  (SELECT COALESCE(SUM(n),0) FROM hits WHERE day>=?2 AND kind='recheck'),
  (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='recheck'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='done')"""
+ (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='done'),
+ (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day>=?2 AND kind IN ('check','sample')),
+ (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day>=?2 AND kind='done')"""
 
 DAILY_SQL = ("SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v, "
              "SUM(CASE WHEN kind IN ('check','sample') THEN n ELSE 0 END) c "
@@ -262,14 +264,16 @@ def _summary_d1(today, days):
     first = (today - datetime.timedelta(days=days - 1)).isoformat()
     row = _d1(SUMMARY_SQL, (today.isoformat(), monday.isoformat()))[0][0]
     (tv, tc, wv, wc, wr, vis, chk, smp, nday, since,
-     wrc, rc, dn) = list(row.values())
+     wrc, rc, dn, wdo, wfin) = list(row.values())
     daily = _d1(DAILY_SQL, (first,))[0]
     return {
         "available": True, "store": "d1",
         "today": {"visitors": tv or 0, "checks": tc or 0},
         "week": {"since": monday.isoformat(), "visitors": wv or 0,
                  "checks": wc or 0, "recheckers": wr or 0,
-                 "rechecks": wrc or 0},
+                 "rechecks": wrc or 0,
+                 # 사람 단위 — 횟수가 아니라 몇 명이 했나. 방문 → 검사 → 결과 순서다.
+                 "checkers": wdo or 0, "finishers": wfin or 0},
         "total": {"visits": vis or 0, "checks": chk or 0, "samples": smp or 0,
                   "rechecks": rc or 0, "done": dn or 0,
                   "days": nday or 0, "since": since or today.isoformat()},
@@ -324,6 +328,12 @@ def summary(today=None, days=14):
                 # 화면이 '지난번과 비교'를 실제로 띄운 횟수
                 "rechecks": one("SELECT SUM(n) FROM hits WHERE day>=? "
                                 "AND kind='recheck'", (week,)),
+                # 사람 단위 — 방문한 사람 중 몇 명이 검사를 시작했고 몇 명이 결과까지 갔나.
+                # 횟수(checks)는 한 사람이 여러 번 올리면 여러 번으로 세어 전환율이 될 수 없다.
+                "checkers": one(f"SELECT COUNT(DISTINCT visitor) FROM hits "
+                                f"WHERE day>=? AND kind IN ({marks})", (week, *CHECK_KINDS)),
+                "finishers": one("SELECT COUNT(DISTINCT visitor) FROM hits "
+                                 "WHERE day>=? AND kind='done'", (week,)),
             },
             "total": {
                 "visits": one("SELECT SUM(n) FROM hits WHERE kind='visit'"),

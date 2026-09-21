@@ -58,7 +58,9 @@ $('#ptoggle').onclick=()=>{const p=$('#ppanel');p.hidden=!p.hidden;$('#ptoggle')
 function loadStats(){fetch('/api/stats').then(r=>r.json()).then(s=>{STATS=s;drawStats()}).catch(()=>{})}
 function drawStats(){const s=STATS;if(!s||!s.available)return;$('#statbox').classList.remove('hide');const p=t('statPeople'),c=t('statTimes');
   $('#statVisit').textContent=s.week.visitors+p;$('#statVisitD').textContent=`${t('statToday')} ${s.today.visitors}${p} · ${t('statAll')} ${s.total.visits}${c}`;
-  $('#statCheck').textContent=s.week.checks+c;$('#statCheckD').textContent=`${t('statToday')} ${s.today.checks}${c} · ${t('statAll')} ${s.total.checks+s.total.samples}${c}`;
+  // 횟수만 보여 주면 한 사람이 여러 번 올린 것과 여러 사람이 온 것을 구별할 수 없다.
+  const fn=s.week.checkers==null?'':' · '+fmt(t('statFunnel'),{v:s.week.visitors,c:s.week.checkers,f:s.week.finishers});
+  $('#statCheck').textContent=s.week.checks+c;$('#statCheckD').textContent=`${t('statToday')} ${s.today.checks}${c} · ${t('statAll')} ${s.total.checks+s.total.samples}${c}`+fn;
   $('#statAgain').textContent=s.week.recheckers+p;$('#statAgainD').textContent=(s.week.rechecks?`${t('statWeek')} ${s.week.rechecks}${c} · `:'')+t('statAgainD');
   $('#statNote').textContent=fmt(t('statNote'),{since:s.total.since,days:s.total.days})}
 
