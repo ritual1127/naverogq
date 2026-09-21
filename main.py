@@ -276,6 +276,9 @@ def _trusted_who(request):
 
 # 신고·문의를 보낼 수 있는 수. D1 과 디스크가 한 사람에게 채워지지 않게 막는다.
 FEEDBACK_MAX = 5                        # 한 접속자가 10분에
+# 프록시가 붙인 값은 프록시 종류에 따라 모두에게 같은 값일 수 있다. 그때 5건이면
+# 한 반이 같이 신고할 때 서로 막는다. 그 값에는 상한을 넉넉히 둔다.
+FEEDBACK_TRUSTED_MAX = 20
 FEEDBACK_WINDOW = 10 * 60
 FEEDBACK_GLOBAL_MAX = 60                # 서버 전체가 1시간에 (지금 하루 방문이 20명 안팎이다)
 FEEDBACK_GLOBAL_WINDOW = 60 * 60
@@ -283,18 +286,19 @@ _sent = {}                  # 접속자 -> 보낸 시각들
 _sent_all = []              # 서버 전체가 보낸 시각들
 
 
-def _too_many(*whos):
+def _too_many(*pairs):
     """헤더를 지어내며 보내는 것까지 막으려고 접속자별과 서버 전체를 같이 센다.
     접속자 값은 둘이다 — 화면이 보내는 값과 프록시가 붙인 값. 둘 중 하나만 넘어도 막는다."""
     now = time.time()
     _sent_all[:] = [x for x in _sent_all if now - x < FEEDBACK_GLOBAL_WINDOW]
     for key in [k for k, v in _sent.items() if not v or now - v[-1] > FEEDBACK_WINDOW]:
         del _sent[key]
-    mine = {w: [x for x in _sent.get(w, []) if now - x < FEEDBACK_WINDOW] for w in set(whos)}
-    if len(_sent_all) >= FEEDBACK_GLOBAL_MAX or any(len(v) >= FEEDBACK_MAX for v in mine.values()):
+    mine = {who: (cap, [x for x in _sent.get(who, []) if now - x < FEEDBACK_WINDOW])
+            for who, cap in pairs}
+    if len(_sent_all) >= FEEDBACK_GLOBAL_MAX             or any(len(seen) >= cap for cap, seen in mine.values()):
         return True
-    for w, seen in mine.items():
-        _sent[w] = [*seen, now]
+    for who, (_, seen) in mine.items():
+        _sent[who] = [*seen, now]
     _sent_all.append(now)
     return False
 
@@ -311,7 +315,8 @@ def feedback(body: dict, request: Request):
         raise HTTPException(400, "받을 수 없는 종류입니다.")
     if len(text) < 5:
         raise HTTPException(400, "내용을 5자 이상 적어 주세요.")
-    if _too_many(stats.client_ip(request), _trusted_who(request)):
+    if _too_many((stats.client_ip(request), FEEDBACK_MAX),
+                 (_trusted_who(request), FEEDBACK_TRUSTED_MAX)):
         raise HTTPException(429, "잠시 뒤에 다시 보내 주세요. 짧은 시간에 너무 많이 왔습니다.")
     job = _job_id(body.get("job"))
     kept = _keep_drawing(job) if body.get("share") and job else ""

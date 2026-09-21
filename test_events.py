@@ -149,12 +149,19 @@ def test_feedback_flood_is_stopped_even_with_made_up_ips():
     main._sent.clear()
     main._sent_all.clear()
     body = {"kind": "ask", "text": "사람이 직접 쓴 문의 글"}
-    for i in range(main.FEEDBACK_MAX):
+    for i in range(main.FEEDBACK_TRUSTED_MAX):
         assert client.post("/api/feedback", json=body,
                            headers=_proxied(f"9.9.9.{i}")).status_code == 200
     # 헤더의 IP 를 바꿔 가며 보내도 프록시가 붙인 값이 같으면 막힌다
     assert client.post("/api/feedback", json=body,
                        headers=_proxied("9.9.9.99")).status_code == 429
+    # 한 사람이 같은 값으로 쏟아붓는 것은 더 일찍 막힌다
+    main._sent.clear()
+    main._sent_all.clear()
+    codes = [client.post("/api/feedback", json=body,
+                         headers=_proxied("8.8.8.8")).status_code
+             for _ in range(main.FEEDBACK_MAX + 1)]
+    assert codes[-1] == 429 and codes[0] == 200
     main._sent.clear()
     main._sent_all.clear()
 
