@@ -62,16 +62,17 @@ b.hl{background:#fff2c2;padding:0 2px}
 </section>
 
 <section>
-<h2>③ 사용자 기록</h2>
-<p>핵심 행동은 <b>"도면을 올려 검사 결과를 끝까지 본다"</b> 입니다.</p>
+<h2>③ 사용자 기록 — 사람 단위</h2>
+<p>핵심 행동은 <b>"도면을 올려 검사 결과를 끝까지 본다"</b> 입니다. 검사 <b>횟수</b>는 한 사람이 여러 번 올리면 여러 번으로 세어 전환율이 될 수 없어, <b>그 주에 들어온 고유 방문자</b>를 분모로 세었습니다(09-21 배포, <span class="mut">/api/stats</span> 에 공개).</p>
 <table>
-<tr><th>이번 주 (09-15~21)</th><th class="n">수</th><th>누적 (08-30~09-21 · 20일)</th><th class="n">수</th></tr>
-<tr><td>방문자(일별 합)</td><td class="n">48</td><td>방문</td><td class="n">248</td></tr>
-<tr><td>검사(업로드+예제)</td><td class="n">39</td><td>업로드 검사 / 예제</td><td class="n">66 / 20</td></tr>
-<tr><td><b>재검사 사용자(북극성)</b></td><td class="n"><b>7명</b></td><td>결과까지 본 것</td><td class="n">84</td></tr>
-<tr><td class="mut">목표 주 20명 · 08-22 엔 0명</td><td class="n mut">1/3</td><td><b>핵심 행동 완료율</b></td><td class="n"><b>98%</b></td></tr>
+<tr><th>주 (월요일 시작)</th><th class="n">방문</th><th class="n">검사 시작</th><th class="n">결과 도달</th><th class="n">재검사</th></tr>
+<tr><td>08-31</td><td class="n">42명</td><td class="n">2명</td><td class="n">2명</td><td class="n">0명</td></tr>
+<tr><td>09-07 (W4)</td><td class="n">38명</td><td class="n">10명</td><td class="n">10명</td><td class="n">5명</td></tr>
+<tr><td><b>09-14 (W5·런칭)</b></td><td class="n"><b>31명</b></td><td class="n"><b>11명</b><br><span class="mut">35%</span></td><td class="n"><b>11명</b><br><span class="mut">100%</span></td><td class="n"><b class="hl">10명</b></td></tr>
+<tr><td class="mut">09-21 (측정 중)</td><td class="n mut">25명</td><td class="n mut">7명</td><td class="n mut">6명</td><td class="n mut">4명</td></tr>
 </table>
-<p class="mut"><b>덜어낼 것</b> — 09-18 의 21건은 대부분 팀이 속도를 재려고 올린 합성 도면이고, 09-21 의 3건에도 팀 확인이 섞여 있습니다. <b>09-16 의 13건은 팀이 아닙니다.</b> 검사 횟수는 사람 수가 아니라 표본이 작아 비율로 말하지 않습니다.</p>
+<p><b>읽는 법</b> — 런칭 주 31명 중 11명이 도면을 올렸고(35%), <b>올린 사람은 전원 결과까지</b> 갔습니다. 북극성(재검사 사용자)은 W4 5명 → <b>W5 10명</b>, 목표 주 20명의 절반입니다. 방문자 값은 주마다 달라져 <b>사람 수는 주 안에서만</b> 셉니다.</p>
+<p class="mut"><b>덜어낼 것</b> — 09-18 의 검사 21건은 대부분 팀 속도 측정이고, 09-21 에는 검사가 500건 넘게 찍혔지만 검사 시작은 7명이라 <b>자동 반복 트래픽</b>으로 봅니다(출처 확인 중). <b>09-16 의 13건은 팀이 아닙니다.</b></p>
 </section>
 
 </div>
@@ -79,7 +80,7 @@ b.hl{background:#fff2c2;padding:0 2px}
 
 <section>
 <h2>④ 이탈 지점 — 첫 화면(도면을 올리기 전)</h2>
-<p>들어와서 <b>도면을 안 올리고 나가는 쪽</b>이 가장 큽니다. 이유 둘을 실제로 확인하고 <b>09-18 에 고쳐 배포</b>했습니다.</p>
+<p>런칭 주 <b>31명 중 20명이 도면을 안 올리고</b> 나갔습니다(올린 11명은 전원 결과까지). 이유 둘을 확인하고 <b>09-18 에 고쳐 배포</b>했습니다.</p>
 <table>
 <tr><th style="width:84px">막은 것</th><th>전</th><th>후</th></tr>
 <tr><td>검사가 느림</td><td>공개 서버 <b>16.9초</b> · AI 한 곳을 120초까지 기다림</td><td>상한 <b>8초</b> — 안 오면 결과부터, AI 점수는 나중에 채움</td></tr>
@@ -107,7 +108,7 @@ b.hl{background:#fff2c2;padding:0 2px}
 <tr><th style="width:84px">실제 수험생 도면</th><td>서로 다른 <b>23장</b>으로 09-11 측정 — 완전 일치 23/23, 검출률·정확도 100%(63/63). 단 <b>검사 항목 6개 · 한 학생 도면</b>이라 전체 정확도로 말하지 않음</td></tr>
 <tr><th>AI 점수 편차</th><td>같은 도면 5회 폭 <b>18점 → 0~3점</b>. 잰 도면이 2장뿐이라 <b>아직 열어 둠</b>(P02)</td></tr>
 <tr><th>배포 서버 확인</th><td>폴백 전환을 09-18 실측으로 확인(1순위가 20번 중 18번 실패). 단계별 시간은 <span class="mut">Server-Timing</span> 헤더에 찍힘. 업로드 삭제 주기는 부분 해결(P15)</td></tr>
-<tr><th>W6 에 할 것</th><td>① 사람 단위 방문→업로드 전환 ② 화면별 이탈 ③ 주간 재검사 사용자 수 ④ ⑤칸 채우기 ⑤ 한 줄 소개를 처음 듣는 3명에게 검증</td></tr>
+<tr><th>W6 에 할 것</th><td>① 화면 안쪽 이탈(파일 고름·검사 실패·결과 탭)까지 좁히기 ② <b>09-22~23</b> 안 쓴 3명에게 직접 묻고 ⑤ 채우기 ③ 신고로 들어온 것 먼저 고치기 ④ 주 단위 북극성 기록(목표 20명·현재 10명)</td></tr>
 </table>
 </section>
 
