@@ -1,5 +1,6 @@
 import asyncio
 import os
+import secrets
 import shutil
 import threading
 import time
@@ -19,6 +20,8 @@ import stats
 DATA = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
                     "cad-checker")
 UPLOADS = os.path.join(DATA, "uploads")
+# 오류 신고에 "도면도 같이 보내기"를 켠 사람의 도면만 여기로 온다. 나머지는 UPLOADS 에서 지워진다.
+KEEP = os.path.join(DATA, "keep")
 os.makedirs(UPLOADS, exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
 SAMPLES = os.path.join(HERE, "samples")
@@ -80,13 +83,17 @@ app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="
 
 JOB_TTL_SEC = 60 * 60
 JOB_KEEP = 20
+# 보내도 된다고 한 도면. 화면에 적은 대로 30일까지만 두고, 그 안이어도 50건을 넘기지 않는다.
+KEPT_TTL_SEC = 30 * 24 * 60 * 60
+KEPT_KEEP = 50
+KEPT_MAX_BYTES = 30 * 1024 * 1024
 
 
-def _prune_uploads():
+def _prune(root, keep, ttl):
     """Uploads and their converted DXF stay on disk after the response.
     Bound them by age and count so the disk cannot fill up."""
     try:
-        jobs = [os.path.join(UPLOADS, d) for d in os.listdir(UPLOADS)]
+        jobs = [os.path.join(root, d) for d in os.listdir(root)]
         jobs = [j for j in jobs if os.path.isdir(j)]
     except OSError:
         return
@@ -97,10 +104,15 @@ def _prune_uploads():
             return 0.0
 
     jobs.sort(key=mtime, reverse=True)
-    cutoff = time.time() - JOB_TTL_SEC
+    cutoff = time.time() - ttl
     for i, job in enumerate(jobs):
-        if i >= JOB_KEEP or mtime(job) < cutoff:
+        if i >= keep or mtime(job) < cutoff:
             shutil.rmtree(job, ignore_errors=True)
+
+
+def _prune_uploads():
+    _prune(UPLOADS, JOB_KEEP, JOB_TTL_SEC)
+    _prune(KEEP, KEPT_KEEP, KEPT_TTL_SEC)
 
 
 LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
@@ -219,6 +231,155 @@ def event(body: dict, request: Request):
         raise HTTPException(400, "셀 수 없는 이벤트입니다.")
     stats.bump(request, kind)
     return {"ok": True}
+
+
+NOTE_KINDS = {"report", "ask"}
+NOTE_MAX = 2000
+CONTACT_MAX = 120
+SPOT_MAX = 200
+
+
+def _job_id(raw):
+    """화면이 보낸 검사 번호. 폴더 이름으로 쓰므로 16진수만 받는다."""
+    job = os.path.basename(str(raw or "").strip())
+    return job if job and len(job) <= 32 and all(c in "0123456789abcdef" for c in job) else ""
+
+
+def _keep_drawing(job):
+    """'도면도 같이 보내기'를 켠 경우에만 부른다. 검사 폴더의 도면을 따로 복사해
+    1시간 청소(_prune_uploads)에 같이 지워지지 않게 한다. 돌려주는 값은 파일 이름."""
+    src = os.path.join(UPLOADS, job)
+    if not job or not os.path.isdir(src):
+        return ""
+    for name in sorted(os.listdir(src)):
+        path = os.path.join(src, name)
+        if not os.path.isfile(path) or os.path.splitext(name)[1].lower() not in check.SUPPORTED:
+            continue
+        if os.path.getsize(path) > KEPT_MAX_BYTES:
+            return ""
+        dest = os.path.join(KEEP, job)
+        os.makedirs(dest, exist_ok=True)
+        shutil.copy2(path, os.path.join(dest, name))
+        return name
+    return ""
+
+
+@app.post("/api/feedback")
+def feedback(body: dict, request: Request):
+    """오류 신고와 문의. 연락처는 적고 싶은 사람만 적고, 도면은 켠 사람의 것만 남는다."""
+    body = body or {}
+    kind = body.get("kind")
+    text = str(body.get("text") or "").strip()[:NOTE_MAX]
+    contact = str(body.get("contact") or "").strip()[:CONTACT_MAX]
+    spot = str(body.get("spot") or "").strip()[:SPOT_MAX]
+    if kind not in NOTE_KINDS:
+        raise HTTPException(400, "받을 수 없는 종류입니다.")
+    if len(text) < 5:
+        raise HTTPException(400, "내용을 5자 이상 적어 주세요.")
+    job = _job_id(body.get("job"))
+    kept = _keep_drawing(job) if body.get("share") and job else ""
+    try:
+        stats.note(kind, text, spot, contact, job, kept)
+    except Exception as e:                                    # noqa: BLE001
+        print(f"[note] 저장 실패: {type(e).__name__}: {e}", flush=True)
+        raise HTTPException(503, "지금은 보낼 수 없습니다. 잠시 뒤 다시 시도해 주세요.") from None
+    return {"ok": True, "drawing": bool(kept)}
+
+
+# 관리자 화면. 비밀번호는 환경변수(CADLENS_ADMIN_PW)로만 받는다 — 저장소가 공개라
+# 코드에 적으면 그 순간 누구나 아는 값이 된다. 네 자리 숫자처럼 짧은 값을 쓸 수 있으므로
+# 1) 맞히기 시도 수를 접속자별·서버 전체로 묶어 막고, 2) 한 번 맞히면 그 뒤로는
+# 비밀번호 대신 임시 표를 쓰고, 3) 화면은 검색에 안 잡히고 캐시에 안 남게 한다.
+ADMIN_FAIL_MAX = 5                      # 한 접속자가 15분에 틀릴 수 있는 횟수
+ADMIN_FAIL_WINDOW = 15 * 60
+ADMIN_GLOBAL_MAX = 20                   # IP 를 바꿔 가며 두드리는 것까지 묶어서 막는다
+ADMIN_GLOBAL_WINDOW = 60 * 60
+ADMIN_TOKEN_TTL = 2 * 60 * 60
+NO_STORE = {"Cache-Control": "no-store, private", "X-Robots-Tag": "noindex, nofollow"}
+
+_fails = {}                 # 접속자 -> (틀린 횟수, 마지막으로 틀린 때)
+_fails_all = []             # 서버 전체의 실패 시각
+_tokens = {}                # 표 -> (만료 시각, 접속자)
+
+
+def _locked(who):
+    now = time.time()
+    n, at = _fails.get(who, (0, 0.0))
+    if now - at > ADMIN_FAIL_WINDOW:
+        n = 0
+    _fails_all[:] = [x for x in _fails_all if now - x < ADMIN_GLOBAL_WINDOW]
+    return n >= ADMIN_FAIL_MAX or len(_fails_all) >= ADMIN_GLOBAL_MAX
+
+
+def _admin_login(request, pw):
+    """비밀번호를 한 번만 받고, 그 뒤로는 임시 표로 다닌다.
+    ponytail: 실패 수와 표를 프로세스 메모리에 둔다 — 서버가 하나일 때만 맞다.
+    여러 대로 늘리면 D1 로 옮긴다."""
+    who = stats.client_ip(request)
+    if _locked(who):
+        raise HTTPException(429, "비밀번호를 너무 여러 번 틀렸습니다. 잠시 뒤에 다시 하세요.")
+    want = os.environ.get("CADLENS_ADMIN_PW") or ""
+    if not want:
+        raise HTTPException(503, "이 서버에는 관리자 비밀번호(CADLENS_ADMIN_PW)가 없습니다.")
+    # 한글이 섞인 값이 오면 str 끼리는 비교 자체가 터진다. 바이트로 맞춰 본다.
+    if not secrets.compare_digest(str(pw or "").encode(), want.encode()):
+        n, at = _fails.get(who, (0, 0.0))
+        n = 0 if time.time() - at > ADMIN_FAIL_WINDOW else n
+        _fails[who] = (n + 1, time.time())
+        _fails_all.append(time.time())
+        raise HTTPException(403, "비밀번호가 틀렸습니다.")
+    _fails.pop(who, None)
+    token = secrets.token_urlsafe(32)
+    now = time.time()
+    for old in [k for k, (exp, _) in _tokens.items() if exp < now]:
+        del _tokens[old]
+    _tokens[token] = (now + ADMIN_TOKEN_TTL, who)
+    return token
+
+
+def _admin_check(request, token):
+    """표가 맞는지 본다. 표는 받은 그 접속자에게만 듣는다."""
+    exp, who = _tokens.get(str(token or ""), (0.0, ""))
+    if exp < time.time() or who != stats.client_ip(request):
+        _tokens.pop(str(token or ""), None)
+        raise HTTPException(401, "다시 로그인하세요.")
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    return HTMLResponse(_page("admin.html"), headers=NO_STORE)
+
+
+@app.post("/api/admin/login")
+def admin_login(body: dict, request: Request):
+    return JSONResponse({"token": _admin_login(request, (body or {}).get("pw")),
+                         "ttl": ADMIN_TOKEN_TTL}, headers=NO_STORE)
+
+
+@app.post("/api/admin/logout")
+def admin_logout(body: dict):
+    _tokens.pop(str((body or {}).get("token") or ""), None)
+    return JSONResponse({"ok": True}, headers=NO_STORE)
+
+
+@app.post("/api/admin/notes")
+def admin_notes(body: dict, request: Request):
+    _admin_check(request, (body or {}).get("token"))
+    return JSONResponse({"notes": stats.notes(200), "stats": stats.summary()},
+                        headers=NO_STORE)
+
+
+@app.post("/api/admin/file")
+def admin_file(body: dict, request: Request):
+    """신고와 함께 받은 도면 내려받기. 보내도 된다고 한 것만 여기에 있다."""
+    body = body or {}
+    _admin_check(request, body.get("token"))
+    job, name = _job_id(body.get("job")), os.path.basename(str(body.get("file") or ""))
+    path = os.path.abspath(os.path.join(KEEP, job, name))
+    if not job or not name or not path.startswith(os.path.abspath(KEEP) + os.sep)             or not os.path.isfile(path):
+        raise HTTPException(404, "그 도면은 이미 지워졌습니다 (최대 30일 · 50건).")
+    return FileResponse(path, filename=name, media_type="application/octet-stream",
+                        headers=NO_STORE)
 
 
 @app.post("/api/analyze-sample")

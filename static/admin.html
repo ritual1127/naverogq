@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>관리자 · CADLens</title>
+<link rel="icon" href="/static/favicon.ico" sizes="32x32">
+<link rel="stylesheet" href="/static/site.css?v=20260921">
+<script>
+try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=th}catch(e){}
+</script>
+<style>
+body{padding:28px 18px 60px}
+.abox{width:min(960px,100%);margin:0 auto}
+.abox h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.asub{margin:6px 0 22px;font-size:13.5px;color:var(--muted);line-height:1.7}
+.alogin{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.alogin input{width:180px;padding:11px 13px;border-radius:14px;font:inherit;font-weight:700;font-size:15px;color:var(--text);background:var(--panel2);box-shadow:inset 0 0 0 1.5px var(--line2)}
+.alogin input:focus{outline:none;box-shadow:inset 0 0 0 2px var(--cyan)}
+.amsg{margin-top:12px;font-size:13.5px;font-weight:700;color:var(--muted)}
+.acount{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 18px;font-size:13px;font-weight:700;color:var(--muted)}
+.acount b{color:var(--text)}
+.note{margin-bottom:10px;border-radius:18px;background:var(--panel2);box-shadow:inset 0 0 0 1.5px var(--line2);overflow:hidden}
+.note>summary{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:13px 16px;cursor:pointer;font-size:14px;font-weight:700;list-style:none}
+.note>summary::-webkit-details-marker{display:none}
+.note[open]>summary{box-shadow:0 1.5px 0 var(--line2)}
+.tagk{padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:800}
+.tagk.report{background:var(--tint-blue);color:var(--cyan-ink)}
+.tagk.ask{background:var(--panel);color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line2)}
+.nwhen{font-size:12.5px;font-weight:600;color:var(--muted)}
+.ncut{flex:1;min-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--muted)}
+.nbody{padding:14px 16px 16px}
+.nbody p{margin:0 0 12px;font-size:14.5px;line-height:1.85;white-space:pre-wrap;word-break:break-word}
+.nmeta{display:grid;grid-template-columns:86px 1fr;gap:6px 12px;margin-bottom:14px;font-size:13px}
+.nmeta dt{font-weight:800;color:var(--muted)}
+.nmeta dd{margin:0;word-break:break-all}
+.nbtns{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body data-page="admin">
+<div class="abox">
+  <h1>관리자 · 받은 신고와 문의</h1>
+  <p class="asub">이 화면은 검색에 잡히지 않고 브라우저에 남지 않습니다. 비밀번호는 서버 환경변수(<code>CADLENS_ADMIN_PW</code>)에 있는 값이고, 로그인하면 2시간짜리 임시 표를 받아 그걸로 다닙니다. 여러 번 틀리면 잠깁니다.</p>
+
+  <form class="alogin" id="login">
+    <input id="pw" type="password" inputmode="numeric" autocomplete="current-password" placeholder="비밀번호" aria-label="관리자 비밀번호">
+    <button class="btn btn-primary btn-sm" type="submit">열기</button>
+  </form>
+  <p class="amsg" id="msg"></p>
+
+  <div id="panel" hidden>
+    <p class="acount" id="counts"></p>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sess={get:k=>{try{return sessionStorage.getItem(k)}catch(e){return null}},
+            set:(k,v)=>{try{sessionStorage.setItem(k,v)}catch(e){}},
+            del:k=>{try{sessionStorage.removeItem(k)}catch(e){}}};
+let token=sess.get('cadlens.admin')||'';
+
+function post(url,body){
+  return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+                    cache:'no-store',body:JSON.stringify(body)});
+}
+
+$('#login').onsubmit=e=>{
+  e.preventDefault();
+  const pw=$('#pw').value;
+  $('#msg').textContent='확인 중…';
+  post('/api/admin/login',{pw}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+    if(!ok){$('#msg').textContent=j.detail||'열지 못했습니다.';return}
+    token=j.token;sess.set('cadlens.admin',token);$('#pw').value='';load();
+  }).catch(()=>{$('#msg').textContent='서버에 닿지 못했습니다.'});
+};
+
+function load(){
+  $('#msg').textContent='불러오는 중…';
+  post('/api/admin/notes',{token}).then(r=>r.json().then(j=>({ok:r.ok,j}))).then(({ok,j})=>{
+    if(!ok){token='';sess.del('cadlens.admin');$('#msg').textContent=j.detail||'다시 로그인하세요.';$('#panel').hidden=true;return}
+    $('#msg').textContent='';$('#login').hidden=true;$('#panel').hidden=false;
+    draw(j.notes||[],j.stats||{});
+  }).catch(()=>{$('#msg').textContent='서버에 닿지 못했습니다.'});
+}
+
+function draw(notes,stats){
+  const w=stats.week||{},tot=stats.total||{};
+  $('#counts').innerHTML=[
+    ['받은 글',notes.length+'건'],
+    ['신고',notes.filter(n=>n.kind==='report').length+'건'],
+    ['문의',notes.filter(n=>n.kind==='ask').length+'건'],
+    ['이번 주 접속',(w.visitors??'–')+'명'],
+    ['이번 주 검사',(w.checks??'–')+'회'],
+    ['이번 주 재검사한 사람',(w.recheckers??'–')+'명'],
+    ['누적 검사 완료',(tot.done??'–')+'회'],
+  ].map(([k,v])=>`${esc(k)} <b>${esc(v)}</b>`).join('');
+
+  $('#list').innerHTML=notes.map((n,i)=>`<details class="note" data-i="${i}">
+    <summary><span class="tagk ${n.kind==='report'?'report':'ask'}">${n.kind==='report'?'오류 신고':'문의'}</span>
+      <span class="nwhen">${esc((n.at||'').replace('T',' ').slice(0,16))}</span>
+      <span class="ncut">${esc(n.spot||'')}${n.spot?' · ':''}${esc(String(n.text||'').replace(/\s+/g,' ').slice(0,60))}</span>
+      ${n.file?'<span class="tagk ask">도면 있음</span>':''}</summary>
+    <div class="nbody">
+      <p>${esc(n.text||'')}</p>
+      <dl class="nmeta">
+        ${n.spot?`<dt>고른 자리</dt><dd>${esc(n.spot)}</dd>`:''}
+        ${n.contact?`<dt>연락처</dt><dd>${esc(n.contact)}</dd>`:''}
+        ${n.job?`<dt>검사 번호</dt><dd>${esc(n.job)}</dd>`:''}
+        ${n.file?`<dt>받은 도면</dt><dd>${esc(n.file)}</dd>`:''}
+      </dl>
+      <div class="nbtns">
+        <button class="btn btn-ghost btn-sm" type="button" data-copy="${i}">AI 수정 프롬프트 복사</button>
+        ${n.file?`<button class="btn btn-ghost btn-sm" type="button" data-file="${i}">도면 내려받기</button>`:''}
+      </div>
+    </div></details>`).join('')||'<p class="asub">아직 받은 글이 없습니다.</p>';
+
+  document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{
+    copy(prompt_(notes[+b.dataset.copy]));b.textContent='복사했습니다';
+    setTimeout(()=>b.textContent='AI 수정 프롬프트 복사',1500);
+  });
+  document.querySelectorAll('[data-file]').forEach(b=>b.onclick=()=>{
+    const n=notes[+b.dataset.file];
+    post('/api/admin/file',{token,job:n.job,file:n.file}).then(r=>{
+      if(!r.ok)throw new Error('gone');return r.blob();
+    }).then(blob=>{
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=n.file;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+    }).catch(()=>{b.textContent='이미 지워졌습니다'});
+  });
+}
+
+// 받은 신고를 그대로 AI 에게 넘길 수 있게 만든 글. 사람이 다시 요약하지 않아도 된다.
+function prompt_(n){
+  return [
+    `CADLens 오류 신고 (${(n.at||'').replace('T',' ').slice(0,16)})`,
+    `종류: ${n.kind==='report'?'결과가 틀렸다는 신고':'문의'}`,
+    n.spot?`사용자가 고른 자리: ${n.spot}`:'',
+    `사용자가 쓴 말:\n"""\n${n.text||''}\n"""`,
+    n.job?`검사 번호(job): ${n.job}`:'',
+    n.file?`같이 받은 도면: ${n.file} — 관리자 화면에서 내려받아 samples/ 옆에 두고 재현한다`:'같이 받은 도면 없음 — 비슷한 도면으로 재현한다',
+    '',
+    '할 일:',
+    '1. 위 자리에 해당하는 검사 규칙을 exam.py · check.py 에서 찾아 그대로 재현한다.',
+    '2. 신고가 맞으면 규칙을 고치고, 규칙이 맞으면 화면 문구가 오해를 주는지 본다.',
+    '3. plan/문제점/ 에 무엇이 왜 틀렸는지 한 장으로 적는다. 겪지 않은 것은 적지 않는다.',
+    '4. 같은 것이 다시 깨지는지 보는 시험을 하나 남긴다.',
+    '5. 고친 뒤 같은 도면을 다시 검사해 결과가 바뀌는지 확인하고 커밋한다.',
+  ].filter(Boolean).join('\n');
+}
+
+function copy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text).catch(fallback);
+  fallback();
+  function fallback(){
+    const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta);
+  }
+}
+
+if(token)load();
+</script>
+</body>
+</html>

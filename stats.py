@@ -89,6 +89,7 @@ def _connect():
         day TEXT NOT NULL, visitor TEXT NOT NULL, kind TEXT NOT NULL,
         n INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY(day, visitor, kind)) WITHOUT ROWID""")
+    con.execute(NOTES_DDL)
     return con
 
 
@@ -139,6 +140,63 @@ def _bump_d1(row):
         _cache[0] = 0.0                      # 다음 조회는 새로 읽는다
     except Exception as e:                                    # noqa: BLE001
         print(f"[stats] D1 세기 실패: {type(e).__name__}: {e}", flush=True)
+
+
+"""사용자가 보낸 말 — 오류 신고와 문의.
+
+`hits` 와 달리 사람이 직접 쓴 글이 들어온다. 연락처는 적고 싶은 사람만 적는다.
+도면 파일은 여기 넣지 않는다. 보내도 된다고 한 경우에만 서버 디스크에 따로 두고
+여기에는 파일 이름만 남긴다.
+"""
+NOTES_DDL = """CREATE TABLE IF NOT EXISTS notes(
+    id TEXT PRIMARY KEY, at TEXT NOT NULL, kind TEXT NOT NULL,
+    text TEXT NOT NULL, spot TEXT, contact TEXT, job TEXT, file TEXT)"""
+
+NOTE_INSERT = ("INSERT INTO notes(id, at, kind, text, spot, contact, job, file) "
+               "VALUES(?,?,?,?,?,?,?,?)")
+NOTE_LIST = ("SELECT id, at, kind, text, spot, contact, job, file FROM notes "
+             "ORDER BY at DESC LIMIT {n}")
+NOTE_COLS = ("id", "at", "kind", "text", "spot", "contact", "job", "file")
+
+_notes_ready = [False]
+
+
+def _d1_notes():
+    """D1 에는 표를 만들어 둔 적이 없을 수 있다. 프로세스마다 한 번만 확인한다."""
+    if not _notes_ready[0]:
+        _d1(NOTES_DDL)
+        _notes_ready[0] = True
+
+
+def note(kind, text, spot="", contact="", job="", file=""):
+    """한 건 남기고 그 id 를 돌려준다. 못 남기면 RuntimeError.
+
+    `spot` 은 사용자가 결과 화면에서 고른 자리다 — 몇 번 지적인지, 점수인지, 미리보기인지."""
+    row = (secrets.token_hex(8), datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+           kind, text, spot, contact, job, file)
+    if d1_conf():
+        _d1_notes()
+        _d1(NOTE_INSERT, row)
+        return row[0]
+    con = _connect()
+    try:
+        with con:
+            con.execute(NOTE_INSERT, row)
+    finally:
+        con.close()
+    return row[0]
+
+
+def notes(limit=200):
+    if d1_conf():
+        _d1_notes()
+        return _d1(NOTE_LIST.format(n=int(limit)))[0]
+    con = _connect()
+    try:
+        rows = con.execute(NOTE_LIST.format(n=int(limit))).fetchall()
+    finally:
+        con.close()
+    return [dict(zip(NOTE_COLS, r)) for r in rows]
 
 
 CHECK_KINDS = ("check", "sample")

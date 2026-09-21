@@ -105,3 +105,36 @@ def test_sample_results_are_reused(monkeypatch):
     assert len(calls) == 1 and first["job"] != again["job"]
     client.post("/api/analyze-sample", json={"name": "sample_plate.dxf", "checks": ["EX_NO_DIMS"]})
     assert len(calls) == 2
+
+
+def test_feedback_is_saved_and_only_admin_can_read_it(monkeypatch):
+    """신고는 누구나 보낼 수 있고, 받은 글은 비밀번호를 아는 사람만 본다."""
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._fails.clear()
+    main._fails_all.clear()
+    sent = client.post("/api/feedback", json={
+        "kind": "report", "text": "3번 지적이 틀렸어요. Ø6 에 치수를 넣었는데 없다고 나옵니다.",
+        "spot": "3. 구멍 치수 누락", "contact": "open.kakao/abc"})
+    assert sent.status_code == 200, sent.text
+    assert client.post("/api/feedback", json={"kind": "report", "text": "짧"}).status_code == 400
+    assert client.post("/api/feedback", json={"kind": "spam", "text": "다섯 자 넘는 글"}).status_code == 400
+
+    assert client.post("/api/admin/notes", json={"token": "아무 값"}).status_code == 401
+    assert client.post("/api/admin/login", json={"pw": "틀린 값"}).status_code == 403
+    token = client.post("/api/admin/login", json={"pw": "test-pw-1234"}).json()["token"]
+    got = client.post("/api/admin/notes", json={"token": token}).json()["notes"]
+    assert got[0]["spot"] == "3. 구멍 치수 누락"
+    assert got[0]["contact"] == "open.kakao/abc"
+    assert got[0]["file"] == ""          # 도면을 같이 보낸다고 안 했으면 안 남는다
+
+
+def test_admin_locks_after_repeated_wrong_passwords(monkeypatch):
+    """비밀번호가 짧아도 맞혀서는 못 들어가게 한다."""
+    monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")
+    main._fails.clear()
+    main._fails_all.clear()
+    for _ in range(main.ADMIN_FAIL_MAX):
+        assert client.post("/api/admin/login", json={"pw": "nope"}).status_code == 403
+    assert client.post("/api/admin/login", json={"pw": "test-pw-1234"}).status_code == 429
+    main._fails.clear()
+    main._fails_all.clear()

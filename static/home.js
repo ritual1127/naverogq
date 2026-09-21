@@ -51,6 +51,7 @@ function drawPicker(){if(!CHECKS.length)return;const groups=[];
   $$('#pbtns button').forEach(b=>b.onclick=()=>{const p=b.dataset.p;enabled=new Set(p==='all'?CHECKS.map(c=>c.id):p==='none'?[]:CHECKS.filter(c=>c.default).map(c=>c.id));drawPicker()});
   persist()}
 function persist(){store.set(LS,JSON.stringify([...enabled]));$('#pcount').textContent=`${enabled.size}/${CHECKS.length}`;if(enabled.size)clearErr()}
+$('#reportBtn').onclick=()=>openNote('report',RAW&&RAW.job,spotList());
 $('#ptoggle').onclick=()=>{const p=$('#ppanel');p.hidden=!p.hidden;$('#ptoggle').setAttribute('aria-expanded',String(!p.hidden))};
 
 function loadStats(){fetch('/api/stats').then(r=>r.json()).then(s=>{STATS=s;drawStats()}).catch(()=>{})}
@@ -195,6 +196,9 @@ function drawItems(sc){
 }
 function asksHtml(f){const a=(f.followups||{})[lang];if((!a||!a.length)&&f.code==='AI_PROJECTION'&&RAW&&RAW.ai_extra)return `<div class="askbar"><div class="asklab">${esc(t('askTitle'))}</div><p class="asknote" aria-live="polite">${esc(t('askPending'))}</p></div>`;if(!a||!a.length)return '';const qs=t('asks')||[];
   return `<div class="askbar"><div class="asklab">${esc(t('askTitle'))}</div><div class="asks">${a.map((_,i)=>`<button type="button" data-ask="${i}" aria-expanded="false">${esc(qs[i]||'')}</button>`).join('')}</div><div class="answer" aria-live="polite" hidden></div><p class="asknote">${esc(t('askNote'))}</p></div>`}
+// 신고할 때 고를 자리. 결과 화면에 실제로 떠 있는 지적을 그대로 쓴다.
+function spotLabel(f,i){return `${i+1}. ${String(f.title||f.code||'').slice(0,60)}`}
+function spotList(){const d=RES||{};return [t('noteSpotAll'),...(d.findings||[]).map(spotLabel),t('noteSpotScore'),t('noteSpotView')]}
 function drawFindings(d){
   // Redrawing (language change, late AI answers) keeps the cards the user had open.
   const opened=new Set($$('#finds .fhead[aria-expanded="true"]').map(h=>h.closest('.finding').dataset.i));
@@ -215,11 +219,12 @@ function drawFindings(d){
     const w=f.where||{};const where=['sheet','view','sketch','feature'].filter(k=>w[k]).map(k=>esc(w[k])).join(' · ');
     return `<div class="finding" data-i="${i}"><button class="fhead" type="button" aria-expanded="false" aria-controls="fb-${i}"><span class="sev ${sev}">${ico(SEV_ICON[sev])}</span><span class="fmain"><span class="ftitle">${esc(f.title)}</span><span class="fmeta">${tags.join('')}</span></span>${ico('chev','chev')}</button>`
       +(markers.length?`<div class="markers">${markers.map(m=>`<button class="mchip" type="button" data-n="${m.n}" aria-label="${esc(fmt(t('markerGo'),{n:m.n}))}"><b>${m.n}</b>Ø${Number(m.diameter_mm).toFixed(1)} · ${m.count||1}${esc(t('places'))}</button>`).join('')}</div>`:'')
-      +`<div class="fbody" id="fb-${i}" hidden>${f.detail?`<p>${esc(f.detail)}</p>`:''}${f.fix?`<div class="fix"><b>${ico('check')}${esc(t('fixLabel'))}</b>${esc(f.fix)}</div>`:''}${asksHtml(f)}${where?`<p class="fwhere">${esc(t('where'))} · ${where}</p>`:''}</div></div>`}).join('')
+      +`<div class="fbody" id="fb-${i}" hidden>${f.detail?`<p>${esc(f.detail)}</p>`:''}${f.fix?`<div class="fix"><b>${ico('check')}${esc(t('fixLabel'))}</b>${esc(f.fix)}</div>`:''}${asksHtml(f)}${where?`<p class="fwhere">${esc(t('where'))} · ${where}</p>`:''}<button class="frep" type="button" data-rep="1">${ico('error')}${esc(t('noteReport'))}</button></div></div>`}).join('')
     ||`<div class="empty">${esc(t('emptyFindings'))}</div>`;
   $$('#finds .finding').forEach(el=>{const f=shown[+el.dataset.i],head=el.querySelector('.fhead'),body=el.querySelector('.fbody');
     head.onclick=()=>{const open=body.hidden;body.hidden=!open;head.setAttribute('aria-expanded',String(open))};
     if(opened.has(el.dataset.i)){body.hidden=false;head.setAttribute('aria-expanded','true')}
+    const rep=el.querySelector('[data-rep]');if(rep)rep.onclick=()=>openNote('report',RAW&&RAW.job,spotList(),spotLabel(f,all.indexOf(f)));
     const box=el.querySelector('.answer'),answers=(f.followups||{})[lang];if(!box||!answers)return;
     const asks=$$('.asks button',el);
     asks.forEach(b=>b.onclick=()=>{const open=!b.classList.contains('on');asks.forEach(x=>{x.classList.remove('on');x.setAttribute('aria-expanded','false')});

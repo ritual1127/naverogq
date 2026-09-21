@@ -645,3 +645,21 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .fact:nth-child(3) .k{color:var(--violet)}
 .scard:nth-child(2) .sext{background:var(--tint-good);color:var(--ink-good)}
 .scard:nth-child(3) .sext{background:var(--tint-violet);color:var(--violet)}
+
+/* 오류 신고 · 문의 */
+.nlead{margin:6px 0 14px;font-size:14px;line-height:1.7;color:var(--muted)}
+.nf{display:block;margin-bottom:12px;font-size:13.5px;font-weight:800}
+.nf>span{display:block;margin-bottom:6px}
+.nf textarea,.nf input,.nf select{width:100%;padding:11px 13px;border-radius:14px;font:inherit;font-size:14.5px;font-weight:600;color:var(--text);background:var(--panel2);box-shadow:inset 0 0 0 1.5px var(--line2);resize:vertical}
+.nf textarea:focus,.nf input:focus,.nf select:focus{outline:none;box-shadow:inset 0 0 0 2px var(--cyan)}
+.nf-check{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:16px;background:var(--panel2);cursor:pointer}
+.nf-check input{width:18px;height:18px;margin-top:3px;accent-color:var(--cyan)}
+.nf-check b{display:block;font-size:14px}
+.nf-check small{display:block;margin-top:4px;font-size:12.5px;font-weight:600;line-height:1.7;color:var(--muted)}
+.nmsg{font-size:13px;font-weight:700;color:var(--muted)}
+.frep{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12.5px;font-weight:800;color:var(--muted)}
+.frep:hover{color:var(--cyan-ink)}
+.frep .ico{width:15px;height:15px}
+.rep-all{margin-top:10px}
+.foot-links button{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--head-fg)}
+.foot-links button:hover{color:#fff;text-decoration:underline}
