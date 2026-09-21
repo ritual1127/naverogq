@@ -64,6 +64,8 @@ def plan(sheet, mm_per_unit, svg, tf, centers=True):
         return None
     geo = _Geometry(tf, mm_per_unit or 1.0)
     marks = _center_marks(sheet, geo) if centers else []
+    # 이미 중심선이 그어진 원. 그리지 않은 이유를 화면이 한 줄로 알려 준다.
+    have = sum(1 for c in sheet.get("hole_circles") or [] if c.get("centered")) if centers else 0
     groups = [g for g in sheet.get("undimensioned") or [] if g.get("view_members")]
     hidden = sorted({_format_mm(g["diameter_mm"]) for g in groups if g.get("hidden_only")}, key=float)
     groups = [g for g in groups if not g.get("hidden_only")]
@@ -75,7 +77,8 @@ def plan(sheet, mm_per_unit, svg, tf, centers=True):
     return {"dims": _dims_svg(placed, geo), "centers": _centers_svg(marks, geo),
             "width": max(geo.mm(LINE_MM), geo.w / 2600),
             "dim_count": len(placed), "hole_count": sum(c["count"] for c in placed),
-            "center_count": len(marks), "grouped": any(c["count"] > 1 for c in placed),
+            "center_count": len(marks), "center_have": have,
+            "grouped": any(c["count"] > 1 for c in placed),
             "hidden": hidden, "skipped": skipped,
             "_callouts": placed, "_marks": marks}
 
@@ -90,6 +93,7 @@ def layer(p, dims=True, centers=True):
     return {"svg": f'<g class="fixlayer" stroke-width="{p["width"]:.1f}">{body}</g>',
             "dims": p["dim_count"] if dims else 0, "holes": p["hole_count"] if dims else 0,
             "centers": p["center_count"] if centers else 0,
+            "center_have": p.get("center_have", 0) if centers else 0,
             "grouped": dims and p["grouped"],
             "hidden": p["hidden"] if dims else [], "skipped": p["skipped"] if dims else 0}
 
@@ -364,8 +368,11 @@ def _fits(c, placed, clear):
 # ---------------------------------------------------------------- 중심선
 
 def _center_marks(sheet, geo):
+    """중심선이 없는 원에만 그린다. 이미 그어 둔 원 위에 덧그리면 도면만 지저분해진다."""
     marks = []
     for c in sheet.get("hole_circles") or []:
+        if c.get("centered"):
+            continue
         cx, cy = geo.point(c["x"], c["y"])
         reach = geo.length(c["r"]) + geo.mm(EXT_MM)
         marks.append({"c": (cx, cy), "r": geo.length(c["r"]),

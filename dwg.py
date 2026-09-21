@@ -873,6 +873,44 @@ def _is_hidden(entity, hidden_layers):
         return False
 
 
+# 중심선 선분을 이만큼까지만 모은다. 한 장에 이보다 많으면 어느 원에 있는지 따지는
+# 의미가 없을 만큼 촘촘한 도면이고, 좌표를 다 들고 있을 이유도 없다.
+MAX_CENTER_SEGS = 4000
+# 중심선으로 쳐 주는 거리 — 선이 원 중심에서 이만큼 안으로 지나가야 한다(반지름 대비).
+CENTER_NEAR = 0.22
+CENTER_NEAR_MIN = 0.6           # mm. 아주 작은 원에서도 이만큼은 봐준다
+
+
+def _seg_distance(px, py, x1, y1, x2, y2):
+    """점과 선분 사이 거리. 선분 밖이면 가까운 끝점까지의 거리."""
+    dx, dy = x2 - x1, y2 - y1
+    span = dx * dx + dy * dy
+    if span <= 0:
+        return math.hypot(px - x1, py - y1)
+    t = max(0.0, min(1.0, ((px - x1) * dx + (py - y1) * dy) / span))
+    return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+
+
+def _has_center_line(circle, segs, tol_units):
+    """이 원에 이미 중심선이나 중심 마크가 있나.
+
+    도면은 중심선을 원 중심을 지나는 1점 쇄선으로 긋는다. 그래서 '중심에 가까이
+    지나가는 중심선 선분이 있나'로 본다. 짧은 중심 마크(십자)도 같은 조건에 든다.
+    애매하면 있다고 본다 — 이미 있는 원 위에 초록색 예시를 덧그리는 쪽이
+    없는 것을 놓치는 쪽보다 사용자에게 나쁘다."""
+    if not segs:
+        return False
+    near = max(circle["r"] * CENTER_NEAR, tol_units * (CENTER_NEAR_MIN / CENTER_TOL))
+    reach = circle["r"] * 1.6 + near
+    for x1, y1, x2, y2 in segs:
+        if (min(x1, x2) - reach > circle["x"] or max(x1, x2) + reach < circle["x"]
+                or min(y1, y2) - reach > circle["y"] or max(y1, y2) + reach < circle["y"]):
+            continue
+        if _seg_distance(circle["x"], circle["y"], x1, y1, x2, y2) <= near:
+            return True
+    return False
+
+
 def _is_centerline(entity):
     try:
         if _CENTER_RE.search(entity.dxf.get("layer", "") or ""):
@@ -1282,6 +1320,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     K, unit_why = detect_mm_per_unit(doc, msp)
     dims, circles, dim_centers, titles, texts = [], [], [], {}, []
     surfaces, geo_tols, rects, centerlines, symbol_zones = [], [], [], 0, []
+    center_segs = []            # 중심선 선분 [x1, y1, x2, y2] — 어느 원에 중심선이 있는지 보는 데 쓴다
     hidden = hatches = 0
     hidden_layers = _hidden_layers(doc)
     short_lines, long_lines = [], []
@@ -1297,6 +1336,12 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
             t = e.dxftype()
             if _is_centerline(e):
                 centerlines += 1
+                if t == "LINE" and len(center_segs) < MAX_CENTER_SEGS:
+                    try:
+                        a, b = e.dxf.start, e.dxf.end
+                        center_segs.append((a.x, a.y, b.x, b.y))
+                    except Exception:                         # noqa: BLE001
+                        pass
             if t == "HATCH" or _HATCH_RE.search(e.dxf.get("layer", "") or ""):
                 hatches += 1
             elif _is_hidden(e, hidden_layers):
@@ -1425,11 +1470,16 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
         # '수정 예시'가 지시선 화살표를 다른 원 둘레에 대지 않게 피하는 데 쓴다
         outline_circles.append([c["x"], c["y"], c["r"]])
         # 중심 마크 예시를 그릴 원. 나사 구멍에도 중심선은 필요하므로 치수 검사보다 앞에서 모은다.
-        if c["r"] * 2 * K >= MIN_HOLE_DIA_MM and not _in_symbol_zone(c["x"], c["y"], symbol_zones):
+        # 표면거칠기 기호에 붙은 원(짧은 선 여러 개에 내접한 원)은 구멍이 아니다 — 문자가
+        # 없는 기호는 심볼 영역으로도 안 걸려서 여기서 같이 거른다.
+        if (c["r"] * 2 * K >= MIN_HOLE_DIA_MM
+                and not _in_symbol_zone(c["x"], c["y"], symbol_zones)
+                and not _is_inscribed(c["x"], c["y"], c["r"], line_grid, grid_cell)):
             same = next((h for h in hole_circles if abs(h["x"] - c["x"]) <= tol_units
                          and abs(h["y"] - c["y"]) <= tol_units), None)
             if same is None:
-                hole_circles.append({"x": c["x"], "y": c["y"], "r": c["r"]})
+                hole_circles.append({"x": c["x"], "y": c["y"], "r": c["r"],
+                                     "centered": _has_center_line(c, center_segs, tol_units)})
             elif c["r"] > same["r"]:
                 same["r"] = c["r"]      # 동심원은 가장 큰 원 하나에만 긋는다
         # 나사는 지름 치수를 안 적고 나사 호칭(M4·M6×0.75)으로 적는다.
@@ -1533,6 +1583,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                         "SurfaceTextureSymbols": len(surfaces),
                         "FeatureControlFrames": len(geo_tols),
                         "Centerlines": centerlines, "Centermarks": 0,
+                        "CirclesWithoutCenter": sum(1 for h in hole_circles
+                                                    if not h.get("centered")),
                         "HiddenLines": hidden, "Hatches": hatches}}
     return {
         "kind": "dwg", "file": source_name or os.path.basename(path),

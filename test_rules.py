@@ -1414,3 +1414,26 @@ def test_ai_cache_hit_does_not_render_the_drawing(monkeypatch):
     monkeypatch.setattr(ai_review, "render_png", no_render)
     out = ai_review.judge({"dxf": __file__}, timeout=1)
     assert out and out["score"] == 30
+
+
+def test_center_lines_are_judged_circle_by_circle():
+    """전에는 도면에 중심선이 하나라도 있으면 통과였다. 큰 원에만 긋고 작은 구멍에
+    빠뜨린 도면이 그래서 전부 통과했고 '수정 예시'도 아무것도 안 그렸다."""
+    import dwg
+    import exam
+    import fixdraw
+
+    drawn = (0.0, 50.0, 100.0, 50.0)             # y=50 을 가로지르는 중심선
+    a = {"x": 50.0, "y": 50.0, "r": 5.0}         # 이 원에는 중심선이 지나간다
+    b = {"x": 50.0, "y": 200.0, "r": 5.0}        # 이 원에는 없다
+    assert dwg._has_center_line(a, [drawn], 0.5) is True
+    assert dwg._has_center_line(b, [drawn], 0.5) is False
+
+    sheet = {"hole_circles": [{**a, "centered": True}, {**b, "centered": False}],
+             "counts": {"Centerlines": 1, "Centermarks": 0}}
+    assert exam.centers_missing(sheet) == (1, 2)
+    geo = fixdraw._Geometry({"scale": 1.0, "off_x": 0.0, "off_y": 300.0,
+                             "view_w": 300.0, "view_h": 300.0}, 1.0)
+    marks = fixdraw._center_marks(sheet, geo)
+    assert len(marks) == 1                        # 중심선이 없는 원에만 그린다
+    assert marks[0]["c"] == geo.point(b["x"], b["y"])

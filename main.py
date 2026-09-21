@@ -847,7 +847,8 @@ def _fix_plan(facts, svg, tf):
     sheet = (facts.get("sheets") or [{}])[0]
     try:
         return fixdraw.plan(sheet, facts.get("unit_mm_per_drawing_unit"), svg, tf,
-                            centers=exam.lacks_center_lines(sheet))
+                            centers=exam.centers_missing(sheet)[0] > 0
+                            or exam.lacks_center_lines(sheet))
     except Exception as e:                                    # noqa: BLE001
         traceback.print_exc()
         print(f"[fix] 수정 예시 계산 실패: {type(e).__name__}: {e}", flush=True)

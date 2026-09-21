@@ -639,8 +639,18 @@ def _appearance(facts):
     return out
 
 
+def centers_missing(sheet):
+    """(중심선 없는 구멍 원 수, 구멍 원 수).
+
+    전에는 '도면에 중심선이 하나라도 있나'로만 봤다. 실제 도면은 큰 원에는 긋고 작은
+    구멍에는 빠뜨리는 쪽이 훨씬 흔한데, 그 경우가 전부 통과였고 '수정 예시'도 아무것도
+    그리지 않았다. 이제 원마다 중심을 지나는 중심선이 있는지 보고 없는 것만 센다."""
+    holes = sheet.get("hole_circles") or []
+    return sum(1 for h in holes if not h.get("centered")), len(holes)
+
+
 def lacks_center_lines(sheet):
-    """중심선도 중심마크도 하나 없는 도면. '수정 예시'가 중심선을 그릴지도 이걸로 정한다."""
+    """중심선도 중심마크도 하나 없는 도면."""
     counts = sheet.get("counts") or {}
     return not counts.get("Centerlines", 0) and not counts.get("Centermarks", 0)
 
@@ -670,11 +680,17 @@ def _projection(facts):
             "부품 형상을 표현하기에 투상도가 부족해 보입니다.",
             "정면도 기준으로 평면도·측면도, 필요시 단면도·상세도를 배치하세요.",
             "PROJECTION_LAYOUT"))
-    if lacks_center_lines(sh):
+    missing, holes = centers_missing(sh)
+    if missing or lacks_center_lines(sh):
+        whole = not holes or missing == holes
         out.append(_f(
-            "EX_NO_CENTERLINE", SEV_WARN, "중심선·중심마크 없음",
-            "원·구멍에 중심선이나 중심마크가 없습니다. KS 제도규격 위반입니다.",
-            "주석 > 중심선/중심 표시 로 모든 원과 대칭 형상에 넣으세요.",
+            "EX_NO_CENTERLINE", SEV_WARN,
+            "중심선·중심마크 없음" if whole else f"구멍 {missing}곳에 중심선 없음",
+            "원·구멍에 중심선이나 중심마크가 없습니다. KS 제도규격 위반입니다." if whole else
+            f"구멍 {holes}개 중 {missing}개에 중심을 지나는 중심선이 없습니다. "
+            "큰 원에만 긋고 작은 구멍에 빠뜨리면 감점입니다.",
+            "주석 > 중심선/중심 표시 로 모든 원과 대칭 형상에 넣으세요. "
+            "'수정 예시'를 켜면 빠진 자리에 초록색으로 그려 줍니다.",
             "PROJECTION_LAYOUT"))
     for v in views:
         if (v.get("is_detail") or v.get("is_section")) and v.get("show_label") is False:
