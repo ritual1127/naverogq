@@ -14,6 +14,8 @@ uploads/
 
 # 스킬과 그 도구는 공개하지 않는다
 .claude/
+.agents/
+skills-lock.json
 
 # wrangler 배포 캐시
 .wrangler/
