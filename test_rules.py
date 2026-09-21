@@ -1437,3 +1437,37 @@ def test_center_lines_are_judged_circle_by_circle():
     marks = fixdraw._center_marks(sheet, geo)
     assert len(marks) == 1                        # 중심선이 없는 원에만 그린다
     assert marks[0]["c"] == geo.point(b["x"], b["y"])
+
+
+def test_overall_size_is_measured_from_the_outline():
+    """치수가 하나도 없는 도면에는 전체 가로·세로를 그려 준다.
+
+    값은 어림이 아니라 외형선에서 잰 것이어야 한다. 합성도면/000_no_dims.dxf 의 뷰는
+    85 x 65 로 그려져 있고, 중심선은 거기서 3mm 씩 더 나가 있다 — 중심선까지 세면
+    85 가 아닌 수가 나오므로 이 시험이 그걸 잡는다."""
+    import check
+    import dwg
+    import fixdraw
+
+    facts, _, _ = check.analyze("합성도면/000_no_dims.dxf", ai_wait=0)
+    sheet = facts["sheets"][0]
+    assert not sheet.get("dims")
+    svg, tf, _ = dwg.svg_from(facts.get("record") or dwg.record(facts), [])
+    plan = fixdraw.plan(sheet, facts.get("unit_mm_per_drawing_unit"), svg, tf, centers=False)
+    assert plan["overall_count"] == 2
+    assert plan["overall_mm"] == [85.0, 65.0]
+    assert "85" in plan["dims"] and "65" in plan["dims"]
+
+
+def test_overall_size_is_skipped_when_the_drawing_already_has_dimensions():
+    """치수가 있는 도면에 전체 치수를 덧그리면 도면만 지저분해진다."""
+    import check
+    import dwg
+    import fixdraw
+
+    facts, _, _ = check.analyze("합성도면/000_no_center.dxf", ai_wait=0)
+    sheet = facts["sheets"][0]
+    assert sheet.get("dims")
+    svg, tf, _ = dwg.svg_from(facts.get("record") or dwg.record(facts), [])
+    plan = fixdraw.plan(sheet, facts.get("unit_mm_per_drawing_unit"), svg, tf, centers=True)
+    assert plan["overall_count"] == 0

@@ -876,6 +876,7 @@ def _is_hidden(entity, hidden_layers):
 # 중심선 선분을 이만큼까지만 모은다. 한 장에 이보다 많으면 어느 원에 있는지 따지는
 # 의미가 없을 만큼 촘촘한 도면이고, 좌표를 다 들고 있을 이유도 없다.
 MAX_CENTER_SEGS = 4000
+MAX_SHAPE_SEGS = 8000
 # 중심선으로 쳐 주는 거리 — 선이 원 중심에서 이만큼 안으로 지나가야 한다(반지름 대비).
 CENTER_NEAR = 0.22
 CENTER_NEAR_MIN = 0.6           # mm. 아주 작은 원에서도 이만큼은 봐준다
@@ -909,6 +910,19 @@ def _has_center_line(circle, segs, tol_units):
         if _seg_distance(circle["x"], circle["y"], x1, y1, x2, y2) <= near:
             return True
     return False
+
+
+def _is_shape(entity, hidden_layers):
+    """부품 외형을 그리는 실선인가. 전체 치수는 이것만으로 잰다.
+
+    중심선은 형상 밖으로 3mm 나가고, 숨은선은 보이지 않는 형상이며, 해칭은 잘린 면을
+    칠한 것이라 어느 것도 부품의 겉 크기가 아니다."""
+    try:
+        layer = entity.dxf.get("layer", "") or ""
+    except Exception:                                         # noqa: BLE001
+        return False
+    return not (_is_centerline(entity) or _is_hidden(entity, hidden_layers)
+                or _HATCH_RE.search(layer))
 
 
 def _is_centerline(entity):
@@ -1321,6 +1335,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     dims, circles, dim_centers, titles, texts = [], [], [], {}, []
     surfaces, geo_tols, rects, centerlines, symbol_zones = [], [], [], 0, []
     center_segs = []            # 중심선 선분 [x1, y1, x2, y2] — 어느 원에 중심선이 있는지 보는 데 쓴다
+    shape_segs = []             # 부품 외형선 — 중심선·숨은선·윤곽선을 뺀 실선. 전체 치수를 재는 데 쓴다
     hidden = hatches = 0
     hidden_layers = _hidden_layers(doc)
     short_lines, long_lines = [], []
@@ -1356,7 +1371,23 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                         short_lines.append((s.x, s.y, o.x, o.y))
                     elif span >= BORDER_MIN_EDGE_MM:
                         long_lines.append((s.x, s.y, o.x, o.y))
+                    if _is_shape(e, hidden_layers) and span < BORDER_MIN_EDGE_MM \
+                            and len(shape_segs) < MAX_SHAPE_SEGS:
+                        shape_segs.append((s.x, s.y, o.x, o.y))
                 except Exception:
+                    pass
+            if t in ("LWPOLYLINE", "POLYLINE") and _is_shape(e, hidden_layers):
+                try:
+                    pts = [(p[0], p[1]) for p in e.get_points("xy")] if t == "LWPOLYLINE" \
+                        else [(v.dxf.location.x, v.dxf.location.y) for v in e.vertices]
+                    if getattr(e, "closed", False) or e.dxf.get("flags", 0) & 1:
+                        pts = pts + pts[:1]
+                    for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+                        if len(shape_segs) >= MAX_SHAPE_SEGS:
+                            break
+                        if math.hypot(x2 - x1, y2 - y1) * K < BORDER_MIN_EDGE_MM:
+                            shape_segs.append((x1, y1, x2, y2))
+                except Exception:                             # noqa: BLE001
                     pass
             if t == "TOLERANCE":
                 g = _geometric_tol(e.dxf.get("content", "") or "")
@@ -1577,7 +1608,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "text_sizes": _text_sizes(doc, msp, K),
              "views_known": bool(view_names),
              "dims": dims, "undimensioned": undimensioned, "hole_circles": hole_circles,
-             "outline_circles": outline_circles,
+             "outline_circles": outline_circles, "shape_segs": shape_segs,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,
              "counts": {"circles": len(circles), "title_blocks": len(titles),
                         "SurfaceTextureSymbols": len(surfaces),

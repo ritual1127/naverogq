@@ -332,9 +332,10 @@ let fixOn=false;
 const CANT_CODES=['DQ_NO_SURFACE_SYMBOL','DQ_NO_GEOMETRIC_TOL','DQ_NO_FIT'];
 function fixCounts(d){const f=d&&d.fix;return f&&f.svg?f:null}
 function drawFixNote(d){const f=fixCounts(d);if(!f)return;
-  const bits=[];if(f.dims)bits.push(fmt(t('fixDims'),{n:f.dims}));if(f.centers)bits.push(fmt(t('fixCenters'),{n:f.centers}));
+  const bits=[];if(f.dims)bits.push(fmt(t('fixDims'),{n:f.dims}));if(f.overall)bits.push(fmt(t('fixOverall'),{n:f.overall}));if(f.centers)bits.push(fmt(t('fixCenters'),{n:f.centers}));
   const codes=new Set((d.findings||[]).map(x=>x.code));
   $('#fixNote').innerHTML=`<p><b>${esc(t('fixLegend'))}</b> ${esc(bits.join(' · '))}. ${esc(t('fixCheck'))}</p>`
+    +(f.overall?`<p>${esc(t('fixOverallNote'))}</p>`:'')
     +(f.center_have?`<p>${esc(fmt(t('fixCenterHave'),{n:f.center_have}))}</p>`:'')
     +(f.grouped?`<p>${esc(t('fixSame'))}</p>`:'')
     +((f.hidden||[]).length?`<p>${esc(fmt(t('fixHidden'),{v:f.hidden.map(v=>'Ø'+v).join(', ')}))}</p>`:'')

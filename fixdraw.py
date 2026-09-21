@@ -70,11 +70,19 @@ def plan(sheet, mm_per_unit, svg, tf, centers=True):
     hidden = sorted({_format_mm(g["diameter_mm"]) for g in groups if g.get("hidden_only")}, key=float)
     groups = [g for g in groups if not g.get("hidden_only")]
     placed, skipped = [], 0
+    no_dims = not (sheet.get("dims") or [])
+    ink = _Ink.of(svg, geo) if groups or no_dims else None
     if groups:
-        placed, skipped = _callouts(groups, sheet, geo, _Ink.of(svg, geo), marks)
-    if not (placed or marks or hidden or skipped):
+        placed, skipped = _callouts(groups, sheet, geo, ink, marks)
+    # 치수가 하나도 없는 도면에는 전체 가로·세로부터 그려 준다. 어디부터 손대야 하는지가
+    # 그 도면에서는 제일 막막한 자리다.
+    overall = _overall(sheet, geo, ink, mm_per_unit or 1.0) if no_dims else []
+    if not (placed or marks or hidden or skipped or overall):
         return None
-    return {"dims": _dims_svg(placed, geo), "centers": _centers_svg(marks, geo),
+    return {"dims": _dims_svg(placed, geo) + _overall_svg(overall, geo),
+            "centers": _centers_svg(marks, geo),
+            "overall_count": len(overall),
+            "overall_mm": [o["mm"] for o in overall],
             "width": max(geo.mm(LINE_MM), geo.w / 2600),
             "dim_count": len(placed), "hole_count": sum(c["count"] for c in placed),
             "center_count": len(marks), "center_have": have,
@@ -87,13 +95,16 @@ def layer(p, dims=True, centers=True):
     """What the page needs: one SVG group to lay over the preview, and counts for its note.
 
     None when nothing would be drawn — a button that shows only a note is not a preview."""
-    if not p or not (dims and p["dim_count"] or centers and p["center_count"]):
+    if not p or not (dims and (p["dim_count"] or p.get("overall_count"))
+                     or centers and p["center_count"]):
         return None
     body = (p["dims"] if dims else "") + (p["centers"] if centers else "")
     return {"svg": f'<g class="fixlayer" stroke-width="{p["width"]:.1f}">{body}</g>',
             "dims": p["dim_count"] if dims else 0, "holes": p["hole_count"] if dims else 0,
             "centers": p["center_count"] if centers else 0,
             "center_have": p.get("center_have", 0) if centers else 0,
+            "overall": p.get("overall_count", 0) if dims else 0,
+            "overall_mm": p.get("overall_mm", []) if dims else [],
             "grouped": dims and p["grouped"],
             "hidden": p["hidden"] if dims else [], "skipped": p["skipped"] if dims else 0}
 
@@ -366,6 +377,135 @@ def _fits(c, placed, clear):
 
 
 # ---------------------------------------------------------------- 중심선
+
+# ---------------------------------------------------------------- 전체 치수
+
+OVERALL_OFFSETS_MM = (10, 14, 19, 25, 32)   # 형상에서 치수선까지 띄울 거리 (가까운 쪽부터)
+OVERALL_MIN_MM = 5.0        # 이보다 작은 것은 전체 치수를 적을 형상이 아니다
+OVERALL_MAX_MM = 2000.0
+OVERALL_FILL = 0.3          # 뷰 상자의 이만큼은 차야 그 뷰의 형상을 제대로 잡은 것이다
+EXT_GAP_MM = 1.0            # 형상과 치수보조선 사이 띄움 (KS B 0001)
+EXT_OVER_MM = 2.0           # 치수보조선이 치수선 너머로 내미는 길이
+
+
+def _in_view(x_mm, y_mm, v):
+    return (abs(x_mm - v["x_mm"]) <= v["w_mm"] / 2 and abs(y_mm - v["y_mm"]) <= v["h_mm"] / 2)
+
+
+def _view_geometry(sheet, v, k):
+    """이 뷰 안에 있는 외형선 끝점과 원. 밀리미터가 아니라 도면 좌표 그대로 돌려준다."""
+    pts = []
+    for x1, y1, x2, y2 in sheet.get("shape_segs") or []:
+        if _in_view(x1 * k, y1 * k, v) and _in_view(x2 * k, y2 * k, v):
+            pts.append((x1, y1))
+            pts.append((x2, y2))
+    for x, y, r in sheet.get("outline_circles") or []:
+        if _in_view(x * k, y * k, v):
+            pts.append((x - r, y - r))
+            pts.append((x + r, y + r))
+    return pts
+
+
+def _overall(sheet, geo, ink, k):
+    """치수가 하나도 없는 도면에 전체 가로·세로 치수를 그린다.
+
+    뷰 하나를 골라 **그 뷰 안의 외형선과 원만으로** 크기를 잰다. 중심선은 형상 밖으로
+    3mm 나가 있고 숨은선은 안 보이는 형상이라 둘 다 빼고 잰 값이다. 어림이 아니라 도면
+    좌표에서 잰 값이라 그대로 적는다. 뷰를 못 찾은 도면에는 그리지 않는다 — 표제란과
+    윤곽선까지 한 덩어리로 재면 부품 크기가 아닌 수가 나온다."""
+    views = [v for v in sheet.get("views") or []
+             if v.get("x_mm") is not None and v.get("w_mm") and v.get("h_mm")]
+    if not views or not k or ink is None:
+        return []
+    best, pts = None, []
+    for v in views:
+        got = _view_geometry(sheet, v, k)
+        if len(got) > len(pts):
+            best, pts = v, got
+    if not best or len(pts) < 4:
+        return []
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    w_mm, h_mm = (max(xs) - min(xs)) * k, (max(ys) - min(ys)) * k
+    if not (OVERALL_MIN_MM <= w_mm <= OVERALL_MAX_MM and OVERALL_MIN_MM <= h_mm <= OVERALL_MAX_MM):
+        return []
+    # 뷰 상자를 거의 못 채웠다면 그 뷰의 형상을 제대로 못 잡은 것이다. 틀린 수를 적느니 만다.
+    if w_mm < best["w_mm"] * OVERALL_FILL or h_mm < best["h_mm"] * OVERALL_FILL:
+        return []
+    left, bottom = geo.point(min(xs), min(ys))
+    right, top = geo.point(max(xs), max(ys))
+    box = (left, top, right, bottom)
+    out = []
+    for kind, mm in (("w", w_mm), ("h", h_mm)):
+        spot = _overall_spot(kind, box, geo, ink)
+        if spot:
+            out.append({"kind": kind, "mm": round(float(mm), 1), "text": _format_mm(mm), **spot})
+    return out
+
+
+def _overall_spot(kind, box, geo, ink):
+    """치수선을 놓을 자리. 형상에서 가까운 쪽부터, 이미 그려진 것을 덜 덮는 자리를 고른다."""
+    left, top, right, bottom = box
+    gap, over = geo.mm(EXT_GAP_MM), geo.mm(EXT_OVER_MM)
+    tries = []
+    for mm in OVERALL_OFFSETS_MM:
+        off = geo.mm(mm)
+        for side in (1, -1):                     # 가로는 아래→위, 세로는 오른쪽→왼쪽
+            if kind == "w":
+                y = bottom + off if side > 0 else top - off
+                band = (left - over, min(y, bottom) - gap, right + over, max(y, top) + gap)
+                spot = {"line": ((left, y), (right, y)),
+                        "ext": (((left, bottom + gap if side > 0 else top - gap),
+                                 (left, y + side * over)),
+                                ((right, bottom + gap if side > 0 else top - gap),
+                                 (right, y + side * over))),
+                        "text_at": ((left + right) / 2, y - gap), "rotate": 0}
+            else:
+                x = right + off if side > 0 else left - off
+                band = (min(x, right) - gap, top - over, max(x, left) + gap, bottom + over)
+                spot = {"line": ((x, top), (x, bottom)),
+                        "ext": (((right + gap if side > 0 else left - gap, top),
+                                 (x + side * over, top)),
+                                ((right + gap if side > 0 else left - gap, bottom),
+                                 (x + side * over, bottom))),
+                        "text_at": (x - gap, (top + bottom) / 2), "rotate": -90}
+            if not _inside(band, (0, 0, geo.w, geo.h)):
+                continue
+            tries.append((ink.area(band), mm, spot))
+            if tries[-1][0] <= 0:
+                return spot
+    return min(tries, key=lambda t: (t[0], t[1]))[2] if tries else None
+
+
+def _overall_svg(items, geo):
+    parts = []
+    for it in items:
+        (x0, y0), (x1, y1) = it["line"]
+        for (ax, ay), (bx, by) in it["ext"]:
+            parts.append(f'<path d="M{_n(ax)} {_n(ay)}L{_n(bx)} {_n(by)}"/>')
+        parts.append(f'<path d="M{_n(x0)} {_n(y0)}L{_n(x1)} {_n(y1)}"/>')
+        h = geo.mm(TEXT_MM)
+        font = h / CAP_EM
+        length = min(geo.mm(ARROW_MM), abs(x1 - x0 or y1 - y0) / 3)
+        half = length * math.tan(math.radians(ARROW_HALF_DEG))
+        for (tx, ty), sign in (((x0, y0), 1), ((x1, y1), -1)):
+            if it["kind"] == "w":
+                bx, by = tx + sign * length, ty
+                parts.append(f'<path class="fixfill" d="M{_n(tx)} {_n(ty)}'
+                             f'L{_n(bx)} {_n(by - half)}L{_n(bx)} {_n(by + half)}Z"/>')
+            else:
+                bx, by = tx, ty + sign * length
+                parts.append(f'<path class="fixfill" d="M{_n(tx)} {_n(ty)}'
+                             f'L{_n(bx - half)} {_n(by)}L{_n(bx + half)} {_n(by)}Z"/>')
+        tx, ty = it["text_at"]
+        width = sum(CHAR_EM.get(ch, DIGIT_EM) for ch in it["text"]) * font
+        spin = f' transform="rotate({it["rotate"]} {_n(tx)} {_n(ty)})"' if it["rotate"] else ""
+        parts.append(f'<text x="{_n(tx)}" y="{_n(ty)}" font-size="{_n(font)}" '
+                     f'text-anchor="middle" textLength="{_n(width)}" '
+                     f'lengthAdjust="spacingAndGlyphs" '
+                     f'style="stroke-width:{_n(font * 0.16)}"{spin}>{it["text"]}</text>')
+    return "".join(parts)
+
 
 def _center_marks(sheet, geo):
     """중심선이 없는 원에만 그린다. 이미 그어 둔 원 위에 덧그리면 도면만 지저분해진다."""
