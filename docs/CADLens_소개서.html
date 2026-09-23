@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>CADLens 프로젝트 소개서</title>
+<style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Malgun Gothic","맑은 고딕",sans-serif;color:#15202b;font-size:9pt;line-height:1.62}
+.page{width:210mm;height:296.6mm;padding:17mm 16mm 13mm;page-break-after:always;position:relative;overflow:hidden;background:#fff}
+.page:last-child{page-break-after:auto}
+.pnum{position:absolute;left:16mm;right:16mm;bottom:7mm;display:flex;justify-content:space-between;font-size:7.4pt;color:#8a97a4;border-top:.5px solid #dbe3ea;padding-top:2.4mm}
+h1{font-size:14.5pt;color:#123a5c;letter-spacing:-.5px;line-height:1.3}
+h2{font-size:11.4pt;color:#123a5c;border-bottom:2px solid #123a5c;padding-bottom:2.6mm;margin-bottom:4mm;letter-spacing:-.4px}
+h2 .no{display:inline-block;background:#123a5c;color:#fff;font-size:8.4pt;padding:.6mm 2.2mm;border-radius:2px;margin-right:2.6mm;vertical-align:2px}
+h3{font-size:9.6pt;color:#123a5c;margin:3.6mm 0 1.6mm;letter-spacing:-.3px}
+h4{font-size:9pt;color:#1f77b4;margin:2.8mm 0 1.2mm}
+p{margin:0 0 2.2mm;text-align:justify}
+ul,ol{margin:0 0 2.4mm 4.6mm}
+li{margin-bottom:1.1mm;text-align:justify}
+b{color:#0d2d47}
+.cols{column-count:2;column-gap:7mm;column-rule:.5px solid #e3eaf0}
+.cols p,.cols li{font-size:8.5pt;line-height:1.58}
+table{width:100%;border-collapse:collapse;margin:1.6mm 0 3mm;font-size:7.9pt}
+th,td{border:.5px solid #c2ccd6;padding:1.2mm 1.8mm;text-align:left;vertical-align:top;line-height:1.45}
+th{background:#eef3f8;color:#123a5c;font-weight:700}
+td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.hl td{background:#fffbe9}
+figure{margin:2.4mm 0 3.2mm;break-inside:avoid}
+figure img{width:100%;display:block;border:.5px solid #dbe3ea;border-radius:2px}
+figcaption{font-size:7.3pt;color:#5a6a7a;margin-top:1.4mm;line-height:1.45}
+figcaption b{color:#123a5c}
+.quote{background:#f4f8fc;border-left:3px solid #123a5c;padding:2.4mm 3.2mm;margin:2.4mm 0;font-size:8.4pt;line-height:1.6}
+.quote .who{display:block;font-size:7.4pt;color:#5a6a7a;margin-top:1.4mm}
+.note{background:#fff8ec;border-left:3px solid #b4600a;padding:2.4mm 3.2mm;margin:2.4mm 0;font-size:8.2pt;line-height:1.58}
+.note b{color:#8f4c08}
+.mut{color:#5a6a7a}
+.warn{color:#b4600a;font-weight:700}
+.ok{color:#1d7a34;font-weight:700}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:2.4mm;margin:3mm 0}
+.kv div{border:.5px solid #c2ccd6;border-top:2.4px solid #123a5c;padding:2.4mm;text-align:center}
+.kv .v{font-size:14pt;color:#123a5c;font-weight:700;line-height:1.25;letter-spacing:-.6px}
+.kv .l{font-size:7.2pt;color:#5a6a7a;margin-top:1mm;line-height:1.35}
+.flow{display:flex;align-items:stretch;gap:1.6mm;margin:3mm 0}
+.flow div{flex:1;border:.5px solid #c2ccd6;background:#f7fafd;padding:2.2mm 1.6mm;font-size:7.4pt;text-align:center;line-height:1.4;border-radius:2px}
+.flow div b{display:block;color:#123a5c;font-size:8.2pt;margin-bottom:.8mm}
+.flow span{align-self:center;color:#1f77b4;font-size:10pt}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.cover{display:flex;flex-direction:column;height:100%;justify-content:space-between;padding-top:6mm}
+.cover .top{text-align:center}
+.cover h1{font-size:30pt;letter-spacing:-1.6px;margin:5mm 0 3mm}
+.cover .sub{font-size:11.4pt;color:#2a4a66;line-height:1.7}
+.cover .rule{width:34mm;height:3px;background:#123a5c;margin:6mm auto}
+.cover img.logo{width:26mm;margin:0 auto;display:block}
+.cover .meta{border-top:1.5px solid #123a5c;padding-top:4mm;font-size:8.4pt;color:#2a4a66}
+.cover .meta table{font-size:8.4pt}
+.cover .meta td,.cover .meta th{border:none;padding:1mm 0}
+.cover .meta th{background:none;width:24mm;color:#5a6a7a;font-weight:400}
+.toc{font-size:9.2pt}
+.toc li{margin-bottom:2.2mm;list-style:none;display:flex;align-items:baseline;gap:2mm}
+.toc .n{flex:0 0 7mm;color:#1f77b4;font-weight:700}
+.toc .t{flex:1;border-bottom:.5px dotted #c2ccd6}
+.toc .p{flex:0 0 8mm;text-align:right;color:#5a6a7a}
+.toc .grp{list-style:none;margin:4.4mm 0 2.4mm;font-size:8pt;color:#8a97a4;letter-spacing:1px;border-bottom:.5px solid #dbe3ea;padding-bottom:1.2mm}
+.toc .grp:first-child{margin-top:0}
+.lead{font-size:9.6pt;color:#2a4a66;line-height:1.66;border-left:3px solid #1f77b4;padding-left:3.4mm;margin-bottom:4mm}
+code{font-family:Consolas,monospace;font-size:8pt;background:#eef3f8;padding:.2mm 1mm;border-radius:2px;color:#0d2d47}
+.small{font-size:7.6pt;line-height:1.5;color:#5a6a7a}
+.ref{font-size:7.2pt;color:#8a97a4;margin-top:2.4mm;border-top:.5px solid #e3eaf0;padding-top:1.6mm;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- 1 표지 -->
+<section class="page">
+  <div class="cover">
+    <div class="top">
+      <img class="logo" src="../static/logo.png" alt="">
+      <h1>CADLens</h1>
+      <div class="rule"></div>
+      <div class="sub">
+        전산응용기계제도기능사 실기 도면을<br>
+        제출 전에 스스로 점검하는 웹 검사기<br>
+        <span style="font-size:9.4pt;color:#5a6a7a">— 프로젝트 소개서 —</span>
+      </div>
+    </div>
+
+    <figure style="margin:0">
+      <img src="demo/커버.png" alt="CADLens 결과 화면">
+      <figcaption><b>그림 0.</b> 도면을 올리면 지적 자리에 번호를 찍어 돌려주는 결과 화면.</figcaption>
+    </figure>
+
+    <div class="kv" style="margin:0">
+      <div><div class="v">37</div><div class="l">검사 항목</div></div>
+      <div><div class="v">100%</div><div class="l">실제 도면 23장<br>검출률 · 헛지적 0건</div></div>
+      <div><div class="v">10초</div><div class="l">검사 한 번<br>목표 시간</div></div>
+      <div><div class="v">24건</div><div class="l">기록한 문제<br>(해결 17 · 열림 5)</div></div>
+    </div>
+
+    <div class="meta">
+      <table>
+        <tr><th>팀</th><td><b>네이놈</b> · 박지완 · 장우영 · 안대열 · 김승준</td></tr>
+        <tr><th>소속</th><td>구미전자공업고등학교</td></tr>
+        <tr><th>서비스</th><td>https://naverogq.onrender.com · 한국어 / English / 日本語 / 中文</td></tr>
+        <tr><th>저장소</th><td>MIT 라이선스 · 코드와 문서 전부 공개</td></tr>
+        <tr><th>기준일</th><td>2026-09-25 (본선 8주 코칭 W6)</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="pnum"><span>CADLens 프로젝트 소개서</span><span>1 / 20</span></div>
+</section>
+
+<!-- 2 목차 -->
+<section class="page">
+  <h2><span class="no">목차</span>무엇이 어디에 있나</h2>
+  <p class="lead">이 문서는 CADLens가 <b>무엇을 풀려고 하는지</b>, <b>어떻게 만들었는지</b>,
+  <b>얼마나 맞는지 직접 재어 본 결과</b>, 그리고 <b>아직 안 되는 것</b>을 순서대로 적은 소개서입니다.
+  잘 되는 것보다 안 되는 것을 더 자세히 적었습니다. 공부용 도구가 틀린 것을 자신 있게 말하면
+  쓰는 사람이 틀린 것을 배우기 때문입니다.</p>
+
+  <ul class="toc">
+    <li class="grp">Ⅰ. 왜 만들었나</li>
+    <li><span class="n">1</span><span class="t">요약 — 한 장으로 보는 CADLens</span><span class="p">3</span></li>
+    <li><span class="n">2</span><span class="t">문제 정의 — 5시간 안에 그리고 그 자리에서 낸다</span><span class="p">4</span></li>
+    <li><span class="n">3</span><span class="t">사용자 조사 — 다섯 사람에게 직접 물었다</span><span class="p">5</span></li>
+
+    <li class="grp">Ⅱ. 무엇을 어떻게 만들었나</li>
+    <li><span class="n">4</span><span class="t">해결 방식 — 대신 그리지 않고, 빠진 것만 찾는다</span><span class="p">6</span></li>
+    <li><span class="n">5</span><span class="t">시스템 구조 — 파일 하나가 결과가 되기까지</span><span class="p">7</span></li>
+    <li><span class="n">6</span><span class="t">도면 읽기 — DWG·DXF에서 무엇을 뽑는가</span><span class="p">8</span></li>
+    <li><span class="n">7</span><span class="t">채점 설계 — 70점은 규칙, 30점은 AI</span><span class="p">9</span></li>
+    <li><span class="n">8</span><span class="t">검사 항목 37개와 실격 조건 6가지</span><span class="p">10</span></li>
+    <li><span class="n">9</span><span class="t">AI 채점 — 채점기 넷을 줄 세운 이유</span><span class="p">11</span></li>
+    <li><span class="n">10</span><span class="t">수정 예시 — 고칠 자리를 도면 위에 그린다</span><span class="p">12</span></li>
+
+    <li class="grp">Ⅲ. 얼마나 맞는가</li>
+    <li><span class="n">11</span><span class="t">정확도 측정 — 표본 세 종류와 그 한계</span><span class="p">13</span></li>
+    <li><span class="n">12</span><span class="t">측정으로 잡은 문제 24건</span><span class="p">14</span></li>
+
+    <li class="grp">Ⅳ. 쓰이고 있는가</li>
+    <li><span class="n">13</span><span class="t">지표 설계 — 북극성 지표와 퍼널</span><span class="p">15</span></li>
+    <li><span class="n">14</span><span class="t">리텐션과 개선 한 건</span><span class="p">16</span></li>
+
+    <li class="grp">Ⅴ. 책임과 앞으로</li>
+    <li><span class="n">15</span><span class="t">개인정보 · 미성년자 안전 · AI 윤리</span><span class="p">17</span></li>
+    <li><span class="n">16</span><span class="t">기술 스택과 라이선스</span><span class="p">18</span></li>
+    <li><span class="n">17</span><span class="t">임팩트와 사업화 가능성</span><span class="p">19</span></li>
+    <li><span class="n">18</span><span class="t">한계와 발전 계획 · 부록</span><span class="p">20</span></li>
+  </ul>
+
+  <div class="note" style="margin-top:6mm">
+    <b>이 문서에 적힌 숫자에 대하여.</b> 표와 그래프의 값은 전부 저장소 안의 측정 기록과
+    운영 중인 서버의 <code>/api/stats</code> 응답에서 가져왔습니다. 추정하거나 반올림해서
+    좋게 보이게 만든 숫자는 없습니다. 아직 재지 못한 것은 "아직 못 잼"이라고 적었고,
+    표본이 작을 때는 비율 옆에 실제 인원을 같이 적었습니다(<code>35%(11/31)</code>).
+  </div>
+
+  <div class="ref">근거 문서 — <code>README.md</code> · <code>docs/accuracy.md</code> ·
+  <code>docs/metrics.md</code> · <code>docs/interviews.md</code> · <code>docs/policy.md</code> ·
+  <code>docs/impact.md</code> · <code>docs/roadmap.md</code> · <code>plan/문제점/</code></div>
+  <div class="pnum"><span>목차</span><span>2 / 20</span></div>
+</section>
+
+<!-- 3 요약 -->
+<section class="page">
+  <h2><span class="no">1</span>요약 — 한 장으로 보는 CADLens</h2>
+
+  <p class="lead">전산응용기계제도기능사 실기는 <b>5시간 안에 도면을 다 그려서 그 자리에서 제출</b>합니다.
+  내고 나면 고칠 수 없습니다. 그런데 떨어지는 이유는 대부분 "그릴 줄 몰라서"가 아니라
+  <b>표면거칠기 값을 안 적었거나, 기하공차에 데이텀을 빼먹었거나, 구멍에 지름 치수를 안 넣은</b> 경우입니다.
+  CADLens는 도면 파일을 올리면 이런 것들을 <b>도면 위에 번호로 찍어</b> 돌려줍니다.</p>
+
+  <div class="cols">
+    <h3>무엇을 만들었나</h3>
+    <p>DWG 또는 DXF 도면을 웹에 올리면 <b>37개 항목</b>을 자동으로 확인하고, 문제가 있는 위치를
+    도면 그림 위에 번호로 표시합니다. 지적할 때마다 <b>왜 틀렸는지</b>와 <b>어떻게 고치는지</b>를
+    같이 알려 줍니다. 회원가입도 설치도 없고, 무료입니다.</p>
+
+    <p>점수는 공개된 채점 기준표의 8개 항목을 그대로 따라 <b>100점</b>으로 매깁니다.
+    이 중 <b>70점은 규칙 코드</b>가, 배점이 가장 큰 <b>투상도 30점은 AI</b>가 채점합니다.
+    실격(오작) 조건 6가지는 점수와 상관없이 따로 먼저 확인합니다.</p>
+
+    <h3>왜 나누었나</h3>
+    <p>"표면거칠기 값이 비어 있다" 같은 것은 답이 정해져 있어서 규칙이 더 빠르고 늘 같은 답을 냅니다.
+    문제는 나머지입니다. <b>"정면도를 잘 골랐나", "뷰가 균형 있게 놓였나"는 정답을 조건식으로
+    적을 수가 없습니다.</b> 도면을 눈으로 보고 판단해야 하는 영역인데, 실기에서 배점이 가장 큰
+    항목(30점)이 하필 여기입니다. 그래서 도면을 그림으로 만들어 멀티모달 AI에게
+    채점위원 기준으로 보여 주는 방식을 썼습니다.</p>
+
+    <h3>얼마나 맞나</h3>
+    <p>답을 미리 정해 둔 도면으로 잽니다. 우리가 만든 기준 도면 25장, 합성 도면 100장,
+    그리고 <b>기계과 학생에게 받은 실제 도면 23장</b>에서 모두 완전 일치했고 헛지적은 0건이었습니다.
+    다만 이 100%는 <b>표본이 한 학생 것</b>이고 <b>37개 검사 중 6개만 라벨</b>한 결과입니다.
+    그 한계를 13쪽에 그대로 적었습니다.</p>
+
+    <h3>쓰이고 있나</h3>
+    <p>2026-08-30부터 서버가 직접 셉니다. 최근 정상 주(09-14~20) 기준 방문 31명 중
+    <b>11명이 검사를 시작</b>했고, 그중 <b>10명이 그 주에 고쳐서 다시 올렸습니다.</b>
+    퍼널에서 <b>방문 → 검사 시작 한 칸에서만 65%가 빠집니다.</b> 그 뒤 칸은 새지 않습니다.</p>
+
+    <h3>정직하게 만드는 것</h3>
+    <p>안 되는 것을 문서로 공개하는 데 더 신경 썼습니다. 확실하지 않으면 감점하지 않고
+    "사람 확인 필요"로 남기고, AI가 전부 막히면 30점을 비워 둔 채 아는 척하지 않습니다.
+    일하다 만난 문제 <b>24건</b>을 고쳤든 못 고쳤든 저장소에 남겼습니다.</p>
+  </div>
+
+  <div class="two">
+    <figure>
+      <img src="fig/fig_score.png" alt="배점 구성">
+      <figcaption><b>그림 1.</b> 100점 배점 구성. 규칙 코드 70점과 AI 30점으로 나뉜다.
+      나눈 기준은 "조건식으로 정답을 적을 수 있는가"다.</figcaption>
+    </figure>
+    <figure>
+      <img src="fig/fig_funnel.png" alt="퍼널">
+      <figcaption><b>그림 2.</b> 사용 퍼널(2026-09-14 주, 사람 수). 올리기만 하면 결과까지
+      100% 도달하고 91%가 다시 올린다. 새는 칸은 첫 화면 하나다.</figcaption>
+    </figure>
+  </div>
+
+  <h3>여기까지 온 순서</h3>
+  <table style="margin-bottom:0">
+    <tr><th style="width:20mm">언제</th><th>무엇이 있었나</th></tr>
+    <tr><td>2026-08 초</td><td>합성 기준 도면 18장으로 첫 정확도 측정. 검사 항목 31개</td></tr>
+    <tr><td>08-22</td><td><b>단위가 mm가 아닌 도면이 백지로 렌더되던 것</b>을 발견 — AI가 백지를 채점하고 있었다</td></tr>
+    <tr><td>08-26~28</td><td>대면 인터뷰 5건. "4시간"이 <b>5시간</b>이었다는 것을 포함해 전제를 고침</td></tr>
+    <tr><td>09-06</td><td>실제 도면에서 오작이 전부 뜸. 학생 도면 32장 변환은 <b>0/32</b>로 실패</td></tr>
+    <tr class="hl"><td>09-11</td><td>Inventor 2027 설치 후 <b>30/32</b> 변환 성공 → 실제 도면 23장으로 재측정.
+      <b>AI가 도면의 29~51%만 보고 있었던 것</b>과 <b>윤곽선을 한 장도 못 찾던 것</b>을 같이 발견</td></tr>
+    <tr><td>09-16</td><td>공개 서버 런칭. 그 주부터 방문·검사·재검사를 서버가 직접 셈</td></tr>
+    <tr><td>09-18</td><td>채점 모델을 실측으로 교체 (<code>gemini-3.6-flash</code>는 20번 중 18번 실패)</td></tr>
+    <tr><td>09-23~25</td><td>퍼널 작성 · 사람이 아닌 접속 거르기 · 코호트 계측 · 개선 1건 적용</td></tr>
+  </table>
+  <div class="pnum"><span>Ⅰ. 왜 만들었나 · 1. 요약</span><span>3 / 20</span></div>
+</section>
+
+<!-- 4 문제 정의 -->
+<section class="page">
+  <h2><span class="no">2</span>문제 정의 — 5시간 안에 그리고 그 자리에서 낸다</h2>
+
+  <div class="quote">
+    구미전자공업고등학교에서 기계제도를 배우는 학생입니다. 도면을 그릴 때는 다 완성했다고
+    생각했는데, 나중에 확인해 보면 치수가 하나 빠져 있거나 공차와 표면거칠기 기호를 빼먹는 일이
+    자주 있었습니다. <b>작은 기호 하나 때문에 점수가 깎이거나 실격될 수도 있지만, 복잡한 도면에서
+    직접 찾는 것은 생각보다 어려웠습니다.</b>
+    <span class="who">— 만든 사람의 기록 (<code>docs/왜_만들었나.md</code>)</span>
+  </div>
+
+  <h3>혼자서는 잘 안 보이는 이유 세 가지</h3>
+  <ol>
+    <li><b>확인할 게 너무 많습니다.</b> 채점 항목이 8가지로 나뉘고, 그 안에서 봐야 할 세부 항목은
+    20개가 넘습니다. 5시간 동안 그리면서 이걸 전부 머릿속에 두기 어렵습니다.</li>
+    <li><b>틀렸다고 말해 주는 사람이 없습니다.</b> 혼자 연습하면 뭘 빠뜨렸는지 알 방법이 없습니다.
+    시험 결과도 합격인지 아닌지만 나오고, 무엇 때문에 떨어졌는지는 알려 주지 않습니다.</li>
+    <li><b>틀린 걸 모르고 하는 연습은 실수를 굳힙니다.</b> 틀린 채로 100장을 그리면
+    101장째도 똑같이 틀립니다. 반복이 실력이 아니라 습관이 됩니다.</li>
+  </ol>
+
+  <h3>이 문제를 겪는 사람은 몇 명인가</h3>
+
+  <figure>
+    <img src="fig/fig_exam.png" alt="응시자와 합격률">
+    <figcaption><b>그림 3.</b> 전산응용기계제도기능사 실기 응시자와 합격률(2021~2025).
+    회색 막대가 전체 응시자, 주황 막대가 불합격 인원, 선이 합격률이다.
+    출처 — 한국산업인력공단 Q-Net 종목별 검정현황(2026년 8월 기준 공개 표에서 옮겨 적음).
+    <b>직접 계산한 값이 아니라 원래 출처와 다를 수 있습니다.</b></figcaption>
+  </figure>
+
+  <div class="cols">
+    <p>매년 <b>1만 명 정도가 필기</b>를 보고 <b>3천 명 넘게 실기</b>를 봅니다. 실기 합격률이
+    5년째 45~53%에 머물러 있어서, <b>최근 3년만 봐도 매년 1,500~1,700명이 실기에서 떨어집니다</b>
+    (2021년까지 넣으면 연평균 약 1,900명).</p>
+
+    <p>필기 1만 명 중 실기를 보는 사람이 3천 명뿐인 것도 눈여겨볼 대목입니다. 준비하다
+    포기하는 사람이 그만큼 많다는 뜻으로 봅니다. 그리고 떨어지는 사람 중 상당수는
+    <b>그리는 실력이 아니라 표기를 빠뜨려서</b> 떨어집니다.</p>
+
+    <p>여기에 더해, 실습 시간에는 <b>선생님 한 명이 학생 30명의 도면을 전부 봅니다.</b>
+    대부분은 매번 똑같은 확인입니다. "거칠기 값이 비었다", "데이텀이 없다" 같은 것을
+    사람이 반복해서 짚고 있습니다.</p>
+
+    <p>그래서 문제를 이렇게 한 문장으로 적었습니다.</p>
+  </div>
+
+  <div class="quote">
+    우리는 전산응용기계제도기능사 실기를 <b>혼자 준비하는 수험생</b>이 도면을 제출하기 직전에 겪는,
+    <b>혼자 볼 때는 무엇을 빠뜨렸는지 짚어 줄 사람이 없고 남이 짚어 줘도 그때는 고칠 시간이 없는</b> 문제를,
+    <b>도면 파일을 올리면 빠진 항목을 도면 위에 찍어 주는 웹 검사기</b>로 없앤다.
+    <span class="who">— 문제 정의 한 문장 (2026-08-30 인터뷰 5건으로 고침)</span>
+  </div>
+
+  <div class="ref">근거 — <code>docs/왜_만들었나.md</code> · <code>docs/impact.md</code> ·
+  <code>example/96_응시자_통계.md</code> · Q-Net 국가기술자격 통계연보</div>
+  <div class="pnum"><span>Ⅰ. 왜 만들었나 · 2. 문제 정의</span><span>4 / 20</span></div>
+</section>
+
+<!-- 5 사용자 조사 -->
+<section class="page">
+  <h2><span class="no">3</span>사용자 조사 — 다섯 사람에게 직접 물었다</h2>
+
+  <p class="lead">우리가 생각한 문제와 실제로 겪는 문제가 다르면 <b>다른 쪽이 맞습니다.</b>
+  만들기 전에 다섯 명을 따로 만나 물었습니다. 구미전자공고 자동화관에서 한 명당 약 30분씩,
+  같은 질문지 다섯 개를 그대로 썼습니다. 질문 1에서 나온 <b>가장 최근 실수 하나</b>를
+  질문 2~4까지 끝까지 따라갔습니다. 직접 인용 3개는 <b>들은 말 그대로</b> 적고
+  (다듬으면 그 사람 말이 아니라 우리 말이 됩니다), 끝나고 <b>5분 안에</b> 채웠습니다
+  (미루면 인용이 요약으로 변합니다). 이름은 <code>박*후</code>처럼 가려 씁니다.</p>
+
+  <div class="quote">
+    "축에서 <b>베어링 닿는 자리</b> 있잖아요. 거기 표면거칠기 기호 하나를 빼먹었어요.
+    저는 형상이랑 치수 맞추는 데만 눈이 가서 <b>표면거칠기는 마지막에 몰아서 넣거든요.</b>
+    그러니까 하나가 빠져도 <b>화면이 비어 보이지 않아서</b> 잘 모르겠더라고요. (…)
+    캐드 파일 열어서 그 면에 기호 넣는 건 <b>한 2분</b>밖에 안 걸렸어요. 근데 PDF 다시 만들고,
+    파일 이름 확인하고, 프린터 자리 기다렸다가 종이 방향까지 보고 뽑으니까 <b>총 11분</b> 정도 썼어요.
+    <b>그거 고치고 나니까 남은 6분 동안에는 다른 걸 거의 못 봤어요.</b>"
+    <span class="who">— 인터뷰 1 · 메카트로닉스과 2학년 (2026-08-26)</span>
+  </div>
+
+  <h3>다섯 사람의 "가장 최근 실수" — 무엇을, 언제 알았고, 고치는 데 얼마나 걸렸나</h3>
+  <table>
+    <tr><th style="width:24mm">누가</th><th style="width:44mm">무엇을 빠뜨렸나</th>
+      <th style="width:44mm">언제 알았나</th><th>고치는 데 든 시간</th></tr>
+    <tr><td>박*후 · 2학년</td><td>베어링 접촉부 <b>표면거칠기 기호 1개</b></td>
+      <td>출력 뒤 친구의 교차 확인 · <b>종료 17분 전</b></td><td>기호 넣기 2분, 재출력까지 <b>총 11분</b></td></tr>
+    <tr><td>박*호 · 2학년</td><td>커버 뷰가 자동으로 <b>2:1 척도</b>가 된 것</td>
+      <td>출력 직전 속성값 점검</td><td><b>6분 40초</b> 수정, 총 11분 뒤 출력</td></tr>
+    <tr class="hl"><td>배*후 · 2학년 · 독학</td><td><b>데이텀과 기하공차를 통째로 비움</b></td>
+      <td><b>이틀 뒤</b> 첨삭에서 (모의 배점 8점 전체)</td><td>복습에 <b>1시간 25분</b></td></tr>
+    <tr><td>최*영 · 2학년</td><td>프린터의 이전 <b>A4 설정</b> → 축소·잘림</td>
+      <td>종이로 확인 · <b>종료 21분 전</b></td><td>설정 수정 · 재출력 · 검토 <b>11분</b></td></tr>
+    <tr><td>손선생님 · 기계제도 담당</td><td>내부 턱을 보여 줄 <b>단면도 누락</b></td>
+      <td>작업 <b>3시간 32분</b>에</td><td>단면 작성과 치수 재배치 <b>24분</b></td></tr>
+  </table>
+
+  <div class="cols">
+    <h3>여기서 무엇이 바뀌었나</h3>
+    <p><b>1. 고치는 시간이 문제가 아니었습니다.</b> 기호를 넣는 데는 2분입니다. 문제는
+    <b>찾는 데까지 걸린 시간</b>과, 찾고 나서 <b>다시 제출물을 만드는 시간</b>이었습니다.
+    그래서 CADLens는 "대신 그려 주는 것"이 아니라 <b>"빨리 찾아 주는 것"</b>에 집중했습니다.</p>
+
+    <p><b>2. 사람이 먼저 보면 이미 늦습니다.</b> 발견 시점이 종료 17분 전, 21분 전,
+    심지어 <b>이틀 뒤</b>였습니다. 남이 봐 주는 방식은 <b>봐 주는 시점이 항상 늦다</b>는
+    구조적 한계가 있습니다. 파일만 있으면 몇 초 만에 도는 검사가 필요한 이유입니다.</p>
+
+    <p><b>3. 빠진 것은 "비어 보이지 않습니다".</b> 기호 하나가 없다고 화면이 허전해지지 않습니다.
+    사람 눈이 놓치도록 생긴 문제이고, 그래서 <b>기계가 세는 것이 실제로 이깁니다.</b></p>
+
+    <p><b>4. 다섯 명 모두 이미 자기만의 체크리스트를 만들어 쓰고 있었습니다.</b>
+    A4 종이 체크리스트, 부품별 체크칸, 출력 점검 8개 항목, 형광펜으로 접촉면 표시.
+    <b>필요를 증명할 필요가 없었습니다 — 이미 손으로 하고 있었습니다.</b></p>
+
+    <h3>강한 신호 — 이미 돈과 시간을 쓰고 있었다</h3>
+    <p>"나오면 써 볼게요"는 신호가 아닙니다. <b>이미 쓴 돈</b>만 셉니다.
+    실기 교재 <b>32,000원</b>, 중고 교재 <b>18,000원</b>, 온라인 실기 강의 한 달 <b>40,000원</b>,
+    집에 A3 프린터가 없어 복사집에서 2주 동안 14번 출력 <b>약 18,200원</b>,
+    야간 학원 6주 과정 <b>420,000원</b>. 시간도 <b>주 2회 × 2시간 × 6주</b>,
+    <b>넉 달</b>, <b>완성 13세트</b> 같은 단위로 나왔습니다.</p>
+
+    <h3>조사가 실제로 고친 것</h3>
+    <p>W1에 적어 둔 "4시간짜리 실기 도면"이 <b>틀렸습니다.</b> 다섯 명 모두 <b>5시간</b>이라고
+    말했고 한 명은 "5시간 중 4시간 43분"으로 분 단위로 말했습니다. Q-Net 종목 정보도 5시간이었습니다.
+    2026-08-29에 고쳤습니다. <b>물어보지 않았으면 틀린 전제 위에 8주를 쌓을 뻔했습니다.</b></p>
+
+    <p>다섯 사람의 실수를 우리 검사 항목에 하나씩 대보는 표도 만들었습니다
+    (<code>EX_SURFACE_FEW</code> 처럼 어느 검사가 잡는지). 문제 정의 한 문장도 이 다섯 건으로
+    고쳤습니다(2026-08-30).</p>
+  </div>
+
+  <div class="ref">근거 — <code>docs/interviews.md</code>(대면 5건 전문 · 폼 응답 · 겹치는 항목 표) ·
+  <code>plan/w2/08-25_화/질문지.md</code> · 외부 자문으로 구미전자공고 김민정 선생님께
+  수업에서 무엇을 확인하시는지 여쭤 검사 항목에 반영했습니다.
+  도와주신 분들이 이 프로젝트 결과에 책임을 지시는 것은 아닙니다.</div>
+  <div class="pnum"><span>Ⅰ. 왜 만들었나 · 3. 사용자 조사</span><span>5 / 20</span></div>
+</section>
+
+<!-- 6 해결 방식 -->
+<section class="page">
+  <h2><span class="no">4</span>해결 방식 — 대신 그리지 않고, 빠진 것만 찾는다</h2>
+
+  <p class="lead"><b>CADLens는 도면을 대신 그려 주지 않습니다.</b> 내기 직전에 빠진 것을 찾아 주고,
+  왜 틀렸는지 알려 주는 것만 합니다. 혼자 연습하는 사람도 선생님 없이
+  <code>검사 → 고치기 → 다시 검사</code>를 반복할 수 있게 하는 것이 목표입니다.</p>
+
+  <div class="flow">
+    <div><b>① 올린다</b>DWG · DXF · zip<br>끌어다 놓기</div><span>▶</span>
+    <div><b>② 읽는다</b>치수 · 기호 · 공차<br>표제란 · 뷰 좌표</div><span>▶</span>
+    <div><b>③ 채점한다</b>규칙 70점<br>AI 30점</div><span>▶</span>
+    <div><b>④ 그린다</b>지적 자리에<br>번호를 찍는다</div><span>▶</span>
+    <div><b>⑤ 고친다</b>다시 올리면<br>전후를 비교</div>
+  </div>
+
+  <div class="two">
+    <figure>
+      <img src="demo/S3_무엇을만들었나.png" alt="무엇을 만들었나">
+      <figcaption><b>그림 4.</b> 결과 화면. 왼쪽에 도면과 번호, 오른쪽에 지적 목록과 점수.</figcaption>
+    </figure>
+    <figure>
+      <img src="demo/S4_고치기전후.png" alt="고치기 전후">
+      <figcaption><b>그림 5.</b> 다시 검사하면 <code>고쳐짐 / 그대로 / 새로 생김</code>과
+      점수 변화를 같이 보여 준다.</figcaption>
+    </figure>
+  </div>
+
+  <div class="cols">
+    <h3>지적 하나가 끝이 아니다</h3>
+    <p>감점 문구만 보고 "이게 왜 감점이지" 하고 막히면 고칠 수가 없습니다. 그래서 AI가 매긴
+    지적마다 <b><code>왜 감점이야?</code> · <code>어디를 눌러?</code> · <code>고친 뒤 확인은?</code></b>
+    세 개의 답을 채점 직후 이어서 만들어 둡니다. 버튼을 누르면 바로 펼쳐지고 서버를 다시 부르지 않습니다.</p>
+
+    <h3>검사 한 번을 10초 안에</h3>
+    <p>도면을 읽고 미리보기를 그리는 동안 AI 채점을 같이 돌리고, <b>AI는 8초까지만 기다립니다.</b>
+    그 안에 안 오면 나머지 결과를 먼저 보여 주고 투상도 항목만 <code>AI 채점 중</code>으로 둔 뒤,
+    채점이 도착하면 그 자리에서 채웁니다. 응답에 <code>Server-Timing</code> 헤더로
+    도면 읽기 · 미리보기 · AI 대기 시간이 각각 들어 있어 어디서 시간이 갔는지 바로 볼 수 있습니다.</p>
+
+    <h3>네 나라 말로 보여 준다</h3>
+    <p>지적과 총평을 <b>한국어 · English · 日本語 · 中文</b>으로 보여 줍니다. 도면마다 문장이 달라
+    고정 번역표를 쓸 수 없어서, 채점 결과를 한 번 더 넘겨 세 언어를 받아 같은 캐시에 넣습니다.</p>
+
+    <h3>자유 입력란을 두지 않았다</h3>
+    <p>주 사용자가 미성년자라 AI를 <b>도면 채점 역할에 묶어 두는 편이 안전</b>하고,
+    정해진 질문만 쓰면 답을 미리 만들어 캐시에 넣을 수 있어 무료 할당량도 아낍니다.
+    채팅 · 댓글 · 프로필처럼 사용자끼리 만날 수 있는 기능이 아예 없습니다.</p>
+
+    <h3>웹 화면에 프레임워크를 쓰지 않았다</h3>
+    <p>React 같은 것을 쓰지 않았습니다. 따로 빌드하는 과정 없이 <b>파일 하나만 열면 되게</b>
+    하고 싶었습니다. 화면은 HTML + CSS + JS 그대로이고, 글꼴도 외부에서 불러오지 않고
+    서버에 직접 올려 둡니다.</p>
+  </div>
+
+  <h3>안 하기로 한 것 — 그리고 왜</h3>
+  <table style="margin-bottom:0">
+    <tr><th style="width:44mm">안 하는 것</th><th>왜</th></tr>
+    <tr><td><b>도면을 대신 그려 주지 않습니다</b></td>
+      <td>대신 그려 주면 그것은 더 이상 학생의 도면이 아닙니다. 연습 도구가 연습을 대신하면 남는 것이 없습니다</td></tr>
+    <tr><td><b>표면거칠기 · 기하공차 · 끼워맞춤 값은 그려 주지 않습니다</b></td>
+      <td>어느 면과 어느 치수에 넣을지가 <b>설계 판단</b>입니다. 빠졌다는 사실과 왜 필요한지만 알려 주고 값은 스스로 정하게 둡니다</td></tr>
+    <tr><td><b>AI와 자유롭게 대화하는 입력칸을 두지 않습니다</b></td>
+      <td>주 사용자가 미성년자입니다. 역할을 채점으로 고정해 두는 편이 안전하고, 정해진 질문만 쓰면 답을 미리 만들어 둘 수 있어 무료 할당량도 아낍니다</td></tr>
+    <tr><td><b>확실하지 않으면 감점하지 않습니다</b></td>
+      <td>공부용 도구가 틀린 것을 자신 있게 말하면 학생은 틀린 것을 배웁니다. "알 수 없음"을 "없음"으로 바꾸지 않습니다</td></tr>
+    <tr><td><b>회원가입 · 광고 · 결제를 붙이지 않았습니다</b></td>
+      <td>쓰는 데 계정이 필요하면 혼자 준비하는 사람부터 떨어져 나갑니다</td></tr>
+  </table>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 4. 해결 방식</span><span>6 / 20</span></div>
+</section>
+
+<!-- 7 시스템 구조 -->
+<section class="page">
+  <h2><span class="no">5</span>시스템 구조 — 파일 하나가 결과가 되기까지</h2>
+
+  <p class="lead">서버 한 대로 돌아갑니다. 도면 파일이 들어와서 결과 화면이 나가기까지
+  <b>다섯 단계</b>를 거치고, 그중 네 번째(채점)만 규칙과 AI로 갈라집니다.
+  같은 도면을 다시 검사하면 저장해 둔 AI 응답을 써서 API를 다시 부르지 않습니다.</p>
+
+  <table>
+    <tr><th style="width:8mm">단계</th><th style="width:34mm">하는 일</th><th>무엇이 일어나는가</th></tr>
+    <tr><td class="n">1</td><td><b>올린다</b></td>
+      <td>웹 화면에서 파일을 끌어다 놓으면 서버로 보냅니다. zip으로 올리면 압축을 풀고 안에서 도면을 찾습니다. 최대 200MB.</td></tr>
+    <tr><td class="n">2</td><td><b>DWG면 DXF로</b></td>
+      <td><code>dwg2dxf</code>(LibreDWG)를 먼저 쓰고, 없으면 CloudConvert, 그다음 ODA File Converter 순으로 넘어갑니다.
+      셋 다 없으면 "DXF로 내보내서 올려 달라"고 안내합니다. <b>공개 서버는 서버 안에 설치된 LibreDWG만 씁니다</b> — 변환하려고 도면을 밖으로 보내지 않습니다.</td></tr>
+    <tr><td class="n">3</td><td><b>정보를 뽑는다</b></td>
+      <td>치수 개수, 표면거칠기 기호, 기하공차의 데이텀, 표제란 내용, 뷰 좌표, 도면 윤곽선 같은 것들입니다.</td></tr>
+    <tr class="hl"><td class="n">4</td><td><b>채점한다</b></td>
+      <td>100점 중 <b>70점은 규칙</b>으로, <b>30점은 AI</b>로 채점합니다. 실격 조건 6가지는 점수와 상관없이 따로 먼저 확인합니다.</td></tr>
+    <tr><td class="n">5</td><td><b>그림과 함께 돌려준다</b></td>
+      <td>도면을 그려서 문제 자리에 번호를 찍고, 지적 목록과 점수를 같이 보냅니다.</td></tr>
+  </table>
+
+  <div class="two">
+    <div>
+      <h3>파일이 각각 맡은 일</h3>
+      <table>
+        <tr><th style="width:26mm">파일</th><th>하는 일</th></tr>
+        <tr><td><code>main.py</code></td><td>서버. 파일을 받고 결과를 돌려줌</td></tr>
+        <tr><td><code>check.py</code></td><td>읽기 → AI 채점 → 규칙 채점 순서를 이어줌</td></tr>
+        <tr><td><code>dwg.py</code></td><td>도면 읽기. DWG 변환, 정보 뽑기, 그림 그리기</td></tr>
+        <tr><td><code>exam.py</code></td><td>채점. 검사 규칙 37개와 배점표</td></tr>
+        <tr><td><code>ai_review.py</code></td><td>AI에게 투상도 배열을 물어보는 부분</td></tr>
+        <tr><td><code>stats.py</code></td><td>방문 · 검사 · 재검사를 세는 자리</td></tr>
+        <tr><td><code>variance.py</code></td><td>같은 도면을 여러 번 채점해 AI 점수 흔들림 측정</td></tr>
+        <tr><td><code>bench.py</code><br><code>test_rules.py</code></td><td>검사가 제대로 되는지 확인
+          (자동 테스트 · 기준 도면 25장 · 합성 도면 100장)</td></tr>
+        <tr><td><code>static/*.html</code><br><code>*.js · site.css</code></td><td>웹 화면 3장
+          (첫 화면 · KS 기준 · 정확도)과 공통 스타일</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>어디서 도는가</h3>
+      <table>
+        <tr><th style="width:24mm">무엇</th><th>어떻게</th></tr>
+        <tr><td>서버 실행</td><td>Docker 이미지 → Render.com</td></tr>
+        <tr><td>통계 저장</td><td>Cloudflare D1 (<code>hits</code> 표).
+          연결이 없으면 서버 안 SQLite로 떨어지는데, 그때는 서버가 다시 뜰 때 0부터 셉니다</td></tr>
+        <tr><td>올린 도면</td><td>그 검사에만 쓰고 <b>최대 1시간</b> 뒤 삭제</td></tr>
+        <tr><td>AI 응답</td><td>도면 내용으로 키를 만들어 캐시. 같은 도면이면 재호출 0</td></tr>
+      </table>
+
+      <h3>시간이 어디로 갔는지 볼 수 있다</h3>
+      <p>응답에 <code>Server-Timing</code> 헤더가 붙습니다. <b>도면 읽기 · 미리보기 그리기 ·
+      AI 대기</b> 시간이 각각 들어 있어서, 느릴 때 어디가 느린지 추측하지 않고 바로 봅니다.
+      이 헤더 덕분에 "AI 채점 호출보다 <b>답변·번역 생성이 두 배 넘게 걸린다</b>(실측 13초 대 5초)"는
+      것을 알아내고, 점수와 지적을 먼저 보여 주고 답과 번역은 몇 초 뒤 채우는 방식으로 바꿨습니다.</p>
+
+      <h3>속도 제한을 붙인 곳</h3>
+      <p>도면 한 장이 CPU 몇 초와 AI 호출 하나를 씁니다. 자동으로 반복되면 무료 서버와
+      AI 할당량이 같이 마릅니다. 그래서 <b>검사 · 신고 · 계측 이벤트</b> 세 곳에
+      접속자별과 서버 전체를 같이 세는 상한을 걸었습니다. 한 학교에서 한 IP로 같이
+      들어오는 경우를 생각해 사람 쪽 상한은 넉넉히 뒀습니다.</p>
+    </div>
+  </div>
+
+  <div class="ref">근거 — <code>README.md</code> 아키텍처 절 · <code>docs/architecture.md</code> ·
+  <code>main.py</code> · <code>stats.py</code></div>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 5. 시스템 구조</span><span>7 / 20</span></div>
+</section>
+
+<!-- 8 도면 읽기 -->
+<section class="page">
+  <h2><span class="no">6</span>도면 읽기 — DWG·DXF에서 무엇을 뽑는가</h2>
+
+  <p class="lead">채점은 전부 <b>도면 파일에서 실제로 읽어 낸 값</b> 위에서 이뤄집니다.
+  그래서 "읽기"가 틀리면 그 뒤가 전부 틀립니다. 실제로 이 프로젝트에서 가장 크게 틀렸던 것도
+  채점 규칙이 아니라 <b>읽기</b>였습니다.</p>
+
+  <div class="cols">
+    <h3>무엇을 뽑는가</h3>
+    <p>치수 엔티티와 그 값, 지름 기호가 붙은 치수, 원과 호의 중심 좌표와 반지름, 표면거칠기 기호와
+    그 옆 문자, 기하공차 기입틀과 데이텀 문자, 끼워맞춤 기호(<code>H7</code>·<code>h6</code>·<code>js5</code>),
+    주서 문자열, 표제란 칸의 척도·각법·재료·작성자, 부품란, 도면 윤곽선의 네 변, 뷰의 경계 상자와
+    그 중심 좌표, 레이어와 선종류 이름, 선 굵기, 문자 높이.</p>
+
+    <h3>못 읽는 것은 못 읽는다고 한다</h3>
+    <p>Inventor 원본(<code>ipt</code>·<code>idw</code>·<code>iam</code>)은 공개된 형식이 아니라
+    서버에서 못 읽습니다. 올리면 무슨 파일인지 알아보고 <b><code>파일 &gt; 내보내기 &gt; DWG/DXF</code>
+    절차를 알려 줍니다.</b> "알 수 없음"을 "없음"으로 바꾸지 않는 것이 이 프로젝트의 규칙입니다.</p>
+
+    <p>순수 DXF는 뷰 경계를 알 수 없어서 투상도 개수·배치를 못 셀 때가 있습니다.
+    이럴 때 <b>"없다"고 하지 않고 검사를 건너뜁니다.</b> 감점하지 않고 "사람 확인 필요"로 남깁니다.</p>
+
+    <h3>실제 도면으로 바꿔 본 결과</h3>
+    <p>기계과 학생에게 받은 Inventor 도면 <b>32장</b>을 <code>idw2dxf.py</code>로 변환했습니다.
+    2026-09-06에는 <b>0/32</b>로 전부 실패했는데, Inventor 2027을 설치한 뒤 <b>30/32</b>로 돌아갔습니다
+    (2026-09-11). 중복 저장본을 빼면 <b>서로 다른 23장</b>입니다.</p>
+
+    <h3>읽기에서 크게 틀렸던 세 가지</h3>
+    <p><b>1. 윤곽선을 한 장도 못 찾고 있었습니다.</b> 실기 도면의 윤곽선은 닫힌 사각형이 아니라
+    <b>선 네 개</b>입니다. 닫힌 도형만 찾고 있었으니 모든 도면에 "표제란·도면양식 없음"이 떴고,
+    도면 크기를 아예 재지 않아 A2 요구 판정이 통째로 빠져 있었습니다. 고친 뒤
+    실제 도면 30장 중 <b>28장</b>에서 윤곽선을 찾았고, 그 덕에 A2/A3/A1/A0 판정이 살아났습니다.</p>
+
+    <p><b>2. 방향 표시 글자를 거칠기 기호로 착각했습니다.</b> <code>X</code>·<code>Y</code>·<code>Z</code>를
+    표면거칠기로 세는 바람에 <b>기호가 하나도 없는 도면을 통과</b>시켰습니다. 잘못 지적하는 것보다
+    <b>실격을 놓치는 쪽이 더 위험</b>해서 먼저 고쳤습니다.</p>
+
+    <p><b>3. 뷰 이름표를 주서로 셌습니다.</b> Inventor가 붙이는 <code>A-A ( 1 : 1 ) / .</code> 같은
+    문자열을 주서로 세는 바람에, 주서가 없는 도면 <b>8장</b>에서 "주서 없음"을 놓쳤습니다.</p>
+  </div>
+
+  <table>
+    <tr><th style="width:30mm">읽는 방식</th><th>지금 방식</th><th style="width:52mm">그래서 못 잡는 것</th></tr>
+    <tr><td>표면거칠기</td><td>기호 <b>문자</b>로 찾음</td><td>선으로만 그리고 문자를 안 넣으면 못 봄</td></tr>
+    <tr><td>기하공차</td><td><code>TOLERANCE</code> 엔티티와 문자</td><td>기입틀을 선과 문자로 직접 그리면 못 봄</td></tr>
+    <tr><td>중심선</td><td><b>레이어·선종류 이름</b>으로 찾음</td><td>이름이 CENTER 계열이 아니면 못 셈</td></tr>
+    <tr><td>요목표</td><td>읽지 않음</td><td>스퍼기어 요목표의 <code>다듬질 방법</code> 칸을 주서로 셌던 적 있음</td></tr>
+    <tr><td>선 굵기</td><td>DXF의 선 굵기 값</td><td>출력 펜 설정(색)으로 굵기를 주는 도면은 판정 불가</td></tr>
+  </table>
+
+  <p class="small">위 표의 "못 잡는 것"은 숨기지 않고 정확도 문서와 웹 화면의 정확도 페이지(<code>/accuracy</code>)에
+  같이 공개합니다. 실제 도면 23장에서는 학생이 √ 를 선으로 그리면서 다듬질 문자(w·x·y·z)를
+  <b>항상 같이 적었기 때문에</b> 1·2번으로 놓친 경우가 없었습니다. 문자를 안 적는 도면이 오면 그때 필요합니다.</p>
+
+  <div class="ref">근거 — <code>dwg.py</code> · <code>idw2dxf.py</code> · <code>docs/inventor.md</code> ·
+  <code>docs/accuracy.md</code></div>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 6. 도면 읽기</span><span>8 / 20</span></div>
+</section>
+
+<!-- 9 채점 설계 -->
+<section class="page">
+  <h2><span class="no">7</span>채점 설계 — 70점은 규칙, 30점은 AI</h2>
+
+  <figure>
+    <img src="fig/fig_score.png" alt="배점 구성">
+    <figcaption><b>그림 6.</b> 공개된 채점 기준표의 8개 항목을 그대로 쓴 100점 배점.
+    <code>도면 배치와 외관 10점</code>은 오래 빠져 있어서 만점이 90점이었고,
+    선 굵기·문자 크기처럼 DXF에서 바로 읽히는 항목이 채점되지 않고 있었습니다.</figcaption>
+  </figure>
+
+  <div class="cols">
+    <h3>나눈 기준은 "조건식으로 적을 수 있는가"</h3>
+    <p>"표면거칠기 값이 비어 있다", "데이텀 문자가 없다" 같은 것은 <b>답이 정해져 있습니다.</b>
+    규칙 코드가 더 빠르고, 몇 번을 돌려도 같은 답을 냅니다. 이런 것에 AI를 쓰면
+    느려지고 비싸지고 답이 흔들립니다.</p>
+
+    <p>문제는 나머지입니다. <b>"정면도를 잘 골랐나", "뷰가 균형 있게 놓였나"는 정답을
+    조건식으로 적을 수가 없습니다.</b> 도면을 눈으로 보고 판단해야 하는 영역이고,
+    실기에서 배점이 가장 큰 항목(30점)이 하필 여기입니다.
+    규칙 코드로는 이 30점을 아예 채점할 수 없어서, <b>도면을 그림으로 만들어
+    멀티모달 AI에게 채점위원 기준으로 보여 주는 방식</b>을 썼습니다.</p>
+
+    <h3>AI에게 맡기되, 맡길 수 있는 것만</h3>
+    <p>투상도 항목 안에서도 <b>좌표로 계산할 수 있는 것은 규칙으로 다시 잡습니다.</b>
+    제3각법 배치(정면도 기준으로 평면도가 위·우측면도가 오른쪽인지)는 뷰 좌표로 직접 판정하고,
+    투상도 개수 부족, 중심선·중심마크 없음, 상세도·단면도 문자 표기 없음, 척도 표기 없음도
+    규칙으로 잡습니다. AI와 규칙이 같은 것을 두 번 보는 셈이지만, <b>AI가 막혀도
+    이쪽은 살아 있습니다.</b></p>
+
+    <h3>일부러 AI에게 맡긴 것</h3>
+    <p><b>각 부품의 균형 배치(5점)</b>는 AI에게 맡깁니다. 치우침을 수치로 재 봤더니
+    <b>표제란이 오른쪽 아래를 차지해서 멀쩡한 도면이 전부 왼쪽으로 치우쳐 나왔습니다.</b>
+    규칙으로 재면 전부 감점이 되는 항목이라 규칙을 뺐습니다.</p>
+
+    <h3>AI가 전부 막히면</h3>
+    <p>채점기 네 경로가 다 막히면 <b>투상도 30점이 "사람 확인 필요"로 비워지고</b>,
+    화면에도 AI가 꺼져 있다고 표시됩니다. 규칙 70점과 실격 확인은 그대로 돌아가지만
+    배점이 가장 큰 항목이 빠진 상태이므로, <b>없는 점수를 있는 것처럼 채우지 않습니다.</b>
+    또 AI가 매기는 감점은 코드에서 <b>30점을 넘을 수 없게</b> 막아 뒀습니다.</p>
+  </div>
+
+  <h3>실격(오작) 조건 6가지 — 점수와 따로, 먼저 본다</h3>
+  <table>
+    <tr><th style="width:8mm">#</th><th style="width:54mm">조건</th><th>비고</th></tr>
+    <tr><td class="n">1</td><td>표면거칠기 기호가 아예 없음</td><td rowspan="3" style="vertical-align:middle">
+      공개된 수험자 유의사항의 오작 9가지 중 <b>DXF로 판정할 수 있는 것들</b>만 골랐습니다.
+      판정할 수 없는 항목을 억지로 넣지 않았습니다.</td></tr>
+    <tr><td class="n">2</td><td>기하공차 기호가 아예 없음</td></tr>
+    <tr><td class="n">3</td><td>끼워맞춤 공차 기호가 아예 없음</td></tr>
+    <tr><td class="n">4</td><td>투상법이 제3각법이 아님</td><td>뷰 좌표로 직접 판정</td></tr>
+    <tr><td class="n">5</td><td>도면 크기가 요구와 다름</td><td>요구 도면 영역은 공개문제 기준 <b>A2</b>.
+      A3는 출력 크기라 오작이 아니라 <b>경고</b>로 둡니다</td></tr>
+    <tr><td class="n">6</td><td>표준에 없는 척도</td><td>표제란 척도 표기를 읽어 판정</td></tr>
+  </table>
+
+  <div class="note">
+    <b>실제 판정은 그 회차의 공개문제와 감독위원 지시사항을 우선합니다.</b>
+    CADLens는 마지막에 확인하는 것을 도와주는 <b>보조 도구</b>이고, 공식 채점이 아니며
+    한국산업인력공단·Q-Net과 아무 관계가 없습니다. 검사 기준은 KS 규격과 공개된 채점 기준만 보고
+    만들었고, <b>비공개 채점표를 베끼거나 본 적이 없습니다.</b> 배점 근거는 <code>exam.py</code>
+    맨 위에 적어 뒀습니다.
+  </div>
+
+  <div class="ref">근거 — <code>exam.py</code> · <code>docs/rule_standards.md</code>(항목별 KS 규격) ·
+  <code>docs/ks_reference.md</code> · 웹 화면 <code>/ks</code></div>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 7. 채점 설계</span><span>9 / 20</span></div>
+</section>
+
+<!-- 10 검사 항목 -->
+<section class="page">
+  <h2><span class="no">8</span>검사 항목 37개와 무엇을 일부러 안 보는가</h2>
+
+  <p class="lead">결과는 <b>실격 / 오류 / 경고 / 참고</b>로 나눠서 보여 주고,
+  번호를 누르면 도면에서 그 위치로 이동합니다. 각 항목이 어느 KS 규격에서 나왔는지는
+  웹 화면의 <code>/ks</code> 페이지에서 검사마다 볼 수 있습니다.</p>
+
+  <table>
+    <tr><th style="width:36mm">무엇을 (배점)</th><th>어떤 것을 확인하나</th></tr>
+    <tr><td><b>치수</b> (15점)</td>
+      <td>치수가 하나도 없는지, 지름 치수가 없는 원·구멍이 있는지.
+      <b>치수는 도면 전체에서 한 번만 적으면 됩니다</b> — 우측면도에 없어도 정면도에 있으면 기입한 것으로 봅니다</td></tr>
+    <tr><td><b>끼워맞춤·치수공차</b> (10점)</td>
+      <td><code>H7</code>·<code>h6</code>·<code>js5</code> 같은 끼워맞춤 기호가 있는지, 공차가 붙은 치수가 너무 적은지</td></tr>
+    <tr><td><b>표면거칠기</b> (10점)</td>
+      <td>기호는 있는데 값이 비었는지, 한 종류만 써서 다듬질 구분이 없는지, 기호 수가 부족한지,
+      <b>다듬질 구분을 정의하는 비교표가 있는지</b></td></tr>
+    <tr><td><b>기하공차</b> (10점)</td>
+      <td>데이텀이 붙어 있는지, 공차값이 비었는지, 개수가 부족한지</td></tr>
+    <tr><td><b>주서·표제란</b> (8점)</td>
+      <td>주서가 있는지, 일반공차·모떼기·열처리 같은 필수 문구가 빠졌는지, 표제란·도면양식이 있는지,
+      <b>기어·스프링이 있는데 요목표가 빠졌는지</b></td></tr>
+    <tr><td><b>도면 배치와 외관</b> (10점)</td>
+      <td>용도에 맞게 선 굵기를 구분했는지(<b>KS는 가는 선 : 굵은 선 = 1 : 2 이상</b>),
+      치수 문자가 KS 호칭 크기이고 읽을 만한지</td></tr>
+    <tr><td><b>재료·열처리</b> (7점)</td>
+      <td>열처리·표면처리 지시가 있는지, 부품란에 재료 기호가 있는지,
+      3D 등각투상도라면 부품란 비고에 <b>질량(g)</b>이 있는지</td></tr>
+    <tr><td><b>도면 양식</b></td>
+      <td>도면 영역이 요구 크기(A2)인지, 표제란에 척도·각법 표기가 있는지,
+      부품도 척도가 1:1인지, 뷰 하나만 척도가 다르지 않은지</td></tr>
+    <tr class="hl"><td><b>투상도</b> (30점)<br><span class="small">점수는 AI가 매김</span></td>
+      <td>정면도를 잘 골랐는지, 개수가 모자라거나 넘치는지, 제3각법 배치가 맞는지, 배치가 치우치지 않았는지.
+      지적을 펼치면 <code>왜 감점이야?</code> · <code>어디를 눌러?</code> · <code>고친 뒤 확인은?</code>
+      세 가지를 눌러 볼 수 있습니다. 여기에 더해 <b>제3각법 배치는 뷰 좌표로 직접 판정</b>하고,
+      투상도 개수 부족 · 중심선·중심마크 없음 · 상세도·단면도 문자 표기 없음 · 척도 표기 없음은
+      규칙으로도 잡습니다</td></tr>
+  </table>
+
+  <h3>일부러 채점하지 않는 것 — 제도 기본에 어긋나거나 판정할 수 없는 것</h3>
+  <div class="cols">
+    <p><b>뷰마다 치수가 붙었는지는 안 봅니다.</b> KS B 0001은 "하나의 치수는 도면 내 단 한 곳에만
+    기입한다"가 기본이고, 치수는 주 투상도(정면도)에 모으라고 합니다. 우측면도에 치수가 없어도
+    그 형상의 치수가 정면도에 있으면 <b>기입한 것</b>입니다. 이것을 몰라서 한동안
+    멀쩡한 도면에 감점을 주고 있었습니다.</p>
+
+    <p><b>윤곽선 밖에 남은 요소는 안 봅니다.</b> 채점은 도면 영역 안에서 이뤄지고,
+    틀 밖은 제출물의 일부가 아닙니다.</p>
+
+    <p><b>색으로 선 굵기를 주는 도면은 굵기를 판정하지 않습니다.</b> 출력 펜 설정으로 굵기를 내는
+    방식이라 DXF에 굵기 값이 없고, <b>"굵기를 안 정했다"와 구별할 수 없습니다.</b>
+    구별할 수 없는 것을 감점하면 정직하지 않은 채점이 됩니다.</p>
+
+    <p><b>각 부품의 균형 배치(5점)는 AI에게 맡깁니다.</b> 앞 쪽에 적은 대로, 표제란 때문에
+    멀쩡한 도면이 전부 치우친 것으로 나왔습니다.</p>
+  </div>
+
+  <h3>인터뷰에서 나온 실수가 실제로 이 항목 안에 있는가</h3>
+  <p class="small" style="margin-bottom:1.6mm">다섯 사람이 말한 <b>가장 최근 실수</b>를 검사 항목에
+  하나씩 대봤습니다. 검사가 있는지를 나중에 끼워 맞추지 않고, 먼저 듣고 나서 대봤습니다.</p>
+  <table style="margin-bottom:0">
+    <tr><th style="width:52mm">그 사람의 가장 최근 실수</th><th style="width:40mm">우리 검사</th>
+      <th style="width:16mm">판정</th><th>비고</th></tr>
+    <tr><td>표면거칠기 기호 1개 누락 (박*후)</td><td><code>EX_SURFACE_FEW</code></td>
+      <td class="ok">✅ 잡음</td><td>기호 수가 부족한 것을 셉니다</td></tr>
+    <tr><td>뷰 하나만 척도가 2:1 (박*호)</td><td>도면 양식 — 뷰별 척도</td>
+      <td class="ok">✅ 잡음</td><td>뷰 하나만 척도가 다른 것을 봅니다</td></tr>
+    <tr><td>데이텀·기하공차 통째로 비움 (배*후)</td><td>기하공차 · <b>실격 조건 2</b></td>
+      <td class="ok">✅ 잡음</td><td>기호가 아예 없으면 실격으로 먼저 걸립니다</td></tr>
+    <tr><td>프린터 A4 설정으로 축소·잘림 (최*영)</td><td>—</td>
+      <td class="warn">◻ 못 잡음</td><td><b>종이에서 일어나는 일이라 DXF로는 알 수 없습니다.</b>
+        못 잡는다고 적어 둡니다</td></tr>
+    <tr><td>단면도 누락 (손선생님)</td><td>투상도 (AI 30점) + 단면 문자 표기 규칙</td>
+      <td>🔺 일부</td><td>단면 문자 표기 없음은 규칙이, "단면이 필요한데 없다"는 AI가 봅니다</td></tr>
+  </table>
+  <div class="ref">근거 — <code>exam.py</code>의 <code>CHECKS</code> ·
+  <code>docs/rule_standards.md</code> · <code>docs/interviews.md#겹치는-항목</code> ·
+  KS B 0001 · 공개된 채점 기준표</div>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 8. 검사 항목</span><span>10 / 20</span></div>
+</section>
+
+<!-- 11 AI 채점 -->
+<section class="page">
+  <h2><span class="no">9</span>AI 채점 — 채점기 넷을 줄 세운 이유</h2>
+
+  <p class="lead">배점이 가장 큰 투상도 30점을 AI가 채점하므로, <b>AI가 멈추면 채점의 3분의 1이 멈춥니다.</b>
+  무료로 계속 열어 두려면 한쪽 할당량이 끊겨도 서비스가 버텨야 합니다.
+  그래서 채점기를 넷 붙이고 <b>같은 프롬프트와 같은 JSON 스키마</b>를 쓰게 했습니다 —
+  어느 쪽이 채점해도 결과 형식이 달라지지 않습니다.</p>
+
+  <table>
+    <tr><th style="width:9mm">순서</th><th style="width:38mm">채점기</th><th style="width:52mm">모델</th><th>무료 한도</th></tr>
+    <tr><td class="n">1</td><td>Google Gemini</td><td><code>gemini-3.1-flash-lite</code></td><td>공개 서버 기본값</td></tr>
+    <tr><td class="n">2</td><td>Cloudflare Workers AI</td><td><code>@cf/meta/llama-4-scout-17b-16e-instruct</code></td><td>계정당 일일 뉴런</td></tr>
+    <tr><td class="n">3</td><td>Mistral</td><td><code>mistral-small-latest</code></td><td>월 10억 토큰</td></tr>
+    <tr><td class="n">4</td><td>Groq</td><td><code>qwen/qwen3.6-27b</code></td><td>일 1,000 요청 · 분당 8,000 토큰</td></tr>
+  </table>
+
+  <figure>
+    <img src="fig/fig_ai.png" alt="AI 모델 실측">
+    <figcaption><b>그림 7.</b> 채점 모델을 실제로 재 보고 골랐습니다 (2026-09-18, 실제 수험생 도면 10장).
+    막대는 응답 시간 중앙값. 점선은 서비스가 AI를 기다리는 <b>8초 상한</b>입니다.</figcaption>
+  </figure>
+
+  <div class="cols">
+    <h3>측정해서 바꾼 것</h3>
+    <p>그때까지 1순위로 쓰던 <code>gemini-3.6-flash</code>는 <b>20번 중 18번이 실패</b>했습니다 —
+    <code>503 사용량 폭주</code>, 40초 시간초과, 무료 한도(<code>429</code>). 성공한 호출도 7~8초였습니다.
+    새 1순위 <code>gemini-3.1-flash-lite</code>는 <b>중앙값 3.2초 · 최대 5.9초</b>이고,
+    판정도 가장 자세한 <code>gemini-3.5-flash</code>(중앙값 14.3초)와 <b>평균 2.7점 차이</b>였습니다.</p>
+
+    <p>더 빠른 <code>gemini-3.5-flash-lite</code>(2.1초)는 <b>20번 모두 감점 0</b>이었습니다.
+    무엇을 올려도 만점을 주는 채점기라 못 썼습니다. <b>빠른 것이 좋은 것이 아니라,
+    틀린 것을 틀렸다고 하는 것이 좋은 것</b>이라는 기준으로 골랐습니다.</p>
+
+    <h3>아직 안 풀린 것 — 점수가 흔들린다</h3>
+    <p><b>같은 도면을 다시 넣으면 AI 점수가 달라집니다.</b> <code>variance.py</code>로 편차를
+    직접 재 봤고, 백지 렌더 문제를 고친 뒤 다시 쟀지만 <b>편차 자체는 줄지 않았습니다.</b>
+    화면에 "AI 점수는 확정 점수가 아니다"라고 적어 두긴 했지만, 흔들리는 폭을 줄이는 것이
+    남은 숙제입니다(문제 기록 <b>P02</b>, 아직 열림).</p>
+
+    <p>앞으로 할 것은 두 가지입니다. <b>규칙으로 옮길 수 있는 것은 옮기고</b>(뷰 개수,
+    제3각법 배치는 이미 옮겼습니다), 그래도 남는 부분은 <b>여러 번 물어 중앙값을 쓰는 방식</b>을
+    검토합니다. 정확해지지만 호출 비용이 늘어납니다.</p>
+
+    <h3>같은 도면이면 같은 점수</h3>
+    <p>도면 내용으로 키를 만들어 AI 응답을 저장해 둡니다. 같은 도면을 같은 모델로 다시 검사하면
+    <b>API를 다시 부르지 않습니다.</b> 한동안 캐시가 한 번도 안 맞는 버그가 있었고(<b>P21</b>),
+    고친 뒤에야 "같은 도면이면 같은 점수"가 실제로 지켜졌습니다.</p>
+
+    <h3>AI 응답을 형식으로 묶는다</h3>
+    <p>답변을 정해진 형식(<code>severity</code>, <code>title</code>, <code>detail</code>,
+    <code>fix</code>, <code>deduct</code>)으로만 받습니다. 형식을 벗어난 아무 말이 화면에 뜨지 않고,
+    AI가 형식을 안 지키거나 답변을 거부하면 <b>그 결과를 버리고 "사람 확인 필요"로 처리</b>합니다.</p>
+  </div>
+
+  <div class="ref">근거 — <code>ai_review.py</code> · <code>variance.py</code> ·
+  <code>docs/ai_usage.md#모델-선택-근거--실측</code> · <code>plan/문제점/P02</code>·<code>P20</code>·<code>P21</code></div>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 9. AI 채점</span><span>11 / 20</span></div>
+</section>
+
+<!-- 12 수정 예시 -->
+<section class="page">
+  <h2><span class="no">10</span>수정 예시 — 고칠 자리를 도면 위에 그린다</h2>
+
+  <p class="lead">"치수가 없다"는 말만으로는 어디에 무엇을 얼마로 넣어야 하는지 모릅니다.
+  그래서 결과 화면의 <code>수정 예시</code> 버튼을 누르면, <b>도면에서 읽은 좌표 그대로</b>
+  지름 치수(<code>4-Ø6</code>)와 중심 마크를 초록색으로 올려서 보여 줍니다.
+  <b>그림을 새로 만드는 AI가 아니라 도면 좌표로 그리는 것</b>이라 위치와 값이 정확합니다.</p>
+
+  <div class="two">
+    <figure>
+      <img src="demo/수정예시_전.png" alt="수정 예시 끄기">
+      <figcaption><b>그림 8.</b> 검사 결과 — 구멍에 지름 치수가 없어 빨간 번호 ①이 찍혔다.
+      원에 중심선도 없다.</figcaption>
+    </figure>
+    <figure>
+      <img src="demo/수정예시_후.png" alt="수정 예시 켜기">
+      <figcaption><b>그림 9.</b> <code>수정 예시</code>를 켠 화면. 같은 지름 구멍 4개를
+      <code>4-Ø16.81</code>로 묶어 한 번만 적고, 중심 마크 4개를 초록색으로 얹었다.
+      <b>실제 서비스 출력을 그대로 캡처한 것</b>이다.</figcaption>
+    </figure>
+  </div>
+
+  <div class="cols">
+    <h3>둘 자리를 서버가 직접 그려 보고 정한다</h3>
+    <p>치수 문자를 아무 데나 놓으면 기존 선과 문자를 덮어서 오히려 읽기 어려워집니다.
+    그래서 서버가 <b>미리보기를 실제로 래스터로 그려 보고</b> 자리를 정합니다.</p>
+    <ul>
+      <li>지시선은 <b>원 중심을 향하는 사선</b>으로 긋고 화살표를 원 둘레에 댑니다.</li>
+      <li>문자는 <b>치수끼리·번호 표시와 겹치지 않고</b>, 도면 윤곽선 안에서
+      이미 그려진 선과 문자를 <b>가장 덜 덮는 자리</b>에 놓습니다.</li>
+      <li>같은 뷰의 같은 지름 구멍은 <code>4-Ø6</code>처럼 <b>한 번만 묶어</b> 적습니다.</li>
+      <li><b>숨은선으로만 그려진 원에는 치수를 넣지 않습니다</b> — 그 형상이 보이는 뷰에
+      넣으라고 알려 줍니다.</li>
+      <li>중심선은 <b>가는 1점 쇄선</b>으로 외형선 밖 <b>3mm</b>까지 긋고,
+      이웃한 원과 겹치면 두 중심 사이에서 끊습니다.</li>
+    </ul>
+
+    <h3>일부러 안 그리는 것</h3>
+    <p><b>표면거칠기 기호 · 기하공차 · 끼워맞춤은 그리지 않습니다.</b>
+    어느 면과 어느 치수에 넣을지가 <b>설계 판단</b>이기 때문입니다.
+    "여기에 이 값을 넣어라"라고 그려 주면 그것은 더 이상 학생의 도면이 아니고,
+    잘못 넣었을 때 책임질 수도 없습니다. 이 항목들은 <b>빠졌다는 사실과 왜 필요한지</b>만
+    알려 주고 값은 스스로 정하게 둡니다.</p>
+
+    <h3>고치고 다시 올리면 무엇이 보이나</h3>
+    <p>같은 파일 이름의 지난 결과가 <b>내 브라우저 안에</b> 있으면, 다시 올렸을 때
+    <b>고쳐짐 / 그대로 / 새로 생김</b>을 나누고 점수 변화를 같이 보여 줍니다.
+    실격이던 것이 풀리면 그것도 따로 표시합니다. 지난 결과는 서버가 아니라
+    <b>브라우저에만</b> 남고(최근 20건), 서버로는 "재검사가 일어났다"는 <b>종류 이름 하나</b>만 갑니다 —
+    파일 이름도 점수도 도면 내용도 보내지 않습니다.</p>
+
+    <p>이 비교 화면이 제품의 목적 그 자체입니다. <code>검사 → 고치기 → 다시 검사</code>가
+    실제로 돌고 있는지를 보여 주는 유일한 증거이고, 그래서 <b>"다시 검사한 사람 수"</b>를
+    북극성 지표로 삼았습니다(15쪽).</p>
+  </div>
+
+  <div class="ref">근거 — <code>fixdraw.py</code> · <code>dwg.py</code> ·
+  <code>static/home.js</code>의 <code>buildDiff</code> · <code>docs/화면_기능명세.md</code></div>
+  <div class="pnum"><span>Ⅱ. 무엇을 어떻게 만들었나 · 10. 수정 예시</span><span>12 / 20</span></div>
+</section>
+
+<!-- 13 정확도 -->
+<section class="page">
+  <h2><span class="no">11</span>정확도 측정 — 표본 세 종류와 그 한계</h2>
+
+  <p class="lead"><b>답을 미리 정해 둔 도면</b>으로 잽니다. "치수를 일부러 빼놓은 도면"을 넣고
+  그것을 정확히 찾아내는지 보는 방식입니다. <b>우리가 만든 도면과 남의 도면, 두 숫자를 나란히 둡니다.</b>
+  둘이 다르면 남의 도면 쪽이 진짜입니다.</p>
+
+  <table>
+    <tr><th style="width:52mm">어떤 도면</th><th style="width:26mm">정확히 맞힘</th>
+      <th style="width:42mm">찾아야 할 문제를 찾은 비율</th><th>없는 문제를 있다고 함</th></tr>
+    <tr><td>우리가 만든 기준 도면 25장</td><td>25장 (100%)</td><td>100% (23건 중 23건)</td><td>0건</td></tr>
+    <tr><td>우리가 만든 합성 도면 100장</td><td>100장 (100%)</td><td>100% (105건 중 105건)</td><td>0건</td></tr>
+    <tr class="hl"><td><b>학생에게 받은 실제 도면 23장</b></td><td><b>23장 (100%)</b></td>
+      <td><b>100% (63건 중 63건)</b></td><td><b>0건</b></td></tr>
+  </table>
+
+  <figure>
+    <img src="fig/fig_accuracy.png" alt="정확도 3종">
+    <figcaption><b>그림 10.</b> 표본 세 종류의 검출률. 실제 도면은 기계과 학생에게 받은
+    Inventor 도면(<code>.idw</code>) 32장을 DXF로 내보낸 것이고, 중복 저장본을 빼면 서로 다른 23장입니다.
+    <b>정답은 도면 그림을 눈으로 보고 달았고, CADLens 결과를 정답으로 쓰지 않았습니다.</b>
+    도면 파일은 남의 것이라 저장소에 올리지 않고 파일 이름과 정답만 올립니다.</figcaption>
+  </figure>
+
+  <div class="note">
+    <b>이 100%도 그대로 믿으면 안 됩니다.</b> 세 가지 한계를 그대로 적습니다.
+    <ul style="margin:1.6mm 0 0 4.4mm">
+      <li><b>표본이 한 학생 것입니다.</b> 23장 중 20장이 거칠기 기호도 기하공차도 없는
+      <b>작업 중간 상태</b>였고, 23장 모두 주서가 없었습니다. 그래서 주로 잰 것은
+      <b>"없는 것을 없다고 하는가"</b>이고, "있는 것을 있다고 보는가"는 기호가 들어 있는
+      <b>3장</b>에서만 확인됐습니다.</li>
+      <li><b>검사 37개 중 6개만 라벨을 달았습니다.</b> 그림만 보고 확실히 가릴 수 있는 것
+      (기호 유무 · 치수 유무 · 주서 유무 · 표제란 유무)으로 한정했습니다.
+      개수를 세야 하는 항목은 그림만으로 정답을 달 수 없어 뺐습니다.</li>
+      <li><b>정답을 단 사람은 수험생 본인도 선생님도 아닙니다.</b></li>
+    </ul>
+  </div>
+
+  <div class="cols">
+    <h3>어떻게 재는가</h3>
+    <p><code>bench.py</code>가 도면마다 정답표를 읽어 CADLens 결과와 맞춰 봅니다.
+    <b>검출률</b>(찾아야 할 문제 중 찾은 비율)과 <b>헛지적</b>(없는 문제를 있다고 한 건수)을
+    따로 셉니다. 둘 중 헛지적이 더 위험합니다 — 멀쩡한 도면을 고치게 만들기 때문입니다.</p>
+
+    <p>코드를 고칠 때마다 <b>자동 테스트 43개</b>가 GitHub Actions에서 실행됩니다.
+    검사 규칙을 건드렸는데 기준 도면 결과가 바뀌면 그 자리에서 드러납니다.</p>
+
+    <h3>이 측정이 실제로 잡아낸 것</h3>
+    <p>연습용 도면으로 확인해 보니 <b>DXF 도면은 거의 무조건 실격으로 나오고 있었습니다.</b>
+    도면에 분명히 있는 거칠기 기호, 기하공차, 중심선, 투상도, 표제란을 전부 못 읽고
+    "없다"고 판단했습니다. 지금은 전부 읽고, <b>알 수 없는 항목은 "없다"고 단정하지 않고
+    검사를 건너뜁니다.</b></p>
+
+    <p>합성 기준 도면은 <b>지적 0건이 나와야 정상</b>이고, 결함을 하나 넣으면 <b>그것만</b>
+    잡혀야 합니다. 이 시험에서 잡은 오탐 셋은 실제로 있었던 것입니다 —
+    제3각법 기호의 원을 미치수 구멍으로, 뷰 이름표를 주서로, 뷰 사각형을 도면 윤곽선으로 봤습니다.</p>
+  </div>
+
+  <div class="ref">근거 — <code>docs/accuracy.md</code>(측정 전문과 날짜별 재측정 기록) ·
+  <code>bench.py</code> · <code>test_rules.py</code> · <code>.github/workflows/tests.yml</code> ·
+  웹 화면 <code>/accuracy</code></div>
+  <div class="pnum"><span>Ⅲ. 얼마나 맞는가 · 11. 정확도 측정</span><span>13 / 20</span></div>
+</section>
+
+<!-- 14 문제 24건 -->
+<section class="page">
+  <h2><span class="no">12</span>측정으로 잡은 문제 24건</h2>
+
+  <p class="lead">일하다 만난 문제를 <b>그때그때 저장소에 적습니다. 고쳤든 못 고쳤든 남깁니다.</b>
+  문제를 고치고 나면 그런 문제가 있었다는 사실 자체를 잊기 때문입니다. 원칙이 하나 있습니다 —
+  <b>없는 문제를 지어내지 않습니다.</b> 기록을 채우려고 "개선하면 좋을 점" 같은 것을 문제로
+  올리지 않습니다. 지어낸 문제가 한 건이라도 섞이면 나머지 기록도 같이 못 믿게 됩니다.
+  <b>빈 주가 있는 것이 정상이고, 그것이 이 기록이 진짜라는 증거입니다.</b></p>
+
+  <div class="two" style="grid-template-columns:34mm 1fr;align-items:center">
+    <figure style="margin:0">
+      <img src="fig/fig_problems.png" alt="문제 24건 상태" style="border:none">
+      <figcaption style="text-align:center"><b>그림 11.</b> 기록한 문제 24건</figcaption>
+    </figure>
+    <div>
+      <table style="margin:0">
+        <tr><th style="width:12mm">번호</th><th>문제</th><th style="width:20mm">상태</th><th style="width:34mm">영향</th></tr>
+        <tr><td>P01</td><td>단위가 mm가 아닌 도면이 백지로 렌더된다</td><td class="ok">✅ 해결</td><td>AI 채점 30점 전부</td></tr>
+        <tr><td>P02</td><td>같은 도면인데 AI 점수가 매번 달라진다</td><td class="warn">🔴 열림</td><td>AI 채점 30점</td></tr>
+        <tr><td>P04</td><td>측정에 쓰는 표본이 실제 시험 도면이 아니다</td><td class="warn">🔴 열림</td><td>정확도 · 편차 측정 전부</td></tr>
+        <tr><td>P14</td><td>도면 요소를 다른 것으로 오인한다</td><td class="ok">✅ 해결</td><td>실격 판정</td></tr>
+        <tr><td>P19</td><td>실격 검사 5개 중 3개가 DXF에서는 뜰 수 없었다</td><td class="ok">✅ 해결</td><td>실격 판정</td></tr>
+        <tr><td>P20</td><td>AI 채점기를 넷 붙여 놓고 하나만 쓰고 있었다</td><td class="ok">✅ 해결</td><td>AI 가용성</td></tr>
+        <tr><td>P21</td><td>같은 도면인데 캐시가 한 번도 안 맞았다</td><td class="ok">✅ 해결</td><td>점수 일관성 · 비용</td></tr>
+        <tr><td>P23</td><td>AI가 느리다 (답변·번역이 채점보다 오래 걸림)</td><td class="ok">✅ 해결</td><td>검사 시간</td></tr>
+      </table>
+      <p class="small" style="margin-top:1.6mm">24건 중 8건만 옮긴 것입니다.
+      전체 목록과 각 건의 원인·조치는 <code>plan/문제점/</code>에 한 건당 파일 하나로 있습니다.</p>
+    </div>
+  </div>
+
+  <h3>대표 사례 세 가지 — 어떻게 알아냈고 무엇을 바꿨나</h3>
+
+  <div class="cols">
+    <h4>P01 · AI가 백지를 채점하고 있었다</h4>
+    <p><b>증상</b> — AI 점수가 도면과 상관없이 흔들렸습니다.
+    <b>원인</b> — 단위가 mm가 아닌 도면을 그림으로 바꿀 때 배율 계산이 틀려서
+    <b>아무것도 안 그려진 백지</b>가 나갔습니다. AI는 백지를 보고 점수를 매기고 있었습니다.
+    <b>조치</b> — 2026-08-22에 고쳤습니다. 이 건을 계기로 "AI에게 실제로 무엇을 보냈는지"를
+    저장해 두고 눈으로 확인하는 절차를 넣었습니다.</p>
+
+    <h4>P-계열 · AI가 본 것은 도면의 절반이었다</h4>
+    <p><b>증상</b> — 실제 학생 도면이 들어오자 투상도 점수가 이상하게 나왔습니다.
+    <b>원인</b> — 채점용 그림을 <b>406mm로 잘라</b> 보내고 있었는데, 요구 도면 영역인
+    A2가 <b>594mm</b>라 실제 도면이 전부 걸렸습니다. AI가 받은 그림은 도면 넓이의
+    <b>29~51%</b>였고, 잘려 나간 쪽에 표제란과 투상도가 있었습니다.
+    <b>조치</b> — 자르지 않고 해상도를 낮추는 방식으로 바꿨습니다 (2026-09-11).</p>
+
+    <h4>P19 · 실격 검사 3개가 뜰 수 없는 구조였다</h4>
+    <p><b>증상</b> — 상업적으로 쓸 수 있는 상태인지 훑다가 발견했습니다 (2026-09-08).
+    <b>원인</b> — 실격 검사 5개 중 3개가 <b>DXF에서는 애초에 조건이 성립할 수 없는</b>
+    형태로 짜여 있었습니다. 즉 그 검사들은 있으나 마나였습니다.
+    <b>조치</b> — 판정 가능한 형태로 다시 쓰고, 판정할 수 없는 항목은 <b>억지로 넣지 않고 뺐습니다.</b></p>
+
+    <h4>이 기록이 하는 일</h4>
+    <p>8주 뒤 발표에서 <b>"무엇을 어떻게 알아냈는가"</b>를 말할 수 있는 팀과
+    "잘 됩니다"만 말하는 팀은 여기서 갈립니다. 심사 피드백에서도
+    <b>안 되는 것을 공개하는 것</b>을 강점으로 꼽았습니다.</p>
+
+    <p>문제인 것 — 실제로 틀린 결과가 나왔다, 하려던 게 안 됐다, 시간이 계획보다 훨씬 더 들었다,
+    연락이나 자료가 없어서 막혔다. 문제가 아닌 것 — 아직 안 만든 기능, 다음에 하기로 한 일,
+    잘 됐는데 더 잘하고 싶은 것. 뒤의 것들은 <b>발전 계획</b>에 적습니다.</p>
+  </div>
+
+  <div class="ref">근거 — <code>plan/문제점/README.md</code>와 <code>P01</code>~<code>P24</code> ·
+  <code>docs/accuracy.md#측정으로-잡은-문제</code></div>
+  <div class="pnum"><span>Ⅲ. 얼마나 맞는가 · 12. 문제 기록</span><span>14 / 20</span></div>
+</section>
+
+<!-- 15 지표 -->
+<section class="page">
+  <h2><span class="no">13</span>지표 설계 — 북극성 지표와 퍼널</h2>
+
+  <div class="quote" style="font-size:9.4pt">
+    <b>북극성 지표 — 주간 재검사 사용자 수</b> (도면을 고쳐서 다시 올린 사람).
+    2026-08-30에 0명 → 8주 뒤 주 20명.
+    <span class="who">왜 이 지표인가 — 방문자 수는 늘려도 제품이 좋아졌다는 뜻이 아닙니다.
+    <b>고쳐서 다시 올렸다는 것</b>은 지적이 이해됐고, 고칠 만했고, 다시 확인할 가치가 있었다는
+    뜻입니다. 제품이 하려는 일 그 자체가 이 한 숫자에 들어갑니다.</span>
+  </div>
+
+  <h3>무엇을 세는가 — 이벤트 여섯 가지</h3>
+  <table>
+    <tr><th style="width:26mm">칸</th><th style="width:34mm">이벤트</th><th>언제 세나</th></tr>
+    <tr><td>방문</td><td><code>visit</code></td><td>첫 화면을 열었을 때. 안내 페이지(<code>/ks</code>, <code>/accuracy</code>)는 세지 않습니다</td></tr>
+    <tr><td>파일 고르기</td><td><code>pick</code></td><td>파일 선택창을 열었을 때 (2026-09-25부터)</td></tr>
+    <tr><td>검사 시작</td><td><code>check</code> · <code>sample</code></td><td>도면 파일을 올렸거나 예시 도면을 눌렀을 때</td></tr>
+    <tr><td>결과 봄</td><td><code>done</code></td><td>검사가 예외 없이 끝나 결과가 돌아갔을 때</td></tr>
+    <tr class="hl"><td><b>다시 검사</b></td><td><code>recheck</code></td><td>같은 파일의 지난 결과와 비교가 떴을 때</td></tr>
+    <tr><td>처음 옴 / 다시 옴</td><td><code>new</code> · <code>ret:처음온주</code></td><td>주를 넘어 다시 오는지 (2026-09-24부터)</td></tr>
+  </table>
+
+  <div class="two">
+    <figure style="margin-top:0">
+      <img src="fig/fig_funnel.png" alt="퍼널">
+      <figcaption><b>그림 12.</b> 퍼널 (2026-09-14 주). 사람 수이고 횟수가 아닙니다.
+      비율의 분모는 바로 앞 칸입니다.</figcaption>
+    </figure>
+    <div>
+      <h3>제일 크게 빠지는 칸 — 방문 → 검사 시작</h3>
+      <p>들어온 사람 <b>셋 중 둘</b>이 도면을 한 번도 올리지 않고 나갑니다
+      (09-14 주 65%, 09-07 주 74%).</p>
+      <p><b>그 뒤 칸은 새지 않습니다.</b> 올리기만 하면 결과까지는 거의 다 가고(100%),
+      결과를 본 사람의 절반 이상이 고쳐서 다시 올립니다. <b>고칠 곳은 첫 화면 하나입니다.</b></p>
+      <table style="margin-top:2mm">
+        <tr><th>주</th><th>방문</th><th>검사 시작</th><th>결과 봄</th><th>다시 검사</th></tr>
+        <tr><td>09-14~20</td><td class="n">31</td><td class="n">35%(11/31)</td><td class="n">100%(11/11)</td><td class="n">91%(10/11)</td></tr>
+        <tr><td>09-07~13</td><td class="n">38</td><td class="n">26%(10/38)</td><td class="n">100%(10/10)</td><td class="n">50%(5/10)</td></tr>
+        <tr><td>08-31~09-06</td><td class="n">42</td><td class="n">5%(2/42)</td><td class="n">100%(2/2)</td><td class="n">0%(0/2)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>숫자를 쓰기 전에 걸러낸 것.</b> 2026-09-21 주에 방문이 31명에서 <b>1,199명</b>으로 뛰었습니다.
+    그 하루에 방문 651 · 검사 1,001인데 <b>그 주에 검사한 사람은 29명</b>뿐이었습니다.
+    사람 한 명이 하루에 검사를 34번 하지는 않습니다. <b>무엇 때문인지는 아직 확인하지 못했습니다.</b>
+    사람이 아닌 접속을 거르기 시작한 것이 09-23이라 지난 기록은 되돌려 볼 수 없습니다.
+    그래서 이 문서의 표에서 <b>그 주를 뺐습니다.</b> 이런 숫자를 그대로 "사용자 1,199명"이라고
+    쓰는 것이 바로 허수 지표입니다.
+  </div>
+
+  <div class="ref">근거 — <code>docs/metrics.md</code> · <code>stats.py</code> ·
+  운영 서버 <code>/api/stats</code> (공개) · <code>plan/w1/팀목표.md</code></div>
+  <div class="pnum"><span>Ⅳ. 쓰이고 있는가 · 13. 지표 설계</span><span>15 / 20</span></div>
+</section>
+
+<!-- 16 리텐션 -->
+<section class="page">
+  <h2><span class="no">14</span>리텐션과 개선 한 건</h2>
+
+  <figure>
+    <img src="fig/fig_weekly.png" alt="주간 추이">
+    <figcaption><b>그림 13.</b> 주마다 방문한 사람 · 검사한 사람 · 재검사한 사람(북극성 지표).
+    2026-09-21 주는 위 쪽에 적은 이유로 뺐습니다. 재검사한 사람은 <b>0 → 5 → 10</b>으로 늘었고,
+    8주 목표인 주 20명까지 절반 왔습니다.</figcaption>
+  </figure>
+
+  <div class="cols">
+    <h3>리텐션을 재려고 보니 잴 수가 없었다</h3>
+    <p>방문자를 세는 값이 <code>서버만 아는 값 + 그 주 + IP</code>를 해시한 16자입니다.
+    개인정보를 남기지 않으려고 그렇게 만든 것인데, <b>주가 바뀌면 같은 사람도 다른 값이 됩니다.</b>
+    그래서 "1주차에 온 사람이 2주차에 왔는가"를 <b>구조적으로 알 수 없었습니다.</b>
+    지난 기록으로 되돌려 셀 방법도 없습니다.</p>
+
+    <p><b>쿠키는 쓰지 않았습니다.</b> 개인정보 처리방침에 "쿠키를 안 씁니다"라고 세 군데 적어 뒀고,
+    <b>이용자가 대부분 미성년자</b>라 그 약속을 뒤집지 않기로 했습니다. 대신 화면이 이미 쓰는
+    자리(<code>cadcheck.*</code>)에 <b>처음 들어온 주의 월요일 날짜 한 줄</b>만 남기고 그 날짜만
+    서버로 보냅니다. 사람을 가리키는 값은 만들지 않았고, 무엇이 남고 무엇이 서버로 가는지
+    처리방침에 그대로 적었습니다 (2026-09-24).</p>
+
+    <p><b>그래서 이 문서에 리텐션 커브 숫자는 없습니다.</b> 첫 숫자는 2026-09-29에 나옵니다.
+    지어낸 커브를 넣는 것보다 "언제부터 셀 수 있게 됐는지"를 적는 쪽이 맞다고 봤습니다.</p>
+
+    <h3>대신 지금 말할 수 있는 것</h3>
+    <p><b>한 주 안에서는 반복해서 씁니다.</b> 검사를 시작한 사람의 <b>50~91%</b>가 그 주에
+    다시 올립니다(09-14 주 91%, 09-07 주 50%). 고칠 것을 받으면 고쳐서 다시 올린다는 뜻이고,
+    제품이 하려던 <code>검사 → 고치기 → 다시 검사</code>가 돌고 있습니다.</p>
+
+    <h3>낮게 나올 수 있는 이유를 미리 적어 둔다</h3>
+    <p>CADLens는 <b>시험 준비 기간에만 쓰는 물건</b>입니다. 시험이 끝난 사람은 다시 올 이유가
+    없습니다. 그러면 주를 넘는 재방문이 낮아도 <b>제품이 잘못된 것이 아니라 원래 그런 물건</b>인 것입니다.
+    <b>그래도 지금 지표를 바꾸지는 않습니다.</b> 낮게 나올 것 같다고 미리 다른 숫자로 옮기면
+    <b>숫자가 좋아 보이게 고른 것</b>이 됩니다. 09-29에 첫 숫자를 보고 정하고, 바꾸게 되면
+    <b>바꾼 날과 이유를 같이 적습니다.</b></p>
+  </div>
+
+  <h3>개선 전후 — 이번 주에 고친 한 곳</h3>
+  <table>
+    <tr><th style="width:44mm">무엇</th><th style="width:60mm">전</th><th>후</th></tr>
+    <tr><td>예제 도면을 보기까지</td><td>버튼 → 목록까지 굴러감 → 카드를 한 번 더 누름 (2번)</td><td><b>버튼 한 번</b></td></tr>
+    <tr><td>예제 검사</td><td>22일 동안 <b>22건</b> (하루 1건, 전체 검사의 1.8%)</td><td>2026-09-29에 나옴</td></tr>
+    <tr><td>방문 → 검사 시작</td><td>26~35%</td><td>2026-09-29에 나옴</td></tr>
+  </table>
+
+  <p><b>왜 여기를 골랐나</b> — 그 칸에서 할 수 있는 일이 <b>"도면 파일을 올린다" 하나뿐</b>이었습니다.
+  예제 도면은 원래 있었지만 첫 화면에서 두 번 눌러야 닿았고 22일 동안 22번 쓰였습니다.
+  <b>내 도면이 없는 사람이 결과 화면을 볼 수 있는 유일한 길인데 하루에 한 번 쓰였습니다.</b>
+  <span class="warn">이것은 아직 추측입니다</span> — 왜 안 올리고 나가는지 <b>물어본 적이 없습니다.</b>
+  그래서 같은 주에 "파일 고르기" 칸을 퍼널에 새로 넣어 <b>안 누른 것</b>과 <b>눌렀는데 파일이 없어서
+  그만둔 것</b>을 가릅니다. <b>둘 다 안 움직이면 이 고침이 틀린 것이고, 그때 다시 적습니다.</b></p>
+  <div class="pnum"><span>Ⅳ. 쓰이고 있는가 · 14. 리텐션과 개선</span><span>16 / 20</span></div>
+</section>
+
+<!-- 17 개인정보·안전·AI윤리 -->
+<section class="page">
+  <h2><span class="no">15</span>개인정보 · 미성년자 안전 · AI 윤리</h2>
+
+  <p class="lead">쓰는 사람 대부분이 <b>미성년 수험생</b>입니다. 그래서 "모을 수 있으니 모은다"가 아니라
+  <b>"없어도 되는 것은 아예 안 받는다"</b>를 기본으로 잡았습니다. 아래는 전부 지금 실제로
+  그렇게 돌아가고 있는 것이고, 같은 내용을 웹 화면 맨 아래에서 네 나라 말로 볼 수 있습니다.</p>
+
+  <div class="two">
+    <div>
+      <h3>안 받는 것</h3>
+      <p>계정도 로그인도 회원가입도 없습니다. 이름 · 이메일 · 전화번호 · 학교 · 수험번호를 묻지 않습니다.
+      <b>쿠키를 안 씁니다.</b> Google Analytics, 광고 SDK, 오류 수집 도구 같은 남의 추적 코드도
+      전부 없습니다. 외부 사이트에서 파일을 불러오는 것도 없어서 <b>화면 글꼴까지 서버에 직접</b>
+      올려 뒀습니다. 결과 화면의 캐릭터 스티커도 저희 서버가 받아 두었다가 보내므로,
+      방문자 브라우저는 그 회사 서버에 접속하지 않습니다.</p>
+
+      <h3>세는 것</h3>
+      <table>
+        <tr><th style="width:24mm">무엇을 남기나</th><td><b>날짜 · 방문자 값 · 종류 · 횟수</b>, 네 개뿐</td></tr>
+        <tr><th>방문자 값이 뭔가</th><td><code>그 서버만 아는 임의의 값 + 그 주 + IP</code>를 해시한 <b>16자</b>.
+          IP 원본도, 해시를 되돌릴 수 있는 것도 저장하지 않습니다</td></tr>
+        <tr><th>왜 주 단위인가</th><td>목표 지표가 <b>주간 재검사 사용자 수</b>여서.
+          주가 바뀌면 같은 사람이라도 값이 달라져 주를 넘겨서는 이어 볼 수 없습니다</td></tr>
+        <tr><th>안 남기는 것</th><td>어떤 도면을 올렸는지, 파일 이름, 검사 결과 점수,
+          브라우저 종류, 어느 페이지에서 왔는지 — 전부 안 남깁니다</td></tr>
+        <tr><th>누가 보나</th><td><b>아무나 봅니다.</b> 화면 아래와 <code>/api/stats</code>에 그대로 공개합니다</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>올린 도면</h3>
+      <p>그 검사에만 쓰고 <b>최대 1시간</b> 뒤 서버에서 지웁니다. AI 학습에 쓰거나 팔지 않습니다.</p>
+      <p><b>밖으로 나가는 것 — 이건 꼭 알아야 합니다.</b> 투상도 30점을 채점할 때
+      <b>도면을 그림(PNG)으로 바꿔서 Google Gemini에 보냅니다.</b> 보내는 것은 도면 그림 1장과
+      파일 종류·투상법·뷰 개수 정도의 요약이고, <b>원본 DWG나 DXF 파일 자체는 안 보냅니다.</b>
+      보낸 뒤로는 Google의 방침과 약관을 따르며, 저희가 어떻게 할 수 있는 부분이 아닙니다.
+      Gemini가 막히면 같은 그림이 Cloudflare Workers AI → Mistral → Groq로 갑니다.
+      <b>DWG를 DXF로 바꾸는 일은 서버 안에 설치된 LibreDWG가 합니다 — 변환하려고 도면을 밖으로
+      보내지 않습니다.</b></p>
+
+      <h3>도면 안에 들어 있는 개인정보</h3>
+      <p>표제란에 이름을 적었으면 <b>그 이름이 결과 화면에 그대로 뜹니다.</b> 표제란의
+      작성자·설계자 칸을 읽어서 "파일 정보"에 보여 주기 때문입니다. 저희가 따로 모으는 것이
+      아니라 도면 파일 안에 원래 들어 있는 값입니다. <b>남기기 싫으면 올리기 전에 지우고 올리세요.</b></p>
+
+      <h3>미성년자 안전</h3>
+      <p>결제 · 광고 · 추적 코드가 없습니다. 이름 · 나이 · 학교를 묻는 입력란도 없습니다
+      (오류 신고 창의 <b>연락처 한 칸만 선택 입력</b>이고, 안 적어도 신고가 갑니다).
+      <b>채팅 · 댓글 · 프로필처럼 사용자끼리 만날 수 있는 기능이 아예 없습니다.</b></p>
+    </div>
+  </div>
+
+  <h3>AI 윤리 — 무엇을 AI가 만들었고, 왜 안전한가</h3>
+  <div class="cols">
+    <p><b>AI 생성물 표기.</b> 100점 중 <b>투상도 30점과 "AI 총평" 문장</b>을 AI가 만듭니다.
+    화면에서 AI가 매긴 항목에는 <code>AI</code> 표시가 붙습니다. 지적마다 붙는 질문 버튼 세 개의
+    답도 채점할 때 AI가 같이 만든 것입니다. <b>AI 점수는 매번 똑같이 나오지 않으니 확정 점수가
+    아닙니다.</b> 코드와 문서도 AI 도구로 썼고 <b>전부 사람이 확인한 뒤</b> 넣었습니다.</p>
+
+    <p><b>왜 안전한가.</b> AI에게 도면 그림 1장을 주고 <b>투상도 배열만 채점하라고 역할을 고정</b>했습니다.
+    학생이 AI에게 아무 말이나 보낼 수 있는 <b>입력칸이 없습니다.</b> 질문 버튼도 미리 정해 둔
+    세 가지뿐이고 답도 채점할 때 함께 만들어 둔 것이라, 버튼을 눌러도 AI를 새로 부르지 않습니다.
+    답변도 정해진 형식으로만 받아서 형식을 벗어난 아무 말이 화면에 뜨지 않습니다.
+    <b>오류 신고에 적은 글은 AI로 보내지 않고</b> 저희 기록에만 남습니다.</p>
+
+    <p><b>확실하지 않으면 감점하지 않습니다.</b> AI가 형식을 안 지키거나 답변을 거부하면 그 결과를
+    버리고 <b>"사람 확인 필요"</b>로 처리합니다. AI가 매기는 감점은 코드에서 <b>30점을 넘을 수 없게</b>
+    막아 뒀습니다. 네 경로가 다 막히면 30점을 <b>비워 둔 채</b> 아는 척하지 않습니다.</p>
+
+    <p><b>저작권.</b> 도면 저작권은 그린 사람 것입니다. 검사 기준은 KS 규격과 공개된 채점 기준만
+    보고 만들었고 <b>비공개 채점표를 베낀 적이 없습니다.</b> 예제와 정확도 측정용 도면은 직접 만들었거나
+    개인정보를 지운 것이고, <b>남의 도면을 함부로 저장소에 넣지 않았습니다.</b></p>
+  </div>
+
+  <div class="ref">근거 — <code>docs/policy.md</code>(네 항목 전문) ·
+  <code>docs/security_check.md</code> · <code>docs/ai_usage.md</code> · <code>NOTICE.md</code></div>
+  <div class="pnum"><span>Ⅴ. 책임과 앞으로 · 15. 개인정보 · 안전 · AI 윤리</span><span>17 / 20</span></div>
+</section>
+
+<!-- 18 스택 -->
+<section class="page">
+  <h2><span class="no">16</span>기술 스택과 라이선스</h2>
+
+  <div class="two">
+    <div>
+      <h3>무엇으로 만들었나</h3>
+      <table>
+        <tr><th style="width:22mm">어디에</th><th style="width:34mm">무엇을</th><th>라이선스</th></tr>
+        <tr><td>언어</td><td>Python 3.13</td><td>PSF</td></tr>
+        <tr><td>웹 서버</td><td>FastAPI 0.141.1</td><td>MIT</td></tr>
+        <tr><td>서버 실행</td><td>Uvicorn 0.52.0</td><td>BSD-3-Clause</td></tr>
+        <tr><td>파일 업로드</td><td>python-multipart 0.0.32</td><td>Apache-2.0</td></tr>
+        <tr><td>도면 읽기</td><td>ezdxf 1.4.4</td><td>MIT</td></tr>
+        <tr class="hl"><td>도면을 그림으로</td><td>PyMuPDF 1.28.0</td><td><b>AGPL-3.0</b> 또는 상용</td></tr>
+        <tr><td>이미지 처리</td><td>Pillow 12.3.0</td><td>MIT-CMU</td></tr>
+        <tr><td>인터넷 요청</td><td>Requests 2.34.2</td><td>Apache-2.0</td></tr>
+        <tr><td>Gemini 연결</td><td>google-genai 2.16.0</td><td>Apache-2.0</td></tr>
+        <tr class="hl"><td>DWG 변환</td><td>GNU LibreDWG 0.14</td><td><b>GPL-3.0-or-later</b></td></tr>
+        <tr><td>웹 화면</td><td>HTML + CSS + JS</td><td>프레임워크·빌드 도구 없음</td></tr>
+        <tr><td>화면 글꼴</td><td>나눔스퀘어라운드</td><td>SIL OFL 1.1</td></tr>
+        <tr><td>배포</td><td>Docker + Render.com</td><td>—</td></tr>
+      </table>
+      <h3>왜 프레임워크를 안 썼나</h3>
+      <p>화면에 React 같은 것을 쓰지 않았습니다. <b>빌드 과정 없이 파일 하나만 열면 되게</b>
+      하고 싶었습니다. 실제로 <code>static/index.html</code>을 브라우저로 바로 열면 화면이 그대로
+      뜹니다. 서버가 죽어도 화면 코드는 읽을 수 있고, 심사하는 쪽에서 <b>빌드 도구를 설치하지
+      않고도 코드를 확인</b>할 수 있습니다. 글꼴도 외부에서 불러오지 않고 서버에 직접 올려 둡니다 —
+      방문자 브라우저가 글꼴 회사 서버에 접속하지 않게 하려는 것입니다.</p>
+
+      <h3>다시 만들 수 있게 해 두었다</h3>
+      <p>이 문서의 그래프 7장은 <code>docs/fig/make_figs.py</code> 한 파일로 다시 만들 수 있습니다.
+      숫자를 손으로 그림에 그려 넣지 않고 <b>코드 안에 값으로</b> 두었기 때문에, 숫자가 바뀌면
+      그래프도 같이 바뀝니다.</p>
+
+      <p class="small">Cloudflare Workers AI · Mistral · Groq는 전용 SDK 없이 Requests로
+      REST를 직접 부릅니다. 개발할 때만 pytest(MIT)와 fontTools(MIT)를 씁니다.
+      ODA File Converter(상용 무료)와 CloudConvert(외부 유료 API)를 변환 대체 경로로 붙여 뒀지만
+      <b>공개 서버에서는 쓰지 않습니다.</b></p>
+    </div>
+    <div>
+      <h3>사용한 AI 모델을 전부 공개한다</h3>
+      <table>
+        <tr><th style="width:30mm">모델</th><th style="width:22mm">만든 곳</th><th>어디에 썼나</th></tr>
+        <tr><td><code>gemini-3.1-flash-lite</code></td><td>Google</td><td><b>서비스가 돌 때</b> — 투상도 30점 채점 (기본값)</td></tr>
+        <tr><td><code>llama-4-scout-17b</code></td><td>Meta / Cloudflare</td><td><b>서비스가 돌 때</b> — Gemini가 막히면 대신</td></tr>
+        <tr><td><code>mistral-small-latest</code></td><td>Mistral AI</td><td><b>서비스가 돌 때</b> — 앞의 둘이 막히면</td></tr>
+        <tr><td><code>qwen/qwen3.6-27b</code></td><td>Alibaba / Groq</td><td><b>서비스가 돌 때</b> — 마지막 예비</td></tr>
+        <tr><td>Claude Opus 5 / Sonnet 5</td><td>Anthropic</td><td>만들 때 — 코드 작성·정리, 문서와 번역 초안</td></tr>
+        <tr><td>GPT-5.6 Sol</td><td>OpenAI</td><td>만들 때 — 코드 작성 도움</td></tr>
+      </table>
+
+      <h3>GPL과 AGPL을 어떻게 다뤘나</h3>
+      <p>프로젝트 코드와 문서는 <b>MIT</b>입니다. 그런데 두 가지가 전염성 라이선스입니다.</p>
+      <ul>
+        <li><b>LibreDWG (GPL-3.0-or-later)</b> — 라이브러리로 링크하지 않고
+        <b>별도 실행 파일(<code>dwg2dxf</code>)을 프로세스로 부르는 방식</b>으로만 씁니다.</li>
+        <li><b>PyMuPDF (AGPL-3.0)</b> — 네트워크로 서비스하면 소스 공개 의무가 생기는
+        라이선스입니다. <b>저장소를 통째로 공개</b>하고 있어서 지금은 문제가 없지만,
+        <b>소스를 닫고 팔려면 이 둘을 먼저 정리해야 합니다.</b></li>
+      </ul>
+      <p>어떻게 처리했는지는 <code>NOTICE.md</code>에 적어 뒀습니다.
+      <b>사용자가 올린 도면의 저작권은 올린 사람 것이고 이 라이선스와 상관없습니다.</b></p>
+
+      <h3>외부 자문</h3>
+      <p>구미전자공업고등학교 <b>김민정 선생님</b>께 실기 채점 항목을 수업에서 어떻게 확인하시는지,
+      학생들이 실제로 자주 틀리는 것이 무엇인지 자문을 받았습니다. 들은 내용은 검사 항목을 고르고
+      지적 문구를 쓰는 데 반영했습니다. <b>도와주신 분이 이 프로젝트 결과에 책임을 지시는 것은 아닙니다.</b></p>
+
+
+    </div>
+  </div>
+
+  <div class="ref">근거 — <code>requirements.txt</code> · <code>Dockerfile</code> ·
+  <code>NOTICE.md</code> · <code>LICENSE</code> · <code>docs/ai_usage.md</code></div>
+  <div class="pnum"><span>Ⅴ. 책임과 앞으로 · 16. 기술 스택과 라이선스</span><span>18 / 20</span></div>
+</section>
+
+<!-- 19 임팩트 -->
+<section class="page">
+  <h2><span class="no">17</span>임팩트와 사업화 가능성</h2>
+
+  <p class="lead">하고 싶은 것은 하나입니다. <b>혼자 연습하는 사람도 피드백을 받게 하는 것.</b>
+  실기 준비에서 제일 큰 차이는 틀린 것을 짚어 주는 사람이 옆에 있느냐입니다.</p>
+
+  <div class="cols">
+    <h3>사회적 가치 다섯 가지</h3>
+    <p><b>1. 학원에 못 다녀도 피드백을 받습니다.</b> CADLens는 무료고 가입도 필요 없습니다.
+    학원 선생님을 대신할 수는 없지만 "표면거칠기 값이 비어 있다" 같은 것은 아무 때나 잡아 줍니다.</p>
+
+    <p><b>2. 선생님이 반복하는 확인을 줄여 줍니다.</b> 실습 시간에 선생님 한 명이 학생 30명의
+    도면을 다 보는데 대부분은 매번 똑같은 확인입니다. 이것을 먼저 걸러 주면 선생님은
+    <b>"왜 이 면을 정면도로 골랐나"</b> 같은, 기계가 못 하는 것을 가르치는 데 시간을 쓸 수 있습니다.</p>
+
+    <p><b>3. 채점을 결과가 아니라 공부로 만듭니다.</b> 공식 시험은 붙었는지만 알려 주고 왜 떨어졌는지는
+    안 알려 줍니다. CADLens는 <code>뭐가 / 어디서 / 왜 틀렸고 / 어떻게 고치는지</code>를 같이
+    보여 주고, 다시 검사해서 비교하는 기능도 넣었습니다.</p>
+
+    <p><b>4. 정직하게 만드는 것도 가치라고 봤습니다.</b> 공부용 도구가 틀린 것을 자신 있게 말하면
+    학생은 틀린 것을 배웁니다. 그래서 잘 되는 것보다 <b>안 되는 것을 문서로 공개하는 데</b>
+    더 신경 썼습니다.</p>
+
+    <p><b>5. 오픈소스로 공개했습니다.</b> MIT라서 다른 학교나 다른 자격증에서 규칙만 바꿔 다시 쓸 수 있고,
+    <b>저희가 틀렸으면 누구든 지적할 수 있습니다.</b></p>
+
+    <h3>다른 종목으로 넓힐 수 있는가 — 먼저 따져 봤다</h3>
+    <p>기능사 한 종목만 지원하면 쓸 수 있는 사람이 제한됩니다. 그래서 <code>exam.py</code>의
+    판정 함수 8개와 루브릭 7개를 <b>기계설계산업기사 · 일반기계기사 · 사출금형산업기사 ·
+    프레스금형산업기사</b>의 출제기준에 하나씩 대보고 <b>그대로 / 상수만 조정 / 신규 개발</b>로
+    나눠 봤습니다. 재사용률이 종목별로 <b>50~90%</b>였습니다.
+    <b>코드를 건드리기 전에 근거부터 남긴 것이라 아직 구현하지 않았습니다.</b></p>
+  </div>
+
+  <h3>사업화 — 지금은 구조가 없고 매출도 없습니다</h3>
+  <p class="small" style="margin-bottom:2mm">아래는 실적이 아니라 <b>생각해 본 가능성</b>입니다.
+  될 만한 이유는 있습니다 — 시험이 1년에 4번 있고 실기 응시자가 5년째 3천 명대로 꾸준하며,
+  같은 목적으로 이미 학원·인강·교재에 수십만 원씩 쓰는 시장입니다. 서버 1대로 돌아가고
+  같은 도면을 다시 검사하면 캐시가 답해서 AI 비용이 0입니다.</p>
+
+  <table>
+    <tr><th style="width:8mm">#</th><th style="width:44mm">방식</th><th>내용과 판단</th></tr>
+    <tr class="hl"><td class="n">1</td><td><b>학교에 파는 방식</b><br>(제일 현실적)</td>
+      <td>반 단위 화면 — 학생별 제출 기록, 반에서 제일 많이 틀리는 항목, 과제 내주고 걷기.
+      선생님 채점 시간을 줄여 주는 대가로 1년 단위 계약.
+      <b>미성년자에게 직접 결제를 붙이지 않아도 된다</b>는 점에서도 낫습니다</td></tr>
+    <tr><td class="n">2</td><td>개인은 계속 무료,<br>추가 기능만 유료</td>
+      <td>기본 검사는 계속 무료. AI 상세 첨삭, 기록 무제한 보관, PDF 리포트만 유료.
+      다만 결제는 <b>보호자나 학교 계정으로만</b> 열어야 합니다</td></tr>
+    <tr><td class="n">3</td><td>비슷한 자격증으로 넓히기</td>
+      <td>전산응용건축제도기능사, 기계설계산업기사도 파일 형식과 채점 구조가 거의 같아서
+      규칙만 추가하면 됩니다</td></tr>
+    <tr><td class="n">4</td><td>회사 도면 검토 자동화<br>(한참 나중에)</td>
+      <td>실제 회사 도면에서 빠진 표기를 찾는 것은 제조 회사 설계팀이 실제로 하는 일입니다.
+      돈은 더 되겠지만 <b>요구 정확도가 훨씬 높아서 지금은 이릅니다</b></td></tr>
+  </table>
+
+  <div class="note">
+    <b>팔기 전에 해결해야 하는 것 — 솔직히 지금 상태로는 못 팝니다.</b>
+    ① <b>정확도 검증이 부족합니다.</b> 실제 도면 23장은 한 학생 것이고 6개 항목만 라벨했습니다.
+    여러 학생의 완성 도면 수백 장으로 다시 재야 합니다.
+    ② <b>AI 점수가 매번 똑같이 안 나옵니다.</b> 돈을 받으려면 규칙으로 옮기거나 편차부터 줄여야 합니다.
+    ③ <b>DWG 변환이 GPL 프로그램에 기대고 있고 PyMuPDF가 AGPL입니다.</b>
+    ④ <b>미성년자에게 돈을 받는 것은 규제 대상</b>이라 법정대리인 동의 같은 조건이 붙습니다.
+  </div>
+
+  <div class="ref">근거 — <code>docs/impact.md</code> · <code>example/</code>(종목별 재사용률·도입 순서·응시자 통계)</div>
+  <div class="pnum"><span>Ⅴ. 책임과 앞으로 · 17. 임팩트와 사업화</span><span>19 / 20</span></div>
+</section>
+
+<!-- 20 한계와 계획 -->
+<section class="page">
+  <h2><span class="no">18</span>한계와 발전 계획 · 부록</h2>
+
+  <p class="lead">번호가 곧 순서입니다. <b>위에 있는 것이 안 되면 아래 것을 해도 의미가 없습니다.</b></p>
+
+  <table>
+    <tr><th style="width:8mm">#</th><th style="width:48mm">무엇을</th><th>지금 어디까지</th></tr>
+    <tr class="hl"><td class="n">1</td><td><b>실제 수험생 도면으로 정확도 다시 재기</b><br>
+      <span class="small">이것이 안 되면 나머지가 다 의미 없습니다</span></td>
+      <td><span class="ok">✅</span> 학생 도면 32장 수집 → DXF 30장 변환 (서로 다른 23장) ·
+      <span class="ok">✅</span> 같은 방식으로 재측정 · <span class="ok">✅</span> 자체 제작 도면과 실제 도면 결과를 나란히 공개<br>
+      <span class="warn">◻</span> <b>여러 학생의 완성 도면으로 다시 재기</b> — 지금 23장은 20장이 작업 중간 상태라
+      "없는 것을 없다고 하는가"만 재졌습니다 · <span class="warn">◻</span> 선생님이 채점한 도면으로 전 항목 라벨</td></tr>
+    <tr><td class="n">2</td><td><b>AI 점수 안정시키기</b></td>
+      <td><span class="ok">✅</span> 편차 측정(<code>variance.py</code>) · <span class="ok">✅</span> 백지 렌더 수정 ·
+      <span class="ok">✅</span> 채점기 폴백 작동 · <span class="ok">✅</span> 캐시 적중<br>
+      <span class="warn">◻</span> 규칙으로 옮길 수 있는 것 옮기기 · <span class="warn">◻</span> 여러 번 물어 중앙값 쓰기 검토 ·
+      <span class="warn">◻</span> AI가 틀린 사례 모아 두기</td></tr>
+    <tr><td class="n">3</td><td><b>못 잡는 것 줄이기</b></td>
+      <td><span class="ok">✅</span> 선 4개로 그린 윤곽선 (실제 도면 30장 중 28장에서 찾음, 도면 크기 판정이 살아남)<br>
+      <span class="warn">◻</span> 선으로만 그린 거칠기 기호 · <span class="warn">◻</span> 직접 그린 기하공차 기입틀 ·
+      <span class="warn">◻</span> 이름이 CENTER 계열이 아닌 중심선 레이어 · <span class="warn">◻</span> 요목표 읽기</td></tr>
+    <tr><td class="n">4</td><td>퍼널에서 제일 크게 빠지는 칸 고치기</td>
+      <td><span class="ok">✅</span> "파일 고르기" 칸을 퍼널에 추가 · <span class="ok">✅</span> 예제 도면 한 번에 실행<br>
+      <span class="warn">◻</span> 이탈한 사람에게 직접 묻기 · <span class="warn">◻</span> 09-29 숫자로 효과 확인</td></tr>
+    <tr><td class="n">5</td><td>다른 종목으로 넓히기</td>
+      <td><span class="ok">✅</span> 재사용률 조사(50~90%) · <span class="warn">◻</span> 구현은 아직</td></tr>
+  </table>
+
+  <div class="two">
+    <div>
+      <h3>부록 A · 팀과 진행</h3>
+      <table>
+        <tr><th style="width:18mm">팀</th><td><b>네이놈</b> — 박지완 · 장우영 · 안대열 · 김승준<br>
+          <span class="small">담당자는 <b>무작위로 배정</b>합니다. 사람마다 잘하는 것만 계속 맡으면
+          한 사람만 늘고 나머지는 8주 동안 배우는 것이 없습니다. 못 하는 일이면 그날 안에 바꾸고
+          <b>누구와 바꿨는지 기록에 적습니다.</b></span></td></tr>
+        <tr><th>기간</th><td>본선 8주 코칭 2026-08-18 ~ 10-12</td></tr>
+      </table>
+      <table>
+        <tr><th style="width:11mm">주차</th><th style="width:22mm">기간</th><th>주제</th></tr>
+        <tr><td>W1</td><td>08-18~24</td><td>킥오프 — 미션과 목표</td></tr>
+        <tr><td>W2</td><td>08-25~31</td><td>사용자와 문제 — 인터뷰 5건</td></tr>
+        <tr><td>W3</td><td>09-01~07</td><td>MVP · 아키텍처 · AI 윤리 · 보안 점검</td></tr>
+        <tr><td>W4</td><td>09-08~14</td><td><b>데모데이 ①</b> · 중간 점검</td></tr>
+        <tr><td>W5</td><td>09-15~21</td><td>런칭과 첫 사용자</td></tr>
+        <tr class="hl"><td>W6</td><td>09-22~28</td><td><b>리텐션 · 지표</b> (이 문서의 기준 주)</td></tr>
+        <tr><td>W7</td><td>09-29~10-05</td><td>발표 · 피칭</td></tr>
+        <tr><td>W8</td><td>10-06~12</td><td><b>데모데이 ②</b> · 2차 제출 정비</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>부록 B · 이 문서의 근거 문서</h3>
+      <table>
+        <tr><th style="width:36mm">문서</th><th>무엇이 있나</th></tr>
+        <tr><td><code>README.md</code></td><td>전체 설명 · 아키텍처 · 검사 내용 · 공개 고지</td></tr>
+        <tr><td><code>docs/accuracy.md</code></td><td>정확도 측정 전문, 날짜별 재측정, 약점 표</td></tr>
+        <tr><td><code>docs/metrics.md</code></td><td>지표 정의 · 퍼널 · 리텐션 · 개선 전후</td></tr>
+        <tr><td><code>docs/interviews.md</code></td><td>대면 인터뷰 5건 전문</td></tr>
+        <tr><td><code>docs/policy.md</code></td><td>개인정보 · AI 생성물 · 미성년자 안전 · 저작권</td></tr>
+        <tr><td><code>docs/rule_standards.md</code></td><td>검사 항목별 KS 규격 근거</td></tr>
+        <tr><td><code>docs/roadmap.md</code></td><td>발전 계획과 우선순위</td></tr>
+        <tr><td><code>docs/impact.md</code></td><td>응시자 통계 · 사회적 가치 · 사업화</td></tr>
+        <tr><td><code>plan/문제점/</code></td><td>겪은 문제 24건, 한 건당 파일 하나</td></tr>
+        <tr><td><code>NOTICE.md</code></td><td>GPL · AGPL 취급</td></tr>
+      </table>
+
+      <h3>부록 C · 바로 확인할 수 있는 것</h3>
+      <ul>
+        <li><b>서비스</b> — <code>naverogq.onrender.com</code> (가입·설치 없음)</li>
+        <li><b>검사 근거</b> — <code>/ks</code> · <b>정확도</b> — <code>/accuracy</code></li>
+        <li><b>지표 원본</b> — <code>/api/stats</code> (숨기지 않고 그대로 공개)</li>
+      </ul>
+
+      <div class="note" style="margin-top:2mm">
+        <b>마지막으로.</b> CADLens는 마지막에 확인하는 것을 도와주는 <b>보조 도구</b>입니다.
+        제출 전에는 꼭 그 회차의 <b>공개문제와 감독위원 지시사항</b>을 같이 확인하세요.
+      </div>
+    </div>
+  </div>
+
+  <div class="ref">CADLens 프로젝트 소개서 · 2026-09-25 기준 · 코드와 문서는 MIT 라이선스로 공개되어 있습니다.</div>
+  <div class="pnum"><span>Ⅴ. 책임과 앞으로 · 18. 한계와 발전 계획</span><span>20 / 20</span></div>
+</section>
+</body>
+</html>
