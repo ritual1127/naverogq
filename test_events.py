@@ -351,7 +351,8 @@ def test_weeks_are_recorded_one_row_per_week():
     weeks = client.get("/api/stats").json()["weeks"]
     assert weeks, "주 기록이 비어 있으면 목표 달성 여부를 볼 수 없다"
     first = weeks[0]
-    assert set(first) == {"since", "visitors", "checkers", "finishers", "recheckers"}
+    assert set(first) == {"since", "visitors", "pickers", "checkers",
+                          "finishers", "recheckers"}
     assert first["since"] <= __import__("datetime").date.today().isoformat()
     assert first["checkers"] <= first["visitors"] or first["visitors"] == 0
     assert [w["since"] for w in weeks] == sorted((w["since"] for w in weeks), reverse=True)
@@ -406,3 +407,11 @@ def test_cohort_event_returns_the_first_week_and_is_kept():
     assert again.json()["first"] == first
     junk = client.post("/api/event", json={"kind": "cohort", "first": "'; drop"})
     assert junk.json()["first"] == first          # 지어낸 값은 버리고 이번 주로
+
+
+def test_file_picker_is_counted_as_its_own_funnel_step():
+    """방문과 검사 사이가 제일 크게 빠지는 칸이다. 안 누른 것과 누르고 그만둔 것을
+    가르려면 이 수가 있어야 한다."""
+    before = client.get("/api/stats").json()["weeks"][0]["pickers"]
+    assert client.post("/api/event", json={"kind": "pick"}).status_code == 200
+    assert client.get("/api/stats").json()["weeks"][0]["pickers"] == before + 1

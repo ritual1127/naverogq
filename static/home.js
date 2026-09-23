@@ -82,7 +82,11 @@ function fail(e){const d=lang==='ko'?String((e&&e.message)||'').trim().replace(/
 function run(req,label){busy(label);req.then(done).then(j=>render(j)).catch(fail).finally(idle)}
 const sendSample=n=>{if(ready())run(fetch('/api/analyze-sample',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,checks:picked()})}),n)};
 function send(f){if(!ready())return;const fd=new FormData();fd.append('file',f);fd.append('checks',picked().join(','));run(fetch('/api/analyze',{method:'POST',body:fd}),f.name)}
-function pick(){if(ready())$('#file').click()}
+const hit=k=>fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:k})}).catch(()=>{});
+// 방문에서 검사 사이가 제일 크게 빠지는 칸인데, 안 누른 것인지 누르고 파일이 없어서
+// 그만둔 것인지 구분이 안 됐다. 파일 선택창을 연 것을 한 번 센다. 파일 이름은 안 보낸다.
+let picked1=false;
+function pick(){if(!ready())return;if(!picked1){picked1=true;hit('pick')}$('#file').click()}
 // Clearing value lets the user pick the SAME file again after fixing it in CAD;
 // otherwise the browser sees no change and never fires this handler a second time.
 $('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)send(f)};
@@ -95,7 +99,11 @@ drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};
 drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});
 // A file dropped just outside the drop zone (or on the result page) would make the browser open it and leave the site.
 ['dragover','drop'].forEach(x=>addEventListener(x,e=>e.preventDefault()));
-$('#ctaSample').onclick=()=>{$('#samples').scrollIntoView({block:'start'});const b=$('#sgrid .scard');if(b)b.focus({preventScroll:true})};
+// 예제는 한 번에 돌린다. 예전에는 눌러도 목록까지 굴러가기만 해서 한 번 더 눌러야 했다.
+// 내 도면이 손에 없는 사람은 여기서 결과 화면을 처음 본다. DWG 예제는 LibreDWG 가 있어야
+// 열려서 건너뛰고 DXF 를 고른다. 다른 예제는 아래 목록에 그대로 있다.
+$('#ctaSample').onclick=()=>{const s=SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
+  if(s)sendSample(s.name);else $('#samples').scrollIntoView({block:'start'})};
 
 const ART={
 upload:'<svg viewBox="0 0 240 132" aria-hidden="true"><path class="art-thin" d="M60 86v18a10 10 0 0 0 10 10h100a10 10 0 0 0 10-10V86"/><rect class="art-sheet" x="92" y="16" width="56" height="74" rx="8"/><path class="art-thin" d="M104 38h32M104 48h32M104 58h20"/><rect class="art-chip" x="100" y="68" width="40" height="15" rx="7.5"/><text class="art-chiptxt" x="120" y="75.5">DXF</text><path class="art-dim" d="M192 84V44M180 56l12-12 12 12"/></svg>',
@@ -374,8 +382,7 @@ function compareFor(d){if(CMP.has(d.job))return CMP.get(d.job);
   CMP.set(d.job,diff);histSave(now);
   // 같은 파일을 고쳐서 다시 올린 것 = 재검사. 종류 이름만 보낸다(파일명은 안 보냄).
   // 늦게 온 AI 점수로 한 번 더 비교할 때가 있어, 검사 한 번은 한 번만 센다.
-  if(diff&&!COUNTED.has(d.job)){COUNTED.add(d.job);
-    fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'recheck'})}).catch(()=>{})}
+  if(diff&&!COUNTED.has(d.job)){COUNTED.add(d.job);hit('recheck')}
   return diff}
 function drawCompare(diff){const box=$('#cmp');
   if(!diff){box.innerHTML=`<div class="cmp-hint">${ico('refresh')}<span>${esc(t('cmpFirst'))}</span></div>`;return}

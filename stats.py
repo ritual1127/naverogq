@@ -314,6 +314,7 @@ MONDAY = "date(day, '-' || ((CAST(strftime('%w', day) AS INTEGER) + 6) % 7) || '
 
 WEEKLY_SQL = f"""SELECT {MONDAY} AS wk,
  COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v,
+ COUNT(DISTINCT CASE WHEN kind='pick' THEN visitor END) p,
  COUNT(DISTINCT CASE WHEN kind IN ('check','sample') THEN visitor END) c,
  COUNT(DISTINCT CASE WHEN kind='done' THEN visitor END) f
  FROM hits GROUP BY wk ORDER BY wk DESC LIMIT {{n}}"""
@@ -355,8 +356,11 @@ def retention(con=None, limit=6):
 
 
 def _weeks(rows, again):
-    return [{"since": r[0], "visitors": r[1] or 0, "checkers": r[2] or 0,
-             "finishers": r[3] or 0, "recheckers": again.get(r[0], 0)} for r in rows]
+    # pickers = 파일 선택창을 연 사람. 방문과 검사 사이가 제일 크게 빠지는 칸이라,
+    # 안 누른 것과 누르고 그만둔 것을 갈라 보려고 2026-09-25 에 넣었다.
+    return [{"since": r[0], "visitors": r[1] or 0, "pickers": r[2] or 0,
+             "checkers": r[3] or 0, "finishers": r[4] or 0,
+             "recheckers": again.get(r[0], 0)} for r in rows]
 
 
 def weekly(con=None, limit=6):
@@ -364,7 +368,7 @@ def weekly(con=None, limit=6):
     if d1_conf():
         rows = _d1(WEEKLY_SQL.format(n=int(limit)))[0]
         again = {r["wk"]: r["r"] for r in _d1(WEEKLY_AGAIN_SQL)[0]}
-        return _weeks([(r["wk"], r["v"], r["c"], r["f"]) for r in rows], again)
+        return _weeks([(r["wk"], r["v"], r["p"], r["c"], r["f"]) for r in rows], again)
     rows = con.execute(WEEKLY_SQL.format(n=int(limit))).fetchall()
     again = dict(con.execute(WEEKLY_AGAIN_SQL).fetchall())
     return _weeks(rows, again)

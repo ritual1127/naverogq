@@ -219,7 +219,7 @@ def _done(request, response):
     return response
 
 
-EVENT_KINDS = {"recheck", "cohort"}
+EVENT_KINDS = {"recheck", "cohort", "pick"}
 
 # 이 자리는 파일도 AI 도 쓰지 않아서 서버에는 싸다. 그래도 막는 이유는 값 자체다 —
 # 여기서 오는 수가 북극성 지표라, 누구나 POST 로 올릴 수 있으면 지표가 지어진 수가 된다.
@@ -235,8 +235,8 @@ _evt_all = []
 
 @app.post("/api/event")
 def event(body: dict, request: Request):
-    """화면이 보내는 이벤트. 재검사와 코호트 둘이다. 종류 이름과 처음 온 주(날짜
-    하나)만 받고 파일명이나 도면 내용은 받지 않는다."""
+    """화면이 보내는 이벤트. 재검사 · 코호트 · 파일 선택창 셋이다. 종류 이름과
+    처음 온 주(날짜 하나)만 받고 파일명이나 도면 내용은 받지 않는다."""
     kind = (body or {}).get("kind", "")
     if kind not in EVENT_KINDS:
         raise HTTPException(400, "셀 수 없는 이벤트입니다.")
