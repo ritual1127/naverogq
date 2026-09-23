@@ -389,6 +389,13 @@ function drawCompare(diff){const box=$('#cmp');
 
 reveal();
 
+// 코호트 — 주를 넘어 다시 오는지 보는 값. 남는 것은 처음 온 주의 월요일 날짜 하나뿐이고
+// 사람을 가리키는 값은 없다. 주 계산은 서버가 한다. 실패해도 화면은 그대로 간다.
+const COHORT='cadcheck.first';
+fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({kind:'cohort',first:store.get(COHORT)||''})})
+  .then(r=>r.ok?r.json():null).then(d=>{if(d&&d.first)store.set(COHORT,d.first)}).catch(()=>{});
+
 applyLang();
 loadStats();
 if(!store.get('cadcheck.intro'))openGuide(0);

@@ -219,16 +219,37 @@ def _done(request, response):
     return response
 
 
-EVENT_KINDS = {"recheck"}
+EVENT_KINDS = {"recheck", "cohort"}
+
+# 이 자리는 파일도 AI 도 쓰지 않아서 서버에는 싸다. 그래도 막는 이유는 값 자체다 —
+# 여기서 오는 수가 북극성 지표라, 누구나 POST 로 올릴 수 있으면 지표가 지어진 수가 된다.
+# 사람이 검사 한 번에 한 번 누르는 수라 검사 상한과 같은 자리에 둔다.
+EVENT_MAX = 40                          # 한 접속자가 10분에
+EVENT_TRUSTED_MAX = 120                 # 프록시가 붙인 값 기준 (모두에게 같을 수 있다)
+EVENT_WINDOW = 10 * 60
+EVENT_GLOBAL_MAX = 600                  # 서버 전체가 1시간에
+EVENT_GLOBAL_WINDOW = 60 * 60
+_evt = {}
+_evt_all = []
 
 
 @app.post("/api/event")
 def event(body: dict, request: Request):
-    """화면이 보내는 이벤트. 지금은 재검사 하나뿐이다. 종류 이름만 받고
-    파일명이나 도면 내용은 받지 않는다."""
+    """화면이 보내는 이벤트. 재검사와 코호트 둘이다. 종류 이름과 처음 온 주(날짜
+    하나)만 받고 파일명이나 도면 내용은 받지 않는다."""
     kind = (body or {}).get("kind", "")
     if kind not in EVENT_KINDS:
         raise HTTPException(400, "셀 수 없는 이벤트입니다.")
+    ip, trusted = _whos(request)
+    if _too_many((_evt, _evt_all), EVENT_WINDOW, EVENT_GLOBAL_MAX, EVENT_GLOBAL_WINDOW,
+                 (ip, EVENT_MAX), (trusted, EVENT_TRUSTED_MAX)):
+        raise HTTPException(429, "짧은 시간에 너무 많이 왔습니다.",
+                            headers={"Retry-After": str(EVENT_WINDOW)})
+    if kind == "cohort":
+        # 처음 온 주. 화면이 보낸 값을 그대로 믿지 않고 날짜 모양만 받는다.
+        first = (body or {}).get("first", "")
+        return {"ok": True,
+                "first": stats.cohort(request, first if isinstance(first, str) else "")}
     stats.bump(request, kind)
     return {"ok": True}
 

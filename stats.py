@@ -112,6 +112,36 @@ def visitor_id(ip, today=None):
     return hashlib.sha256(raw).hexdigest()[:16]
 
 
+# 코호트 — 주를 넘어 다시 오는가.
+# 방문자 해시에 주차가 들어 있어서 주가 바뀌면 같은 사람도 다른 값이 된다. 그 해시로는
+# 1주차에 온 사람이 2주차에 왔는지 알 수 없다. 그래서 처음 온 주를 브라우저에 남긴다.
+# 쿠키는 쓰지 않는다 — 안 쓴다고 적어 두었고 이용자가 대부분 미성년이다. 대신 화면이
+# 이미 쓰는 `cadcheck.*` 와 같은 자리(localStorage)에 두고, 그 값을 화면이 보내 준다.
+# 남는 것은 그 주의 월요일 날짜 하나뿐이고 사람을 가리키는 값은 들어가지 않는다.
+WEEK_RE = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
+
+
+def monday_of(day):
+    return day - datetime.timedelta(days=day.weekday())
+
+
+def cohort(request, first, today=None):
+    """처음 온 주를 돌려준다. 그 주가 아닌 때 다시 오면 `ret:처음온주` 로 센다.
+
+    `first` 는 화면이 보낸 값이라 지어낼 수 있다. 날짜 모양이 아니면 버리고 이번 주로
+    다시 잡는다. 지어낸 날짜를 넣으면 그 주 코호트에 한 명이 얹히는데, 방문 수를
+    지어내는 것과 같은 정도라 따로 막지 않는다."""
+    today = today or datetime.date.today()
+    now = monday_of(today).isoformat()
+    first = first if WEEK_RE.match(first or "") else ""
+    if not first:
+        bump(request, "new", today)
+        return now
+    if first != now:
+        bump(request, f"ret:{first}", today)
+    return first
+
+
 UPSERT = ("INSERT INTO hits(day, visitor, kind, n) VALUES(?,?,?,1) "
           "ON CONFLICT(day, visitor, kind) DO UPDATE SET n = n + 1")
 
@@ -128,10 +158,7 @@ BOT_UA = re.compile(
 
 def is_bot(request):
     """UA 가 비어 있는 것도 사람이 아니라고 본다. 브라우저는 항상 보낸다."""
-    try:
-        ua = request.headers.get("user-agent", "")
-    except Exception:                                         # noqa: BLE001
-        return False
+    ua = request.headers.get("user-agent", "") or ""
     return not ua.strip() or bool(BOT_UA.search(ua))
 
 
@@ -296,6 +323,37 @@ WEEKLY_AGAIN_SQL = f"""SELECT wk, COUNT(*) AS r FROM (
  GROUP BY wk, visitor HAVING s >= 2) GROUP BY wk"""
 
 
+RETENTION_SQL = f"""SELECT kind, {MONDAY} AS wk, COUNT(DISTINCT visitor) AS n
+ FROM hits WHERE kind = 'new' OR kind LIKE 'ret:%' GROUP BY kind, wk"""
+
+
+def _retention(rows, limit=6):
+    """처음 온 주(`new`)를 분모로, 그 뒤 주마다 다시 온 사람(`ret:그주`)을 분자로 놓는다."""
+    size, back = {}, {}
+    for kind, wk, n in rows:
+        if kind == "new":
+            size[wk] = n or 0
+        else:
+            back.setdefault(kind[4:], {})[wk] = n or 0
+    out = []
+    for first in sorted(size, reverse=True)[:limit]:
+        n0 = size[first]
+        out.append({"cohort": first, "size": n0, "weeks": [
+            {"since": wk, "back": n, "rate": round(n / n0, 3) if n0 else 0.0}
+            for wk, n in sorted(back.get(first, {}).items())]})
+    return out
+
+
+def retention(con=None, limit=6):
+    """리텐션 커브. 처음 온 주가 같은 사람들을 묶어 그 뒤 주마다 몇 명이 돌아왔나 본다.
+    쿠키를 지우거나 다른 기기로 오면 새로 온 사람으로 세므로 실제보다 낮게 나온다."""
+    if d1_conf():
+        rows = [(r["kind"], r["wk"], r["n"]) for r in _d1(RETENTION_SQL)[0]]
+    else:
+        rows = con.execute(RETENTION_SQL).fetchall()
+    return _retention(rows, limit)
+
+
 def _weeks(rows, again):
     return [{"since": r[0], "visitors": r[1] or 0, "checkers": r[2] or 0,
              "finishers": r[3] or 0, "recheckers": again.get(r[0], 0)} for r in rows]
@@ -333,6 +391,7 @@ def _summary_d1(today, days):
         "daily": [{"day": r["day"], "visitors": r["v"] or 0, "checks": r["c"] or 0}
                   for r in daily],
         "weeks": weekly(),
+        "retention": retention(),
     }
 
 
@@ -410,5 +469,6 @@ def summary(today=None, days=14):
         out["daily"] = [{"day": d, "visitors": v or 0, "checks": c or 0}
                         for d, v, c in rows]
         out["weeks"] = weekly(con)
+        out["retention"] = retention(con)
     con.close()
     return out

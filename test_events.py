@@ -394,3 +394,15 @@ def test_bot_visits_are_not_counted():
                "facebookexternalhit/1.1", "python-requests/2.31.0", ""):
         assert client.get("/", headers={"user-agent": ua}).status_code == 200
     assert client.get("/api/stats").json()["total"]["visits"] == before
+
+
+def test_cohort_event_returns_the_first_week_and_is_kept():
+    """화면이 처음 온 주를 들고 오면 그대로 돌려주고, 없으면 이번 주로 잡아 준다."""
+    r = client.post("/api/event", json={"kind": "cohort", "first": ""})
+    assert r.status_code == 200, r.text
+    first = r.json()["first"]
+    assert len(first) == 10 and first[4] == "-"
+    again = client.post("/api/event", json={"kind": "cohort", "first": first})
+    assert again.json()["first"] == first
+    junk = client.post("/api/event", json={"kind": "cohort", "first": "'; drop"})
+    assert junk.json()["first"] == first          # 지어낸 값은 버리고 이번 주로

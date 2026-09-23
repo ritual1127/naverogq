@@ -483,6 +483,57 @@ def test_stats_counts_by_ip():
             importlib.reload(_stats)
 
 
+def test_retention_counts_people_who_come_back_a_week_later():
+    """리텐션 커브. 방문자 해시는 주가 바뀌면 달라지므로, 주를 넘어 같은 사람인지는
+    화면이 남겨 둔 '처음 온 주'로만 안다. 이게 깨지면 리텐션 숫자가 전부 0이 된다."""
+    import datetime
+    import importlib
+    import stats as _stats
+
+    class Req:
+        def __init__(self, ip):
+            self.headers = {"cf-connecting-ip": ip,
+                            "user-agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/140"}
+            self.client = None
+
+    with tempfile.TemporaryDirectory() as tmp:
+        kept = {k: os.environ.get(k)
+                for k in ("CADLENS_STAT_DB", "CADLENS_STAT_SALT")}
+        os.environ["CADLENS_STAT_DB"] = os.path.join(tmp, "stats.db")
+        os.environ["CADLENS_STAT_SALT"] = "test-salt"
+        stats = importlib.reload(_stats)
+        try:
+            w1 = datetime.date(2026, 9, 14)           # 월요일
+            w2 = datetime.date(2026, 9, 21)           # 그다음 월요일
+            # 첫 주에 둘이 처음 온다. 서버가 그 주 월요일을 돌려준다.
+            got = [stats.cohort(Req(ip), "", w1)
+                   for ip in ("203.0.113.1", "203.0.113.2")]
+            assert got == ["2026-09-14", "2026-09-14"], got
+            # 쿠키를 지어내도 날짜 모양이 아니면 버리고 새로 온 사람으로 센다
+            assert stats.cohort(Req("203.0.113.3"), "drop table", w1) == "2026-09-14"
+
+            stats.cohort(Req("203.0.113.1"), "2026-09-14", w2)   # 하나만 다시 온다
+            # 같은 주에 또 오는 것은 다시 온 것이 아니다 (세면 100% 가 된다)
+            stats.cohort(Req("203.0.113.2"), "2026-09-14", datetime.date(2026, 9, 16))
+
+            con = stats._connect()
+            try:
+                out = stats.retention(con)
+            finally:
+                con.close()
+            assert [r["cohort"] for r in out] == ["2026-09-14"], out
+            assert out[0]["size"] == 3, out
+            assert out[0]["weeks"] == [{"since": "2026-09-21", "back": 1,
+                                        "rate": 0.333}], out
+        finally:
+            for k, v in kept.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            importlib.reload(_stats)
+
+
 def test_synthetic_sheet_is_clean_and_defects_are_caught():
     """합성 기준 도면은 지적 0건이어야 하고, 결함을 하나 넣으면 그것만 잡혀야 한다.
 
