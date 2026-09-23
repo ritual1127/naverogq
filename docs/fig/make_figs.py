@@ -159,3 +159,105 @@ ax.text(0, 0, "24건", ha="center", va="center", fontsize=13, color=INK,
         fontweight="bold")
 save(fig, "fig_problems.png")
 print("그래프 7장 완료")
+
+# ── 공문서용 추가 도표 ──────────────────────────────────────────────
+# 8. 검사 항목 37개의 분류별 개수 (exam.CHECKS 를 센 값)
+fig, ax = plt.subplots(figsize=(5.4, 2.4))
+cat = [("주서·표제란·부품란", 9), ("오작(실격) 판정", 6), ("투상도 선택과 배열", 6),
+       ("표면거칠기", 4), ("형상(기하)공차", 3), ("도면 배치와 외관", 3),
+       ("재료 선택과 처리", 3), ("치수 기입", 2), ("끼워맞춤·치수공차", 1)]
+names = [c[0] for c in cat][::-1]
+vals = [c[1] for c in cat][::-1]
+cols = [WARN if n == "오작(실격) 판정" else INK if n == "투상도 선택과 배열" else ACC
+        for n in names]
+b = ax.barh(names, vals, color=cols, height=.6)
+for bb, v in zip(b, vals):
+    ax.text(v + .15, bb.get_y() + bb.get_height() / 2, f"{v}개", va="center",
+            fontsize=8.2, color=INK, fontweight="bold")
+ax.set_xlim(0, 10.6); ax.set_xlabel("검사 코드 수 (합계 37개)", fontsize=8, color=SUB)
+base(ax); ax.yaxis.grid(False); ax.xaxis.grid(True, color=GRID, lw=.6)
+save(fig, "fig_checks.png")
+
+# 9. AI 점수 편차 — 백지 렌더를 고치기 전후 (variance.py, 5회씩)
+fig, ax = plt.subplots(figsize=(5.4, 2.1))
+runs = [1, 2, 3, 4, 5]
+before, after = [0, 18, 18, 18, 18], [0, 0, 5, 9, 18]
+ax.plot(runs, before, "-o", color=SUB, lw=1.6, ms=5, label="고치기 전 (백지를 채점)")
+ax.plot(runs, after, "-o", color=WARN, lw=2, ms=6, label="고친 뒤 (도면을 채점)")
+for x, y in zip(runs, after):
+    ax.text(x, y + 1.1, str(y), ha="center", fontsize=8, color=WARN, fontweight="bold")
+ax.set_xticks(runs); ax.set_xlabel("같은 도면을 다시 채점한 횟수", fontsize=8, color=SUB)
+ax.set_ylabel("투상도 점수 (30점 만점)", fontsize=8, color=SUB)
+ax.set_ylim(-2.5, 24)
+ax.legend(fontsize=7.4, frameon=False, loc="upper left")
+base(ax)
+save(fig, "fig_variance.png")
+
+# 10. AI 가 실제로 본 도면 넓이 (2026-09-11 · 406mm 로 잘라 보내던 때)
+fig, ax = plt.subplots(figsize=(5.4, 1.9))
+sheets = ["A07\n753×410mm", "A08 · A23\n584×410mm", "A19\n430×305mm"]
+seen = [29, 49, 90]
+b = ax.bar(sheets, seen, color=[WARN, WARN, ACC], width=.5)
+ax.bar(sheets, [100 - v for v in seen], bottom=seen, color="#e7edf3", width=.5)
+for bb, v in zip(b, seen):
+    ax.text(bb.get_x() + bb.get_width() / 2, v / 2, f"{v}%", ha="center",
+            fontsize=10, color="white", fontweight="bold")
+ax.text(1, 104, "잘려 나간 쪽에 표제란 · 투상도 일부 · 거칠기 비교표가 있었다",
+        ha="center", fontsize=7.4, color=SUB)
+ax.set_ylim(0, 118); ax.set_ylabel("AI 가 본 넓이", fontsize=8, color=SUB)
+ax.set_yticks([0, 50, 100]); ax.set_yticklabels(["0%", "50%", "100%"])
+ax.tick_params(axis="x", labelsize=7.2)
+base(ax)
+save(fig, "fig_crop.png")
+
+# 11. 다른 종목으로 넓힐 때의 규칙 재사용률 (example/00_종합비교표.md)
+fig, ax = plt.subplots(figsize=(5.4, 1.9))
+jobs = ["기계설계\n산업기사", "일반기계\n기사", "사출금형\n산업기사", "프레스금형\n산업기사"]
+reuse = [90, 60, 55, 50]
+b = ax.bar(jobs, reuse, color=[INK, ACC, ACC, ACC], width=.5)
+for bb, v in zip(b, reuse):
+    ax.text(bb.get_x() + bb.get_width() / 2, v + 2.4, f"{v}%", ha="center",
+            fontsize=9, color=INK, fontweight="bold")
+ax.set_ylim(0, 112); ax.set_ylabel("규칙 재사용 추정", fontsize=8, color=SUB)
+ax.set_yticks([0, 50, 100]); ax.set_yticklabels(["0%", "50%", "100%"])
+ax.tick_params(axis="x", labelsize=7.4)
+base(ax)
+save(fig, "fig_reuse.png")
+
+# 12. 채점 모델 실측 — 실패율과 '감점 0' 비율 (2026-09-18)
+fig, ax = plt.subplots(figsize=(5.4, 2.2))
+ms = ["gemini-3.6-flash\n(그때 1순위)", "gemini-3.5-flash",
+      "gemini-3.1-flash-lite\n(새 1순위)", "gemini-3.5-flash-lite"]
+fail = [18 / 20 * 100, 1 / 10 * 100, 4 / 30 * 100, 0]
+zero = [0, 1 / 9 * 100, 11 / 26 * 100, 100]
+x = range(len(ms))
+ax.bar([i - .19 for i in x], fail, width=.36, color=WARN, label="호출 실패 비율")
+ax.bar([i + .19 for i in x], zero, width=.36, color="#8a97a4",
+       label="감점 0 을 준 비율")
+for i, (f, z) in enumerate(zip(fail, zero)):
+    ax.text(i - .19, f + 2.5, f"{f:.0f}%", ha="center", fontsize=7.6, color=WARN)
+    ax.text(i + .19, z + 2.5, f"{z:.0f}%", ha="center", fontsize=7.6, color=SUB)
+ax.set_xticks(list(x)); ax.set_xticklabels(ms, fontsize=6.9)
+ax.set_ylim(0, 118); ax.set_ylabel("비율", fontsize=8, color=SUB)
+ax.set_yticks([0, 50, 100]); ax.set_yticklabels(["0%", "50%", "100%"])
+ax.legend(fontsize=7.4, frameon=False, loc="upper center", ncol=2,
+          bbox_to_anchor=(.5, 1.16))
+base(ax)
+save(fig, "fig_models.png")
+
+# 13. 날짜별 방문과 검사 (운영 서버 /api/stats · 사람이 아닌 접속을 거르기 전)
+fig, ax = plt.subplots(figsize=(5.4, 2.0))
+day = ["09-10", "09-11", "09-12", "09-13", "09-15", "09-16", "09-17", "09-18"]
+dv = [2, 7, 15, 2, 2, 20, 2, 7]
+dc = [2, 3, 2, 0, 0, 13, 2, 21]
+i = range(len(day))
+ax.bar([k - .19 for k in i], dv, width=.36, color=INK, label="방문한 사람")
+ax.bar([k + .19 for k in i], dc, width=.36, color="#2ca02c", label="검사 횟수")
+ax.axvline(4.5, color=WARN, ls="--", lw=1.1)
+ax.text(4.62, 20, "09-16 공개 서버 런칭", fontsize=7.4, color=WARN)
+ax.set_xticks(list(i)); ax.set_xticklabels(day, fontsize=7.4)
+ax.set_ylim(0, 25); ax.set_ylabel("수", fontsize=8, color=SUB)
+ax.legend(fontsize=7.4, frameon=False, loc="upper left")
+base(ax)
+save(fig, "fig_daily.png")
+print("공문서용 도표 6장 추가")
