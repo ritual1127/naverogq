@@ -385,3 +385,12 @@ def test_link_preview_tags_and_image_exist():
     assert shot.status_code == 200
     assert shot.content[:8] == main.PNG_MAGIC
     assert len(shot.content) < 5 * 1024 * 1024        # 카카오톡·트위터가 받는 크기 안
+
+
+def test_bot_visits_are_not_counted():
+    """방문 수가 부푸는 제일 큰 이유. 크롤러와 미리보기 카드는 사람이 아니다."""
+    before = client.get("/api/stats").json()["total"]["visits"]
+    for ua in ("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+               "facebookexternalhit/1.1", "python-requests/2.31.0", ""):
+        assert client.get("/", headers={"user-agent": ua}).status_code == 200
+    assert client.get("/api/stats").json()["total"]["visits"] == before

@@ -8,6 +8,7 @@
 import datetime
 import hashlib
 import os
+import re
 import secrets
 import sqlite3
 import threading
@@ -115,8 +116,29 @@ UPSERT = ("INSERT INTO hits(day, visitor, kind, n) VALUES(?,?,?,1) "
           "ON CONFLICT(day, visitor, kind) DO UPDATE SET n = n + 1")
 
 
+# 사람이 아닌 접속. 검색 엔진, 링크 미리보기 카드, 살아 있나 확인하는 도구,
+# 스크립트가 여기 들어간다. UA 를 보고 거르는 것이라 UA 를 감추면 못 거른다.
+# 완벽하지 않아도 방문 수가 실제보다 몇십 배 부푸는 것은 막는다.
+BOT_UA = re.compile(
+    r"bot|crawl|spider|slurp|scrap|fetch|monitor|uptime|preview|"
+    r"curl|wget|python-requests|httpx|aiohttp|okhttp|go-http|java/|libwww|"
+    r"headless|phantom|lighthouse|pagespeed|facebookexternalhit|embedly",
+    re.IGNORECASE)
+
+
+def is_bot(request):
+    """UA 가 비어 있는 것도 사람이 아니라고 본다. 브라우저는 항상 보낸다."""
+    try:
+        ua = request.headers.get("user-agent", "")
+    except Exception:                                         # noqa: BLE001
+        return False
+    return not ua.strip() or bool(BOT_UA.search(ua))
+
+
 def bump(request, kind, today=None):
     """한 번 센다. 통계 때문에 검사가 실패하면 안 되므로 조용히 넘어간다."""
+    if is_bot(request):
+        return
     today = today or datetime.date.today()
     row = (today.isoformat(), visitor_id(client_ip(request), today), kind)
     if d1_conf():

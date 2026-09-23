@@ -439,7 +439,9 @@ def test_stats_counts_by_ip():
 
     class Req:
         def __init__(self, ip):
-            self.headers = {"cf-connecting-ip": ip}
+            # UA 가 없으면 사람이 아닌 것으로 보고 세지 않는다. 브라우저 UA 를 준다.
+            self.headers = {"cf-connecting-ip": ip,
+                            "user-agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/140"}
             self.client = None
 
     with tempfile.TemporaryDirectory() as tmp:
