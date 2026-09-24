@@ -1,87 +1,136 @@
 <!doctype html>
+
 <html lang="ko">
+
 <head>
+
 <meta charset="utf-8">
+
 <title>CADLens 사업보고서</title>
+
 <style>
-@page{size:A4;margin:0}
+@page{size:A4;margin:22mm 19mm 20mm}
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:"HCR Batang","Batang","바탕",serif;color:#111;font-size:9.4pt;line-height:1.585}
-.page{width:210mm;height:296.6mm;padding:16mm 18mm 14mm;page-break-after:always;position:relative;overflow:hidden;background:#fff}
-.page:last-child{page-break-after:auto}
-.rh{position:absolute;left:18mm;right:18mm;top:8mm;display:flex;justify-content:space-between;font-family:"Malgun Gothic",sans-serif;font-size:7.4pt;color:#7a848e;border-bottom:.4px solid #c9d2da;padding-bottom:1.6mm}
-.pf{position:absolute;left:18mm;right:18mm;bottom:7mm;display:flex;justify-content:space-between;font-family:"Malgun Gothic",sans-serif;font-size:7.6pt;color:#7a848e;border-top:.4px solid #c9d2da;padding-top:1.8mm}
-h2.ch{font-family:"Malgun Gothic",sans-serif;font-size:13pt;color:#0d2d47;text-align:center;letter-spacing:-.4px;margin:0 0 5mm;padding:2.6mm 0;border-top:2.2px solid #0d2d47;border-bottom:.8px solid #0d2d47}
-h3.se{font-family:"Malgun Gothic",sans-serif;font-size:10.6pt;color:#0d2d47;margin:0 0 3.4mm;padding-left:2.4mm;border-left:4px solid #0d2d47;line-height:1.35}
-h4{font-family:"Malgun Gothic",sans-serif;font-size:9.4pt;color:#153f63;margin:3mm 0 1.5mm}
-h5{font-family:"Malgun Gothic",sans-serif;font-size:8.9pt;color:#2c5f8f;margin:2.3mm 0 1.2mm}
-p{margin:0 0 1.9mm;text-indent:3.2mm;text-align:justify}
+body{font-family:"HCR Batang","Batang","바탕",serif;color:#1a1a1a;
+     font-size:10.4pt;line-height:1.68;letter-spacing:-.15px}
+
+/* 장 · 절 · 항 */
+h2.ch{page-break-before:always;break-before:page;text-align:center;
+      font-size:15pt;font-weight:700;letter-spacing:6px;margin:0 0 9mm;
+      padding:3.2mm 0;border-top:2.4px solid #1a1a1a;border-bottom:.8px solid #1a1a1a}
+h3.se{font-size:12.4pt;font-weight:700;margin:7mm 0 3.4mm;padding-bottom:1.8mm;
+      border-bottom:1.2px solid #4a4a4a;letter-spacing:-.4px;
+      page-break-after:avoid;break-after:avoid}
+h3.se:first-of-type{margin-top:0}
+h4{font-size:11pt;font-weight:700;margin:5mm 0 2.2mm;letter-spacing:-.3px;
+   page-break-after:avoid;break-after:avoid}
+h5{font-size:10.6pt;font-weight:700;margin:3.6mm 0 1.8mm;color:#333;
+   page-break-after:avoid;break-after:avoid}
+
+p{margin:0 0 2.5mm;text-indent:10.4pt;text-align:justify;word-break:keep-all}
 p.ni{text-indent:0}
-ul,ol{margin:0 0 2.4mm 6mm}
-li{margin-bottom:.9mm;text-align:justify}
-ul.dash{list-style:none;margin-left:3.4mm}
-ul.dash>li{position:relative;padding-left:4mm}
-ul.dash>li::before{content:"－";position:absolute;left:0;color:#5a6a7a}
-ul.circ{list-style:none;margin-left:1.6mm}
-ul.circ>li{position:relative;padding-left:4.4mm;margin-bottom:1.3mm}
-ul.circ>li::before{content:"○";position:absolute;left:0;color:#0d2d47;font-size:8pt}
-table{width:100%;border-collapse:collapse;margin:0 0 2.3mm;font-family:"Malgun Gothic",sans-serif;font-size:7.5pt}
-th,td{border:.5px solid #9fadba;padding:1.1mm 1.6mm;text-align:left;vertical-align:top;line-height:1.42}
-th{background:#e8eef4;color:#0d2d47;font-weight:700;text-align:center}
+
+/* 목록 */
+ul,ol{margin:0 0 2.8mm 0;padding-left:0;list-style:none}
+li{margin-bottom:1.7mm;text-align:justify;word-break:keep-all;
+   padding-left:7mm;text-indent:-7mm}
+ol{counter-reset:ol}
+ol>li{counter-increment:ol}
+ol>li::before{content:counter(ol) ". ";font-weight:700}
+ul.dash>li::before{content:"－ "}
+ul.circ>li::before{content:"○ "}
+ul:not(.dash):not(.circ)>li::before{content:"· "}
+
+/* 표 */
+.tcap{font-size:10.2pt;font-weight:700;margin:5mm 0 1.8mm;letter-spacing:-.3px;
+      page-break-after:avoid;break-after:avoid}
+table{width:100%;border-collapse:collapse;margin:0 0 3.4mm;font-size:9pt;
+      line-height:1.55;page-break-inside:auto}
+tr{page-break-inside:avoid;break-inside:avoid}
+thead{display:table-header-group}
+th,td{border:.6px solid #555;padding:1.7mm 2mm;text-align:left;
+      vertical-align:top;word-break:keep-all}
+th{background:#ebebeb;font-weight:700;text-align:center}
 td.c{text-align:center}
 td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-tr.hl td{background:#fff8e1}
-tr.tot td{background:#eef3f8;font-weight:700}
-.tcap{font-family:"Malgun Gothic",sans-serif;font-size:7.9pt;color:#0d2d47;font-weight:700;margin:2.4mm 0 1mm}
-.fcap{font-family:"Malgun Gothic",sans-serif;font-size:7.5pt;color:#3d4c5a;margin:1.2mm 0 2.4mm;line-height:1.45;text-align:justify}
-figure{margin:1.4mm 0 0;break-inside:avoid}
-figure img{width:100%;display:block;border:.5px solid #c9d2da}
-.src{font-family:"Malgun Gothic",sans-serif;font-size:7.2pt;color:#7a848e;margin-top:1mm;line-height:1.5}
-.box{border:.6px solid #9fadba;background:#f6f9fc;padding:2.4mm 3mm;margin:2.2mm 0}
-.box .t{font-family:"Malgun Gothic",sans-serif;font-size:8.6pt;font-weight:700;color:#0d2d47;margin-bottom:1.4mm}
-.warnbox{border:.6px solid #c98a3a;background:#fdf6ea;padding:2.4mm 3mm;margin:2.2mm 0}
-.warnbox .t{font-family:"Malgun Gothic",sans-serif;font-size:8.6pt;font-weight:700;color:#8f4c08;margin-bottom:1.4mm}
-.quote{border-left:3px solid #6f8299;background:#f7f9fb;padding:2.2mm 3mm;margin:2mm 0;font-size:9pt;line-height:1.62}
-.quote .who{display:block;font-family:"Malgun Gothic",sans-serif;font-size:7.4pt;color:#5a6a7a;margin-top:1.4mm;text-align:right}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
-.three{display:grid;grid-template-columns:repeat(3,1fr);gap:3.4mm}
-.mut{color:#5a6a7a}
-.warn{color:#b4600a;font-weight:700}
-.ok{color:#1d7a34;font-weight:700}
-code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.2mm 1mm;color:#0d2d47}
-.small{font-size:8.2pt;line-height:1.6;color:#41505e}
+tr.hl td{background:#f5f5f5}
+tr.tot td{background:#e8e8e8;font-weight:700}
+
+/* 그림 */
+figure{margin:4mm 0 0;page-break-inside:avoid;break-inside:avoid}
+figure img{width:100%;display:block;border:.6px solid #777}
+.fcap{font-size:9.2pt;color:#333;margin:1.8mm 0 4mm;line-height:1.56;
+      text-align:justify;word-break:keep-all;text-indent:0}
+.src{font-size:9pt;color:#444;margin:1.4mm 0 2.6mm;line-height:1.56;
+     text-align:justify;word-break:keep-all;padding-left:5mm;text-indent:-5mm}
+.src::before{content:"※ "}
+
+/* 강조 상자 */
+.box,.warnbox{border:.8px solid #555;padding:3.2mm 3.8mm;margin:3.6mm 0;
+              page-break-inside:avoid;break-inside:avoid}
+.warnbox{border-width:1.4px;border-color:#1a1a1a;background:#f7f7f7}
+.box .t,.warnbox .t{font-size:11pt;font-weight:700;margin-bottom:2.4mm;
+                    text-align:center;letter-spacing:-.3px}
+.box p,.warnbox p{margin-bottom:2mm}
+.box p:last-child,.warnbox p:last-child{margin-bottom:0}
+
+/* 인용 */
+.quote{border:.6px solid #777;border-left:3.4px solid #1a1a1a;padding:2.8mm 3.4mm;
+       margin:3.2mm 0;font-size:10.2pt;line-height:1.68;
+       page-break-inside:avoid;break-inside:avoid;word-break:keep-all}
+.quote .who{display:block;font-size:9.6pt;color:#444;margin-top:2.2mm;text-align:right}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:6mm}
+.mut{color:#555}.warn{font-weight:700}.ok{font-weight:700}
+code{font-family:"D2Coding",Consolas,monospace;font-size:9.8pt;
+     background:#f0f0f0;padding:.2mm 1mm}
+.small{font-size:10pt;line-height:1.7}
+
+/* 핵심 수치 */
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:5mm 0;
+    border:.8px solid #555;page-break-inside:avoid}
+.kv div{padding:3.2mm 2mm;text-align:center;border-left:.6px solid #999}
+.kv div:first-child{border-left:none}
+.kv .v{font-size:17pt;font-weight:700;line-height:1.2}
+.kv .l{font-size:9.2pt;color:#333;margin-top:1.6mm;line-height:1.45}
+
 /* 표지 */
-.cv{height:100%;display:flex;flex-direction:column;text-align:center;padding-top:10mm}
-.cv .docno{font-family:"Malgun Gothic",sans-serif;font-size:9pt;color:#5a6a7a;letter-spacing:.6px}
-.cv .kind{font-family:"Malgun Gothic",sans-serif;font-size:11pt;color:#0d2d47;margin-top:16mm;letter-spacing:8px}
-.cv h1{font-family:"Malgun Gothic",sans-serif;font-size:30pt;color:#0d2d47;letter-spacing:-1.4px;margin:6mm 0 3mm;line-height:1.24}
-.cv .sub{font-size:12pt;color:#2a4a66;line-height:1.7}
-.cv .line{width:50mm;height:2.6px;background:#0d2d47;margin:8mm auto}
-.cv img.logo{width:24mm;margin:0 auto}
-.cv .grow{flex:1}
-.cv .org{font-family:"Malgun Gothic",sans-serif;font-size:15pt;color:#0d2d47;letter-spacing:5px;margin-bottom:3mm}
-.cv .date{font-size:11pt;color:#2a4a66;letter-spacing:2px}
+.cover{page-break-after:always;break-after:page;height:250mm;
+       display:flex;flex-direction:column;text-align:center}
+.cover .docno{font-size:10.5pt;color:#333;letter-spacing:.4px;
+              border-bottom:.8px solid #777;padding-bottom:3mm}
+.cover .kind{font-size:14pt;letter-spacing:14px;margin-top:26mm;font-weight:700}
+.cover h1{font-size:34pt;font-weight:700;letter-spacing:-1.6px;margin:8mm 0 5mm}
+.cover .sub{font-size:13.5pt;line-height:1.78}
+.cover .line{width:60mm;height:2.6px;background:#1a1a1a;margin:9mm auto}
+.cover img.logo{width:26mm;margin:0 auto}
+.cover .grow{flex:1}
+.cover .org{font-size:17pt;font-weight:700;letter-spacing:8px;margin-bottom:4mm}
+.cover .date{font-size:13pt;letter-spacing:3px;margin-top:6mm}
+.cover table{width:130mm;margin:0 auto;font-size:10.5pt}
+.cover table th{width:32mm}
+
 /* 목차 */
-.toc{font-size:8.8pt}
-.toc li{list-style:none;display:flex;align-items:baseline;gap:2mm;margin-bottom:1.35mm}
-.toc .c{flex:0 0 26mm;font-family:"Malgun Gothic",sans-serif;color:#0d2d47;font-weight:700}
-.toc .s{flex:0 0 13mm;font-family:"Malgun Gothic",sans-serif;color:#2c5f8f}
-.toc .t{flex:1;border-bottom:.4px dotted #b6c2cd}
-.toc .p{flex:0 0 8mm;text-align:right;color:#5a6a7a;font-family:"Malgun Gothic",sans-serif;font-size:8.6pt}
-.toc .grp{display:block;margin:2.2mm 0 1.5mm;font-family:"Malgun Gothic",sans-serif;font-size:8.2pt;color:#7a848e;letter-spacing:2px;border-bottom:.5px solid #c9d2da;padding-bottom:1.2mm}
+.toc{font-size:11pt}
+.toc li{list-style:none;display:flex;align-items:baseline;gap:2.4mm;
+        margin-bottom:2.2mm;padding-left:0;text-indent:0}
+ul.toc>li::before{content:none !important}
+.toc .c{flex:0 0 30mm;font-weight:700}
+.toc .s{flex:0 0 15mm}
+.toc .t{flex:1;border-bottom:.5px dotted #888}
+.toc .p{flex:0 0 10mm;text-align:right}
+.toc .grp{display:block;margin:5mm 0 2.6mm;font-size:10pt;color:#333;
+          letter-spacing:3px;border-bottom:.8px solid #777;padding-bottom:2mm}
 .toc .grp:first-child{margin-top:0}
-.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:2.6mm;margin:3.4mm 0}
-.kv div{border:.5px solid #9fadba;border-top:2.6px solid #0d2d47;padding:2.8mm 1.6mm;text-align:center}
-.kv .v{font-family:"Malgun Gothic",sans-serif;font-size:15pt;color:#0d2d47;font-weight:700;letter-spacing:-.6px;line-height:1.2}
-.kv .l{font-family:"Malgun Gothic",sans-serif;font-size:7.2pt;color:#5a6a7a;margin-top:1.2mm;line-height:1.36}
+.nobreak{page-break-before:avoid;break-before:avoid}
 </style>
+
 </head>
+
 <body>
 
-<!-- 1 표지 -->
-<section class="page">
-  <div class="cv">
+<div class="cover">
     <div class="docno">스타프로젝트 본선 8주 코칭 · W6 제출자료 · 문서번호 CADLens-2026-001</div>
     <div class="kind">사 업 보 고 서</div>
     <h1>CADLens</h1>
@@ -96,18 +145,14 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
       <tr><th>대상 사업</th><td class="c">스타프로젝트 본선 8주 코칭 (2026-08-18 ~ 10-12)</td></tr>
       <tr><th>서비스 주소</th><td class="c">https://naverogq.onrender.com</td></tr>
       <tr><th>공개 범위</th><td class="c">코드·문서 전부 공개 (MIT 라이선스)</td></tr>
-      <tr><th>총 면수</th><td class="c">50면 (본문 46면 · 붙임 4면)</td></tr>
+      <tr><th>총 면수</th><td class="c">70면 (표지 · 목차 포함)</td></tr>
     </table>
     <div class="org">팀 &nbsp;네 이 놈</div>
     <div class="sub" style="font-size:9.6pt;margin-bottom:6mm">구미전자공업고등학교<br>박지완 · 장우영 · 안대열 · 김승준</div>
     <div class="date">2 0 2 6 . 0 9 . 2 4 .</div>
   </div>
-</section>
 
-<!-- 2 문서 정보 -->
-<section class="page">
-  <div class="rh"><span>CADLens 사업보고서</span><span>문서 정보</span></div>
-  <h2 class="ch">문 서 정 보</h2>
+<h2 class="ch nobreak">문 서 정 보</h2>
 
   <div class="tcap">&lt;표 1&gt; 문서 개요</div>
   <table>
@@ -159,13 +204,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     감독위원 지시사항이 우선한다.</p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 2 -</span></div>
-</section>
-
-<!-- 3 목차 1 -->
-<section class="page">
-  <div class="rh"><span>CADLens 사업보고서</span><span>목차</span></div>
-  <h2 class="ch">목 &nbsp; 차</h2>
+<h2 class="ch">목 &nbsp; 차</h2>
 
   <ul class="toc">
     <li class="grp">서 두</li>
@@ -174,77 +213,70 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li><span class="c"></span><span class="s"></span><span class="t">요약문</span><span class="p">5</span></li>
 
     <li class="grp">제1장 사업 개요</li>
-    <li><span class="c">제1장</span><span class="s">제1절</span><span class="t">추진 배경</span><span class="p">7</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">문제 정의</span><span class="p">8</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">사업 목표와 북극성 지표</span><span class="p">9</span></li>
-    <li><span class="c"></span><span class="s">제4절</span><span class="t">추진 체계 · 일정 · 역할 분담</span><span class="p">10</span></li>
+    <li><span class="c">제1장</span><span class="s">제1절</span><span class="t">추진 배경</span><span class="p">10</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">문제 정의</span><span class="p">11</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">사업 목표와 북극성 지표</span><span class="p">12</span></li>
+    <li><span class="c"></span><span class="s">제4절</span><span class="t">추진 체계 · 일정 · 역할 분담</span><span class="p">13</span></li>
 
     <li class="grp">제2장 수요 조사</li>
-    <li><span class="c">제2장</span><span class="s">제1절</span><span class="t">조사 개요와 방법</span><span class="p">11</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">조사 결과 요지</span><span class="p">12</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">면담 내용 (1) — 1~2번 대상</span><span class="p">13</span></li>
-    <li><span class="c"></span><span class="s"></span><span class="t">면담 내용 (2) — 3~5번 대상</span><span class="p">14</span></li>
-    <li><span class="c"></span><span class="s">제4절</span><span class="t">조사 결과 반영 내역과 개발 범위 확정</span><span class="p">15</span></li>
+    <li><span class="c">제2장</span><span class="s">제1절</span><span class="t">조사 개요와 방법</span><span class="p">15</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">조사 결과 요지</span><span class="p">16</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">면담 내용 (1) — 1~2번 대상</span><span class="p">17</span></li>
+    <li><span class="c"></span><span class="s"></span><span class="t">면담 내용 (2) — 3~5번 대상</span><span class="p">19</span></li>
+    <li><span class="c"></span><span class="s">제4절</span><span class="t">조사 결과 반영 내역과 개발 범위 확정</span><span class="p">20</span></li>
 
     <li class="grp">제3장 시스템 개요</li>
-    <li><span class="c">제3장</span><span class="s">제1절</span><span class="t">전체 구성</span><span class="p">16</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">처리 절차</span><span class="p">17</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">모듈 구성</span><span class="p">18</span></li>
-    <li><span class="c"></span><span class="s">제4절</span><span class="t">화면 구성과 이용 흐름</span><span class="p">19</span></li>
-    <li><span class="c"></span><span class="s">제5절</span><span class="t">운영 환경과 배포</span><span class="p">20</span></li>
-    <li><span class="c"></span><span class="s">제6절</span><span class="t">성능 설계와 부하 대응</span><span class="p">21</span></li>
+    <li><span class="c">제3장</span><span class="s">제1절</span><span class="t">전체 구성</span><span class="p">22</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">처리 절차</span><span class="p">22</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">모듈 구성</span><span class="p">24</span></li>
+    <li><span class="c"></span><span class="s">제4절</span><span class="t">화면 구성과 이용 흐름</span><span class="p">25</span></li>
+    <li><span class="c"></span><span class="s">제5절</span><span class="t">운영 환경과 배포</span><span class="p">26</span></li>
+    <li><span class="c"></span><span class="s">제6절</span><span class="t">성능 설계와 부하 대응</span><span class="p">27</span></li>
 
     <li class="grp">제4장 도면 해석</li>
-    <li><span class="c">제4장</span><span class="s">제1절</span><span class="t">입력 형식과 변환 경로</span><span class="p">22</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">추출 정보</span><span class="p">23</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">판정 불가 처리 원칙</span><span class="p">24</span></li>
-    <li><span class="c"></span><span class="s">제4절</span><span class="t">해석 오류 사례와 조치</span><span class="p">25</span></li>
+    <li><span class="c">제4장</span><span class="s">제1절</span><span class="t">입력 형식과 변환 경로</span><span class="p">29</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">추출 정보</span><span class="p">30</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">판정 불가 처리 원칙</span><span class="p">31</span></li>
+    <li><span class="c"></span><span class="s">제4절</span><span class="t">해석 오류 사례와 조치</span><span class="p">32</span></li>
 
     <li class="grp">제5장 채점 체계</li>
-    <li><span class="c">제5장</span><span class="s">제1절</span><span class="t">배점 체계와 분담 원칙</span><span class="p">26</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">오작(실격) 판정 6종</span><span class="p">27</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">검사 항목 37종 (1) — 치수 · 공차 · 표면거칠기</span><span class="p">28</span></li>
-    <li><span class="c"></span><span class="s"></span><span class="t">검사 항목 37종 (2) — 기하공차 · 주서 · 표제란</span><span class="p">29</span></li>
-    <li><span class="c"></span><span class="s"></span><span class="t">검사 항목 37종 (3) — 외관 · 재료 · 투상도</span><span class="p">30</span></li>
-    <li><span class="c"></span><span class="s">제4절</span><span class="t">AI 채점 체계</span><span class="p">31</span></li>
-    <li><span class="c"></span><span class="s">제5절</span><span class="t">채점 모델 선정 실측</span><span class="p">32</span></li>
-    <li><span class="c"></span><span class="s">제6절</span><span class="t">비채점 항목과 사유</span><span class="p">33</span></li>
+    <li><span class="c">제5장</span><span class="s">제1절</span><span class="t">배점 체계와 분담 원칙</span><span class="p">34</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">오작(실격) 판정 6종</span><span class="p">35</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">검사 항목 37종 (1) — 치수 · 공차 · 표면거칠기</span><span class="p">36</span></li>
+    <li><span class="c"></span><span class="s"></span><span class="t">검사 항목 37종 (2) — 기하공차 · 주서 · 표제란</span><span class="p">38</span></li>
+    <li><span class="c"></span><span class="s"></span><span class="t">검사 항목 37종 (3) — 외관 · 재료 · 투상도</span><span class="p">39</span></li>
+    <li><span class="c"></span><span class="s">제4절</span><span class="t">AI 채점 체계</span><span class="p">40</span></li>
+    <li><span class="c"></span><span class="s">제5절</span><span class="t">채점 모델 선정 실측</span><span class="p">42</span></li>
+    <li><span class="c"></span><span class="s">제6절</span><span class="t">비채점 항목과 사유</span><span class="p">43</span></li>
   </ul>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 3 -</span></div>
-</section>
-
-<!-- 4 목차 2 -->
-<section class="page">
-  <div class="rh"><span>CADLens 사업보고서</span><span>목차</span></div>
-
-  <ul class="toc">
+<ul class="toc">
     <li class="grp">제6장 정확도 검증</li>
-    <li><span class="c">제6장</span><span class="s">제1절</span><span class="t">검증 방법과 지표 정의</span><span class="p">34</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">표본별 검증 결과</span><span class="p">35</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">실제 수험생 도면 검증 상세</span><span class="p">36</span></li>
-    <li><span class="c"></span><span class="s">제4절</span><span class="t">검증 결과의 한계</span><span class="p">37</span></li>
-    <li><span class="c"></span><span class="s">제5절</span><span class="t">미검출 항목과 판정 제외 항목</span><span class="p">38</span></li>
-    <li><span class="c"></span><span class="s">제6절</span><span class="t">AI 점수 편차 측정</span><span class="p">39</span></li>
-    <li><span class="c"></span><span class="s">제7절</span><span class="t">자동 시험 체계</span><span class="p">40</span></li>
+    <li><span class="c">제6장</span><span class="s">제1절</span><span class="t">검증 방법과 지표 정의</span><span class="p">45</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">표본별 검증 결과</span><span class="p">46</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">실제 수험생 도면 검증 상세</span><span class="p">47</span></li>
+    <li><span class="c"></span><span class="s">제4절</span><span class="t">검증 결과의 한계</span><span class="p">49</span></li>
+    <li><span class="c"></span><span class="s">제5절</span><span class="t">미검출 항목과 판정 제외 항목</span><span class="p">50</span></li>
+    <li><span class="c"></span><span class="s">제6절</span><span class="t">AI 점수 편차 측정</span><span class="p">49</span></li>
+    <li><span class="c"></span><span class="s">제7절</span><span class="t">자동 시험 체계</span><span class="p">53</span></li>
 
     <li class="grp">제7장 문제 관리</li>
-    <li><span class="c">제7장</span><span class="s">제1절</span><span class="t">기록 원칙과 현황</span><span class="p">41</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">주요 사례 분석</span><span class="p">42</span></li>
+    <li><span class="c">제7장</span><span class="s">제1절</span><span class="t">기록 원칙과 현황</span><span class="p">55</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">주요 사례 분석</span><span class="p">56</span></li>
 
     <li class="grp">제8장 이용 현황과 지표</li>
-    <li><span class="c">제8장</span><span class="s">제1절</span><span class="t">계측 설계</span><span class="p">43</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">퍼널 분석</span><span class="p">44</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">리텐션과 개선 조치</span><span class="p">45</span></li>
+    <li><span class="c">제8장</span><span class="s">제1절</span><span class="t">계측 설계</span><span class="p">58</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">퍼널 분석</span><span class="p">59</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">리텐션과 개선 조치</span><span class="p">61</span></li>
 
     <li class="grp">제9장 준수 사항</li>
-    <li><span class="c">제9장</span><span class="s">제1절</span><span class="t">개인정보 보호</span><span class="p">46</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">미성년자 보호와 AI 윤리</span><span class="p">47</span></li>
-    <li><span class="c"></span><span class="s">제3절</span><span class="t">보안 점검과 라이선스</span><span class="p">48</span></li>
+    <li><span class="c">제9장</span><span class="s">제1절</span><span class="t">개인정보 보호</span><span class="p">63</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">미성년자 보호와 AI 윤리</span><span class="p">64</span></li>
+    <li><span class="c"></span><span class="s">제3절</span><span class="t">보안 점검과 라이선스</span><span class="p">65</span></li>
 
     <li class="grp">제10장 기대효과와 향후 계획</li>
-    <li><span class="c">제10장</span><span class="s">제1절</span><span class="t">사회적 가치와 사업화 가능성</span><span class="p">49</span></li>
-    <li><span class="c"></span><span class="s">제2절</span><span class="t">향후 계획 · 붙임</span><span class="p">50</span></li>
+    <li><span class="c">제10장</span><span class="s">제1절</span><span class="t">사회적 가치와 사업화 가능성</span><span class="p">67</span></li>
+    <li><span class="c"></span><span class="s">제2절</span><span class="t">향후 계획 · 붙임</span><span class="p">68</span></li>
   </ul>
 
   <h4 style="margin-top:5mm">도표 목차</h4>
@@ -252,46 +284,41 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <table style="font-size:7.2pt">
       <tr><th style="width:16mm">번호</th><th>표 제목</th><th style="width:11mm">면</th></tr>
       <tr><td class="c">표 1~3</td><td>문서 개요 · 기재 원칙 · 용어</td><td class="c">2</td></tr>
-      <tr><td class="c">표 4~6</td><td>응시 현황 · 목표와 지표 · 추진 일정</td><td class="c">8~10</td></tr>
-      <tr><td class="c">표 7~8</td><td>면담 대상과 방법 · 최근 실수 요지</td><td class="c">11~12</td></tr>
-      <tr><td class="c">표 9~10</td><td>조사 반영 내역 · 개발 제외 범위</td><td class="c">15</td></tr>
-      <tr><td class="c">표 11~13</td><td>처리 절차 · 모듈 구성 · 화면 구성</td><td class="c">17~19</td></tr>
-      <tr><td class="c">표 14~15</td><td>운영 환경 · 속도 제한 설정값</td><td class="c">20~21</td></tr>
-      <tr><td class="c">표 16~19</td><td>변환 경로 · 추출 정보 · 판정 불가 · 해석 오류</td><td class="c">22~25</td></tr>
-      <tr><td class="c">표 22~24</td><td><b>검사 항목 37종 전체</b></td><td class="c">28~30</td></tr>
-      <tr><td class="c">표 25~27</td><td>AI 4중 경로 · 모델 실측 · 비채점 항목</td><td class="c">31~33</td></tr>
-      <tr><td class="c">표 28~30</td><td>표본별 검증 결과</td><td class="c">35~36</td></tr>
-      <tr><td class="c">표 31~32</td><td>미검출 항목 · AI 점수 편차</td><td class="c">38~39</td></tr>
-      <tr><td class="c">표 34~36</td><td>계측 이벤트 · 주차별 퍼널 · 개선 전후</td><td class="c">43~45</td></tr>
-      <tr><td class="c">표 37~40</td><td>개인정보 · 미성년자 보호 · AI 표기 · 보안 점검</td><td class="c">46~48</td></tr>
+      <tr><td class="c">표 4~6</td><td>응시 현황 · 목표와 지표 · 추진 일정</td><td class="c">11~13</td></tr>
+      <tr><td class="c">표 7~8</td><td>면담 대상과 방법 · 최근 실수 요지</td><td class="c">15~16</td></tr>
+      <tr><td class="c">표 9~10</td><td>조사 반영 내역 · 개발 제외 범위</td><td class="c">20~21</td></tr>
+      <tr><td class="c">표 11~13</td><td>처리 절차 · 모듈 구성 · 화면 구성</td><td class="c">22~25</td></tr>
+      <tr><td class="c">표 14~15</td><td>운영 환경 · 속도 제한 설정값</td><td class="c">26~27</td></tr>
+      <tr><td class="c">표 16~19</td><td>변환 경로 · 추출 정보 · 판정 불가 · 해석 오류</td><td class="c">29~32</td></tr>
+      <tr><td class="c">표 22~24</td><td><b>검사 항목 37종 전체</b></td><td class="c">37~39</td></tr>
+      <tr><td class="c">표 25~27</td><td>AI 4중 경로 · 모델 실측 · 비채점 항목</td><td class="c">40~43</td></tr>
+      <tr><td class="c">표 28~30</td><td>표본별 검증 결과</td><td class="c">46~47</td></tr>
+      <tr><td class="c">표 31~32</td><td>미검출 항목 · AI 점수 편차</td><td class="c">50~51</td></tr>
+      <tr><td class="c">표 34~36</td><td>계측 이벤트 · 주차별 퍼널 · 개선 전후</td><td class="c">58~62</td></tr>
+      <tr><td class="c">표 37~40</td><td>개인정보 · 미성년자 보호 · AI 표기 · 보안 점검</td><td class="c">63~65</td></tr>
+      <tr><td class="c">표 41</td><td>향후 계획 우선순위</td><td class="c">68</td></tr>
     </table>
     <table style="font-size:7.2pt">
       <tr><th style="width:16mm">번호</th><th>그림 제목</th><th style="width:11mm">면</th></tr>
-      <tr><td class="c">그림 1</td><td>응시자와 합격률 추이</td><td class="c">8</td></tr>
-      <tr><td class="c">그림 2</td><td>배점 구성</td><td class="c">26</td></tr>
-      <tr><td class="c">그림 3</td><td>검사 항목 분류별 개수</td><td class="c">28</td></tr>
-      <tr><td class="c">그림 4</td><td>채점 모델 실측</td><td class="c">32</td></tr>
-      <tr><td class="c">그림 5</td><td>표본별 검출률</td><td class="c">35</td></tr>
-      <tr><td class="c">그림 6</td><td>AI가 본 도면 넓이</td><td class="c">36</td></tr>
-      <tr><td class="c">그림 7</td><td>AI 점수 편차</td><td class="c">39</td></tr>
-      <tr><td class="c">그림 8</td><td>문제 24건 처리 현황</td><td class="c">41</td></tr>
-      <tr><td class="c">그림 9~10</td><td>일자별·주차별 이용 추이 · 퍼널</td><td class="c">43~44</td></tr>
-      <tr><td class="c">그림 11</td><td>타 종목 규칙 재사용률</td><td class="c">49</td></tr>
-      <tr><td class="c">그림 12~13</td><td>결과 화면 · 수정 예시 전후</td><td class="c">19, 33</td></tr>
-      <tr><td colspan="3" style="background:#e8eef4;font-weight:700;text-align:center">
-        도표 작성 근거</td></tr>
-      <tr><td colspan="3">표와 그림의 모든 수치는 저장소 내 측정 기록 또는 운영 서버
-        <code>/api/stats</code> 응답에서 인용하였다. 도표 13종은 <code>docs/fig/make_figs.py</code>
-        한 파일로 재생성할 수 있으며, 수치를 그림에 직접 기입하지 않고 코드 내 값으로 보유한다.</td></tr>
+      <tr><td class="c">그림 1</td><td>응시자와 합격률 추이</td><td class="c">11</td></tr>
+      <tr><td class="c">그림 2</td><td>결과 화면</td><td class="c">25</td></tr>
+      <tr><td class="c">그림 3</td><td>배점 구성</td><td class="c">34</td></tr>
+      <tr><td class="c">그림 4</td><td>검사 항목 분류별 개수</td><td class="c">37</td></tr>
+      <tr><td class="c">그림 5</td><td>채점 모델 실측</td><td class="c">42</td></tr>
+      <tr><td class="c">그림 6</td><td>수정 예시 전후</td><td class="c">44</td></tr>
+      <tr><td class="c">그림 7</td><td>표본별 검출률</td><td class="c">46</td></tr>
+      <tr><td class="c">그림 8</td><td>AI 가 받던 그림의 비율</td><td class="c">48</td></tr>
+      <tr><td class="c">그림 9</td><td>AI 점수 편차</td><td class="c">52</td></tr>
+      <tr><td class="c">그림 10</td><td>문제 24건 처리 현황</td><td class="c">55</td></tr>
+      <tr><td class="c">그림 11</td><td>일자별 이용</td><td class="c">59</td></tr>
+      <tr><td class="c">그림 12</td><td>퍼널</td><td class="c">60</td></tr>
+      <tr><td class="c">그림 13</td><td>타 종목 규칙 재사용률</td><td class="c">67</td></tr>
+      <tr><td colspan="3" style="background:#e8eef4;font-weight:700;text-align:center">도표 작성 근거</td></tr>
+      <tr><td colspan="3">표와 그림의 모든 수치는 저장소 내 측정 기록 또는 운영 서버 <code>/api/stats</code> 응답에서 인용하였다. 그림 13종은 <code>docs/fig/make_figs.py</code> 한 파일로 재생성할 수 있으며, 수치를 그림에 직접 기입하지 않고 코드 내 값으로 보유한다.</td></tr>
     </table>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 4 -</span></div>
-</section>
-<!-- 5 요약문 1 -->
-<section class="page">
-  <div class="rh"><span>CADLens 사업보고서</span><span>요약문</span></div>
-  <h2 class="ch">요 &nbsp; 약 &nbsp; 문</h2>
+<h2 class="ch">요 &nbsp; 약 &nbsp; 문</h2>
 
   <h3 class="se">1. 사업의 요지</h3>
   <p>전산응용기계제도기능사 실기시험은 <b>5시간 안에 도면을 완성하여 그 자리에서 제출</b>하는
@@ -346,14 +373,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     ③ <b>정확도 100%는 한 학생의 도면, 6개 항목 기준이다.</b> 상용화 판단 근거로 쓸 수 없다.</p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 5 -</span></div>
-</section>
-
-<!-- 6 요약문 2 -->
-<section class="page">
-  <div class="rh"><span>CADLens 사업보고서</span><span>요약문</span></div>
-
-  <h3 class="se">3. 추진 경과 요약</h3>
+<h3 class="se">3. 추진 경과 요약</h3>
   <table>
     <tr><th style="width:22mm">시기</th><th>주요 경과</th><th style="width:26mm">확인 문서</th></tr>
     <tr><td class="c">2026-08 초</td><td>합성 기준 도면 18장으로 최초 정확도 측정. 당시 검사 항목 31개</td>
@@ -412,13 +432,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     경우에는 해당 30점을 <b>공란으로 두고 점수를 임의로 채우지 않는다.</b></p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 6 -</span></div>
-</section>
-
-<!-- 7 제1장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제1장 사업 개요</span><span>제1절 추진 배경</span></div>
-  <h2 class="ch">제1장 &nbsp;사 업 개 요</h2>
+<h2 class="ch">제1장 &nbsp;사 업 개 요</h2>
 
   <h3 class="se">제1절 추진 배경</h3>
 
@@ -463,30 +477,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <div class="src">근거 — <code>docs/왜_만들었나.md</code>, <code>docs/interviews.md</code>,
   <code>docs/impact.md</code>, Q-Net 종목 정보</div>
 
-  <h4>5. 기존 확인 방식과의 비교</h4>
-  <table>
-    <tr><th style="width:26mm">확인 방식</th><th style="width:26mm">확인 시점</th><th style="width:26mm">확인 범위</th><th>한계</th></tr>
-    <tr><td class="c">본인 재확인</td><td class="c">작도 중 · 제출 직전</td><td class="c">본인이 기억하는 항목</td>
-      <td>빠뜨린 항목은 애초에 기억에 없다. 면담 5건 전원이 본인 확인만으로는 발견하지 못하였다</td></tr>
-    <tr><td class="c">동료 상호 확인</td><td class="c">출력 후</td><td class="c">동료가 아는 항목</td>
-      <td>출력 이후에야 가능하여 시점이 늦다. 면담 1번 대상은 종료 17분 전에 발견하였다</td></tr>
-    <tr><td class="c">교사 첨삭</td><td class="c">제출 후 수일</td><td class="c">전 항목</td>
-      <td>정확하나 가장 늦다. 면담 3번 대상은 <b>이틀 뒤</b>에 확인하였다. 교사 1인이 학생 30명을 담당한다</td></tr>
-    <tr class="hl"><td class="c"><b>본 서비스</b></td><td class="c"><b>임의 · 수 초</b></td>
-      <td class="c"><b>37개 항목</b></td>
-      <td><b>판독 가능한 범위로 한정된다.</b> 인쇄 단계의 사안과 설계 판단은 다루지 않는다(제6장 제5절)</td></tr>
-  </table>
+  
 
-  <p class="ni">본 사업은 위 표의 마지막 행을 채우는 것이며 앞의 항목들을 대체하지 않는다.
-  특히 <b>교사 첨삭이 수행하는 "왜 이 면을 정면도로 골랐는가"와 같은 판단은 대체 대상이
-  아니다.</b></p>
-  <div class="pf"><span>팀 네이놈</span><span>- 7 -</span></div>
-</section>
-
-<!-- 8 제1장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제1장 사업 개요</span><span>제2절 문제 정의</span></div>
-  <h3 class="se">제2절 문제 정의</h3>
+<h3 class="se">제2절 문제 정의</h3>
 
   <h4>1. 대상 인원의 규모</h4>
   <div class="tcap">&lt;표 4&gt; 전산응용기계제도기능사 응시 및 합격 현황 (2021~2025)</div>
@@ -534,12 +527,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     18,000원 · 온라인 강의 월 40,000원 · 출력비 약 18,200원 · 야간 학원 6주 420,000원).</li>
   </ul>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 8 -</span></div>
-</section>
-<!-- 9 제1장 제3절 -->
-<section class="page">
-  <div class="rh"><span>제1장 사업 개요</span><span>제3절 사업 목표와 북극성 지표</span></div>
-  <h3 class="se">제3절 사업 목표와 북극성 지표</h3>
+<h3 class="se">제3절 사업 목표와 북극성 지표</h3>
 
   <h4>1. 목표 설정의 원칙</h4>
   <p>방문자 수는 늘려도 제품이 좋아졌다는 뜻이 되지 않는다. 반면 <b>수정하여 다시 올렸다</b>는
@@ -592,24 +580,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li><b>매출</b> — 과금 구조가 없으며, 정확도 검증이 끝나기 전에는 과금을 도입하지 않는다.</li>
   </ul>
 
-  <h4>5. 지표 산출의 전제</h4>
-  <table>
-    <tr><th style="width:32mm">전제</th><th>내용</th></tr>
-    <tr><td>사람 단위 집계</td><td>전환율은 <b>사람 수</b>로 계산한다. 횟수로 계산하면 1인이 여러 번
-      수행한 것이 전환으로 잡혀 비율이 성립하지 않는다. 최소 단위는 주(週)이다</td></tr>
-    <tr class="hl"><td>비인적 접속 제외</td><td>2026-09-23부터 적용. <b>그 이전 기록은 소급 정정이 불가능하다</b></td></tr>
-    <tr><td>표본이 작을 때</td><td>비율과 실수를 병기한다</td></tr>
-  </table>
+  
 
-  <p class="ni"><b>목표 미달 시</b>에도 그 사실을 그대로 기재하고 원인을 제품 문제와 대상 문제로
-  나누어 분석한다. <b>지표를 달성 가능한 다른 수치로 교체하지 않는다.</b></p>
-  <div class="pf"><span>팀 네이놈</span><span>- 9 -</span></div>
-</section>
-
-<!-- 10 제1장 제4절 -->
-<section class="page">
-  <div class="rh"><span>제1장 사업 개요</span><span>제4절 추진 체계 · 일정 · 역할 분담</span></div>
-  <h3 class="se">제4절 추진 체계 · 일정 · 역할 분담</h3>
+<h3 class="se">제4절 추진 체계 · 일정 · 역할 분담</h3>
 
   <h4>1. 추진 일정</h4>
   <div class="tcap">&lt;표 6&gt; 본선 8주 코칭 주차별 추진 일정</div>
@@ -668,25 +641,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   학생이 실제로 자주 틀리는 사항이 무엇인지 자문을 받아 검사 항목 선정과 지적 문구 작성에
   반영하였다. <b>자문에 응한 분이 본 사업의 결과에 책임을 지는 것은 아니다.</b></p>
 
-  <h4>5. 기록물 구성</h4>
-  <table>
-    <tr><th style="width:34mm">기록물</th><th>내용과 갱신 주기</th></tr>
-    <tr><td>주차별 계획</td><td>주차마다 폴더 1개. 산출물 목록과 달성 여부를 표로 관리한다</td></tr>
-    <tr><td>일자별 계획</td><td>하루에 문서 1개. 담당자·완료 기준을 사전에, 달성 여부를 사후에 기재한다</td></tr>
-    <tr class="hl"><td>문제 대장</td><td>사안 1건당 문서 1개. <b>해결 여부와 무관하게 보존</b>한다(제7장)</td></tr>
-    <tr><td>개인별 기록</td><td>개인마다 문서 1개. 계획과 달라졌으면 달라진 대로 기재한다</td></tr>
-  </table>
+  
 
-  <p class="ni"><b>기록의 신뢰성을 위한 규칙</b> — ① 달성하지 못한 항목은 표기를 유지하고 사유를
-  기재한다. ② 담당을 교체하면 양쪽 기록에 모두 적는다. ③ 면담·외부 연락·참석과 같이 사람만
-  할 수 있는 일은 자동화 대상에서 제외한다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 10 -</span></div>
-</section>
-
-<!-- 11 제2장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제2장 수요 조사</span><span>제1절 조사 개요와 방법</span></div>
-  <h2 class="ch">제2장 &nbsp;수 요 조 사</h2>
+<h2 class="ch">제2장 &nbsp;수 요 조 사</h2>
 
   <h3 class="se">제1절 조사 개요와 방법</h3>
 
@@ -740,24 +697,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     (제2장 제4절 및 제10장 참조).</li>
   </ul>
 
-  <h4>5. 설문 응답의 취급</h4>
-  <p>대면 면담과 별도로 설문 응답 <b>1건</b>을 수신하였다. 표본이 1건이므로 <b>대면 면담과
-  합산하지 않고 분리하여 집계</b>한다. 설문에서만 제기된 요구(재질 기입 · 요목표 · 거칠기
-  비교표 검사 추가)는 <b>검사 항목 확대의 근거로 사용하지 않았다.</b> 요구가 있었다는 사실과
-  반영하지 않았다는 사실을 함께 기록한다(제4절).</p>
+  
 
-  <h4>6. 조사 이후의 검증</h4>
-  <p>면담에서 도출한 내용은 가설이므로 이후 단계에서 검증하였다. "빠뜨림이 불합격의 주된
-  사유"는 공개 채점 기준의 오작 조항과 대조하여 확인하였고, "발견 시점이 늦다"는 면담 5건의
-  시점을 수치로 기록하였다(표 8). "기계적 계수가 유리하다"는 <b>실제 도면 23장에서 검출률
-  100% · 오지적 0건</b>으로 확인하였으나 <b>6개 항목 기준</b>이라는 한계가 있다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 11 -</span></div>
-</section>
-
-<!-- 12 제2장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제2장 수요 조사</span><span>제2절 조사 결과 요지</span></div>
-  <h3 class="se">제2절 조사 결과 요지</h3>
+<h3 class="se">제2절 조사 결과 요지</h3>
 
   <h4>1. 대상별 최근 실수와 대응 시간</h4>
   <div class="tcap">&lt;표 8&gt; 면담 대상별 가장 최근 실수 · 발견 시점 · 수정 소요</div>
@@ -805,35 +747,21 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <tr><th style="width:48mm">최근 실수</th><th style="width:44mm">대응 검사</th>
       <th style="width:18mm">판정</th><th>비고</th></tr>
     <tr><td>표면거칠기 기호 1개 누락</td><td><code>EX_SURFACE_FEW</code></td>
-      <td class="c ok">검출</td><td>가공면 대비 기호 수 부족을 계수</td></tr>
+      <td class="c">검출</td><td>가공면 대비 기호 수 부족을 계수</td></tr>
     <tr><td>뷰 하나만 2:1 척도</td><td><code>EX_VIEW_SCALE_MIXED</code></td>
-      <td class="c ok">검출</td><td>뷰별 척도 상이 여부를 확인</td></tr>
+      <td class="c">검출</td><td>뷰별 척도 상이 여부를 확인</td></tr>
     <tr><td>데이텀·기하공차 전부 미기입</td><td><code>DQ_NO_GEOMETRIC_TOL</code></td>
-      <td class="c ok">검출</td><td>오작 판정으로 우선 표시</td></tr>
+      <td class="c">검출</td><td>오작 판정으로 우선 표시</td></tr>
     <tr class="hl"><td>프린터 A4 설정으로 축소·잘림</td><td class="c">해당 없음</td>
-      <td class="c warn">미검출</td><td><b>인쇄 단계의 사안으로 DXF에 정보가 없다.
+      <td class="c">미검출</td><td><b>인쇄 단계의 사안으로 DXF에 정보가 없다.
         검출 불가임을 그대로 공표한다</b></td></tr>
     <tr><td>단면도 누락</td><td><code>EX_VIEW_NO_LABEL</code> + <code>AI_PROJECTION</code></td>
       <td class="c">일부</td><td>문자 표기 누락은 규칙이, 단면 필요 여부는 AI가 판단</td></tr>
   </table>
 
-  <h4>4. 조사에서 나왔으나 반영하지 않은 것</h4>
-  <p>면담에서 제기된 요구를 모두 반영하지는 않았다. 반영하지 않은 항목과 그 사유를 기록한다.</p>
-  <table>
-    <tr><th style="width:44mm">제기된 요구</th><th style="width:20mm">제기 건수</th><th>반영하지 않은 사유</th></tr>
-    <tr class="hl"><td>출력 설정으로 인한 축소·잘림 확인</td><td class="c">면담 2건</td>
-      <td><b>인쇄 단계의 사안으로 도면 파일에 정보가 없다.</b> 검출이 원천적으로 불가능하다</td></tr>
-    <tr><td>재질 기입 · 요목표 · 거칠기 비교표 검사 추가</td><td class="c">설문 1건</td>
-      <td>표본이 1건이므로 검사 항목 확대의 근거로 삼지 않았다</td></tr>
-  </table>
-  <p class="ni"><b>요구를 전부 수용하지 않았다는 사실을 기록에 남긴다.</b> 사유가 기록되어 있어야
-  이후 판단을 재검토할 수 있다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 12 -</span></div>
-</section>
-<!-- 13 제2장 제3절 (1) -->
-<section class="page">
-  <div class="rh"><span>제2장 수요 조사</span><span>제3절 면담 내용 (1)</span></div>
-  <h3 class="se">제3절 면담 내용 (1) — 1~2번 대상</h3>
+  
+
+<h3 class="se">제3절 면담 내용 (1) — 1~2번 대상</h3>
 
   <h4>1. 1번 대상 — 메카트로닉스과 2학년 (2026-08-26)</h4>
   <h5>가. 무엇이 있었나</h5>
@@ -889,13 +817,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <b>11세트</b>이며 세트마다 종료 시각과 수정 시간을 표 계산 프로그램에 기록한다.
   <b>검토 시간이 처음 4분에서 현재 18~22분으로 증가하였다.</b></p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 13 -</span></div>
-</section>
-
-<!-- 14 제2장 제3절 (2) -->
-<section class="page">
-  <div class="rh"><span>제2장 수요 조사</span><span>제3절 면담 내용 (2)</span></div>
-  <h3 class="se">제3절 면담 내용 (2) — 3~5번 대상</h3>
+<h3 class="se">제3절 면담 내용 (2) — 3~5번 대상</h3>
 
   <h4>3. 3번 대상 — 2학년, 메카트로닉스과 아님, 독학 (2026-08-27)</h4>
   <h5>가. 무엇이 있었나</h5>
@@ -949,13 +871,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   단면을 놓친 뒤에는 투상도 선택만 따로 연습하기 위하여 조립도 <b>15개</b>에서 필요한 뷰를
   종이에 스케치하였고, 그 연습에만 <b>약 7시간</b>을 사용하였다.</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 14 -</span></div>
-</section>
-
-<!-- 15 제2장 제4절 -->
-<section class="page">
-  <div class="rh"><span>제2장 수요 조사</span><span>제4절 조사 결과 반영 내역</span></div>
-  <h3 class="se">제4절 조사 결과 반영 내역과 개발 범위 확정</h3>
+<h3 class="se">제4절 조사 결과 반영 내역과 개발 범위 확정</h3>
 
   <h4>1. 조사 결과 반영 내역</h4>
   <div class="tcap">&lt;표 9&gt; 조사 결과 반영 내역</div>
@@ -1016,13 +932,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
       <td>지적과 수정 방법만 제시한다. 대신 작도하면 실기 학습이 되지 않는다</td></tr>
   </table>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 15 -</span></div>
-</section>
-
-<!-- 16 제3장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제3장 시스템 개요</span><span>제1절 전체 구성</span></div>
-  <h2 class="ch">제3장 &nbsp;시 스 템 개 요</h2>
+<h2 class="ch">제3장 &nbsp;시 스 템 개 요</h2>
 
   <h3 class="se">제1절 전체 구성</h3>
 
@@ -1073,34 +983,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <div class="src">근거 — <code>README.md</code> 아키텍처 절, <code>docs/architecture.md</code>,
   <code>main.py</code>, <code>check.py</code></div>
 
-  <h4>4. 구성 요소 간 의존 관계</h4>
-  <table>
-    <tr><th style="width:30mm">구성 요소</th><th style="width:34mm">의존 대상</th><th>해당 요소가 불가할 때</th></tr>
-    <tr><td>도면 판독</td><td>DXF 판독 라이브러리</td><td>검사 자체가 불가하다. 대체 경로 없음</td></tr>
-    <tr><td>DWG 변환</td><td>서버 내부 변환기</td><td>DXF 내보내기 절차를 안내한다</td></tr>
-    <tr><td>규칙 채점</td><td>판독 결과</td><td>판독이 되면 항상 동작한다. 외부 의존 없음</td></tr>
-    <tr class="hl"><td>AI 채점</td><td>외부 제공자 4곳</td>
-      <td>4중 폴백. 전부 불가하면 <b>30점 공란</b>. 규칙 70점과 오작 판정은 유지된다</td></tr>
-    <tr><td>이용 집계</td><td>외부 데이터베이스</td><td>서버 내부 저장으로 대체되며 재기동 시 초기화된다.
-      <b>검사 동작에는 영향을 주지 않는다</b></td></tr>
-  </table>
+  
 
-  <h4>5. 설계상 의도적으로 두지 않은 것</h4>
-  <ul class="dash">
-    <li><b>이용자별 저장소를 두지 않았다.</b> 재검사 비교에 필요한 지난 결과는 서버가 아니라
-    이용자의 브라우저에만 보관한다(최근 20건). 서버로는 "재검사가 발생하였다"는 종류 이름
-    하나만 전송되며 파일 이름·점수·도면 내용은 전송하지 않는다.</li>
-    <li><b>작업 대기열을 두지 않았다.</b> 검사 1회를 10초 이내로 설계하였으므로 요청을 적재하고
-    나중에 처리하는 구조가 필요하지 않다. 과도한 요청은 대기열이 아니라 속도 제한으로 차단한다.</li>
-    <li><b>이용자 설정을 서버에 저장하지 않는다.</b> 언어·화면 모드·검사 항목 선택은 브라우저에만
-    남으며 서버로 전송되지 않는다.</li>
-  </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 16 -</span></div>
-</section>
-<!-- 17 제3장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제3장 시스템 개요</span><span>제2절 처리 절차</span></div>
-  <h3 class="se">제2절 처리 절차</h3>
+<h3 class="se">제2절 처리 절차</h3>
 
   <div class="tcap">&lt;표 11&gt; 처리 절차 5단계</div>
   <table>
@@ -1152,26 +1037,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <tr><td>AI 응답 형식 위반 ·<br>통계 집계 실패</td><td>전자는 결과를 폐기하고 "사람 확인 필요"로 처리한다. 후자는 검사에 영향을 주지 않는다</td></tr>
   </table>
 
-  <h4>5. 단계별 소요 시간의 분포</h4>
-  <table>
-    <tr><th style="width:30mm">단계</th><th style="width:26mm">소요</th><th>비고</th></tr>
-    <tr><td>판독 · 미리보기 작성</td><td class="c">도면 규모에 비례</td>
-      <td>선 수천 개 규모도 초 단위로 처리되며 서로 병행한다</td></tr>
-    <tr class="hl"><td>AI 채점</td><td class="c"><b>중앙값 3.2초 · 최대 5.9초</b></td>
-      <td><b>전체 소요 시간을 사실상 결정한다.</b> 8초 상한을 두는 이유이다</td></tr>
-    <tr><td>답변·번역 생성</td><td class="c">약 13초</td><td>채점보다 2배 이상. 분리 처리한다</td></tr>
-  </table>
-  <p class="ni">2026-09-18 실측(실제 도면 10장) 기준이다.</p>
+  
 
-  <p class="ni"><b>부분 반환은 투상도 항목에만 허용</b>한다. <b>부분 반환과 미판정은 다르다</b> —
-  전자는 잠시 후 채워지고 후자는 채워지지 않으므로 화면에서 구분하여 표시한다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 17 -</span></div>
-</section>
-
-<!-- 18 제3장 제3절 -->
-<section class="page">
-  <div class="rh"><span>제3장 시스템 개요</span><span>제3절 모듈 구성</span></div>
-  <h3 class="se">제3절 모듈 구성</h3>
+<h3 class="se">제3절 모듈 구성</h3>
 
   <div class="tcap">&lt;표 12&gt; 모듈별 기능</div>
   <table>
@@ -1218,37 +1086,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   도면의 그림 변환은 <code>PyMuPDF</code>(AGPL-3.0), DWG 변환은 <code>GNU LibreDWG</code>
   (GPL-3.0-or-later)를 사용한다. 전염성 라이선스 2건의 취급은 제9장 제3절에 기재하였다.</p>
 
-  <h4>3. 모듈 분리 기준</h4>
-  <p>모듈은 <b>실패 시 영향 범위</b>를 기준으로 분리하였다. 판독이 실패하면 전부가 실패하므로
-  판독을 가장 작게 유지하고, 외부 의존이 있는 부분(AI 질의, 이용 집계)은 실패하여도 나머지가
-  동작하도록 분리하였다.</p>
-  <table>
-    <tr><th style="width:34mm">분리 기준</th><th style="width:30mm">해당 모듈</th><th>근거</th></tr>
-    <tr><td>실패가 전체를 막는 것</td><td><code>dwg.py</code></td>
-      <td>판독 결과 없이는 규칙 채점도 AI 채점도 불가하다. 결함이 가장 크게 발생한 지점이기도 하다</td></tr>
-    <tr><td>외부에 의존하는 것</td><td><code>ai_review.py</code><br><code>stats.py</code></td>
-      <td>외부 제공자와 외부 데이터베이스에 의존한다. 실패가 검사를 막지 않도록 분리하였다</td></tr>
-    <tr><td>규격이 바뀌면 바뀌는 것</td><td><code>exam.py</code></td>
-      <td>검사 규칙과 배점은 종목·회차에 따라 달라진다. 타 종목 확장 시 교체 대상이 된다</td></tr>
-  </table>
+  
 
-  <h4>4. 측정 도구를 제품과 함께 관리하는 이유</h4>
-  <ul class="circ">
-    <li><b>규칙을 바꾸면 정답도 바뀐다.</b> 검사 규칙을 변경하였는데 정답 파일을 갱신하지 않아
-    측정치가 실제와 달라진 사례가 있었다(제6장 제2절). 두 가지를 같은 저장소에서 관리하여야
-    변경 누락을 확인할 수 있다.</li>
-    <li><b>측정 도구는 캐시를 우회하여야 한다.</b> 편차 측정 도구는 저장된 응답을 사용하지 않고
-    매번 새로 질의한다. 캐시를 사용하면 편차가 0으로 관측되어 측정이 무의미해진다.</li>
-    <li><b>합성 도면 생성 코드도 함께 둔다.</b> 결함을 삽입한 도면을 생성하는 코드가 있어야
-    표본을 재현할 수 있다. 도면 파일만 두면 어떤 결함을 의도하였는지 알 수 없게 된다.</li>
-  </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 18 -</span></div>
-</section>
-
-<!-- 19 제3장 제4절 -->
-<section class="page">
-  <div class="rh"><span>제3장 시스템 개요</span><span>제4절 화면 구성과 이용 흐름</span></div>
-  <h3 class="se">제4절 화면 구성과 이용 흐름</h3>
+<h3 class="se">제4절 화면 구성과 이용 흐름</h3>
 
   <div class="tcap">&lt;표 13&gt; 화면 구성</div>
   <table>
@@ -1269,7 +1109,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   한 사람이 화면을 이동할 때마다 계수하면 방문 수가 실제보다 부풀기 때문이다.</div>
 
   <figure><img src="demo/S3_무엇을만들었나.png" alt="결과 화면"></figure>
-  <div class="fcap">[그림 13] 검사 결과 화면. 좌측에 도면과 지적 번호, 우측에 지적 목록과 점수를
+  <div class="fcap">[그림 2] 검사 결과 화면. 좌측에 도면과 지적 번호, 우측에 지적 목록과 점수를
   배치한다. 지적 번호를 누르면 도면에서 해당 위치로 이동한다.</div>
 
   <h4>1. 이용 흐름</h4>
@@ -1296,31 +1136,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   질문만 사용하면 답변을 사전에 생성하여 저장할 수 있어 무료 할당량도 절약된다. 이용자가
   문장을 입력하여 AI와 자유롭게 대화할 수 있는 지점은 존재하지 않는다.</p>
 
-  <h4>4. 결과 표시 단계 구분</h4>
-  <table>
-    <tr><th style="width:20mm">단계</th><th style="width:34mm">의미</th><th>표시 방식</th></tr>
-    <tr class="hl"><td class="c"><b>실격</b></td><td>오작 판정에 해당</td>
-      <td>점수와 무관하게 <b>최상단에 별도 표시</b>. 점수가 높아도 실격이면 불합격이라는 시험의
-        구조를 화면이 그대로 반영한다</td></tr>
-    <tr><td class="c">오류</td><td>감점 대상이 확정된 사항</td><td>지적 목록에 표시하고 도면에 번호를 부여</td></tr>
-    <tr><td class="c">경고</td><td>감점 여부가 조건에 따라 달라지는 사항</td>
-      <td>예: 도면 크기 A3. 출력 크기이므로 오작이 아니라 경고로 둔다</td></tr>
-  </table>
+  
 
-  <h4>5. 화면에서 지키는 원칙</h4>
-  <ul class="dash">
-    <li><b>판정 주체를 표시한다.</b> AI가 채점한 항목에는 AI 표시를 부착하여 규칙 판정과 구분한다.</li>
-    <li><b>미판정을 숨기지 않는다.</b> AI 경로가 불가하면 화면에 비활성 상태를 표시한다.</li>
-    <li><b>근거를 화면에서 확인할 수 있게 한다.</b> 검사 항목별 KS 근거를 별도 화면으로 공개하며,
-    정확도와 그 한계도 별도 화면으로 공개한다.</li>
-  </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 19 -</span></div>
-</section>
-
-<!-- 20 제3장 제5절 -->
-<section class="page">
-  <div class="rh"><span>제3장 시스템 개요</span><span>제5절 운영 환경과 배포</span></div>
-  <h3 class="se">제5절 운영 환경과 배포</h3>
+<h3 class="se">제5절 운영 환경과 배포</h3>
 
   <div class="tcap">&lt;표 14&gt; 운영 환경</div>
   <table>
@@ -1358,36 +1176,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   시간을 각각 확인할 수 있다. 이 헤더로 "답변·번역 생성이 채점보다 2배 이상 소요된다"는 사실을
   확인하고 처리 순서를 변경하였다(제3장 제2절).</p>
 
-  <h4>4. 운영 중 확인된 제약과 대응</h4>
-  <table>
-    <tr><th style="width:36mm">제약</th><th style="width:40mm">영향</th><th>대응</th></tr>
-    <tr><td>무료 플랜의 휴면 전환</td><td>주기 작업이 함께 정지하여 업로드 정리가 지연될 수 있다</td>
-      <td><b>미확인 사항으로 기록</b>하고 실증 과제로 등재하였다(제9장 제3절)</td></tr>
-    <tr><td>재기동 시 디스크 초기화</td><td>서버 내부 저장을 사용하면 집계가 0으로 되돌아간다</td>
-      <td>외부 데이터베이스를 사용한다. 연결 정보가 없으면 내부 저장으로 자동 대체된다</td></tr>
-    <tr><td>외부 AI 무료 할당량</td><td>할당량 소진 시 30점 채점이 정지한다</td>
-      <td>4중 폴백 구성. 동일 도면 재검사 시 저장된 응답을 사용하여 호출을 줄인다</td></tr>
-    <tr class="hl"><td>화면 파일 캐시</td><td><b>판 번호를 올리지 않으면 기존 방문자에게 변경 사항이
-      적용되지 않는다</b></td>
-      <td>화면 파일 변경 시 판 번호를 함께 올린다. 실제로 계측 추가 시 이 절차를 누락할 뻔하였다</td></tr>
-  </table>
+  
 
-  <h4>5. 비용 구조</h4>
-  <ul class="circ">
-    <li><b>서버 비용</b> — 무료 플랜으로 운영한다. 학생 팀이 직접 부담하므로 유료 전환은
-    수익 구조가 마련된 이후에 검토한다.</li>
-    <li><b>AI 호출 비용</b> — 네 경로 모두 무료 티어가 있는 제공자로 구성하였다.
-    동일 도면 재검사 시 저장된 응답을 사용하므로 <b>재검사에 따른 추가 비용이 발생하지 않는다.</b>
-    재검사가 북극성 지표인 점을 고려하면, 지표가 개선될수록 비용이 증가하지 않는 구조이다.</li>
-    <li><b>저장 비용</b> — 업로드 도면을 최대 1시간만 보관하므로 저장 용량이 누적되지 않는다.</li>
-  </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 20 -</span></div>
-</section>
-
-<!-- 21 제3장 제6절 -->
-<section class="page">
-  <div class="rh"><span>제3장 시스템 개요</span><span>제6절 성능 설계와 부하 대응</span></div>
-  <h3 class="se">제6절 성능 설계와 부하 대응</h3>
+<h3 class="se">제6절 성능 설계와 부하 대응</h3>
 
   <h4>1. 속도 제한을 둔 이유</h4>
   <p>도면 1장의 검사는 CPU 수 초와 AI 호출 1회를 소모한다. 자동화된 반복 요청이 발생하면 무료
@@ -1434,34 +1225,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li>통계 집계 실패는 검사 결과에 영향을 주지 않는다.</li>
   </ul>
 
-  <h4>5. 지표 신뢰성을 위한 조치의 경과</h4>
-  <table>
-    <tr><th style="width:22mm">일자</th><th style="width:40mm">조치</th><th>사유</th></tr>
-    <tr><td class="c">2026-09-23</td><td>비인적 접속 집계 제외</td>
-      <td>방문 수가 실제보다 수십 배로 부풀 수 있었다. 집계 지점이 한 곳이므로 6종 이벤트 전부에
-        동일하게 적용된다</td></tr>
-    <tr class="hl"><td class="c">2026-09-24</td><td>계측 이벤트 창구에 속도 제한 적용</td>
-      <td><b>해당 창구로 수신되는 수가 북극성 지표이므로, 제한이 없으면 지표가 임의로 부풀 수
-        있었다.</b> 서버 부하가 아니라 <b>지표의 신뢰성</b>을 위한 조치이다</td></tr>
-    <tr><td class="c">2026-09-25</td><td>퍼널 단계 세분화</td>
-      <td>최대 이탈 구간이 지나치게 넓어 개선 지점을 특정할 수 없었다</td></tr>
-  </table>
+  
 
-  <h4>6. 본 절의 수치가 갖는 한계</h4>
-  <ul class="dash">
-    <li>속도 제한은 <b>프로세스 메모리에서 계수</b>하므로 서버를 여러 대로 확장하면 상한도
-    그 배수만큼 증가한다. 현재 서버가 1대이므로 표의 값이 그대로 적용된다.</li>
-    <li>비인적 접속 제외는 <b>이용자 에이전트 문자열에 의존</b>하므로 이를 위장하는 접속은
-    제외되지 않는다. 완전한 차단이 아니라 명백한 경우의 제외이다.</li>
-    <li>검사 소요 시간 실측은 <b>실제 수험생 도면 10장</b> 기준이다. 도면의 복잡도에 따라
-    달라질 수 있다.</li>
-  </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 21 -</span></div>
-</section>
-<!-- 22 제4장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제4장 도면 해석</span><span>제1절 입력 형식과 변환 경로</span></div>
-  <h2 class="ch">제4장 &nbsp;도 면 해 석</h2>
+<h2 class="ch">제4장 &nbsp;도 면 해 석</h2>
 
   <h3 class="se">제1절 입력 형식과 변환 경로</h3>
 
@@ -1494,9 +1260,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <b>32장</b>을 제공받아 일괄 변환을 시도하였다.</p>
   <table>
     <tr><th style="width:26mm">일자</th><th style="width:26mm">결과</th><th>내용</th></tr>
-    <tr><td class="c">2026-09-06</td><td class="c warn">0 / 32</td>
+    <tr><td class="c">2026-09-06</td><td class="c">0 / 32</td>
       <td>전부 실패. 변환 도구가 원본 판(version)을 열지 못하였다</td></tr>
-    <tr class="hl"><td class="c">2026-09-11</td><td class="c ok">30 / 32</td>
+    <tr class="hl"><td class="c">2026-09-11</td><td class="c">30 / 32</td>
       <td>Inventor 2027 설치 후 정상 변환. 이 중 7쌍이 동일 도면의 이전 저장본이므로
         <b>서로 다른 도면은 23장</b>이다</td></tr>
   </table>
@@ -1514,27 +1280,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     표본 수가 부풀려지므로 23장으로 집계한다.</li>
   </ul>
 
-  <h4>5. 입력 단계에서의 방어</h4>
-  <table>
-    <tr><th style="width:32mm">확인 항목</th><th>처리</th></tr>
-    <tr><td>파일 크기</td><td>200MB를 초과하면 수신하지 않는다</td></tr>
-    <tr><td>압축 파일</td><td>압축을 해제하고 내부에서 도면을 탐색한다. 도면이 없으면 그 사실을 안내한다</td></tr>
-    <tr><td>판독 불가 형식</td><td>파일 종류를 식별하여 내보내기 절차를 안내한다. 오류 문구만 제시하지 않는다</td></tr>
-    <tr class="hl"><td>요청 빈도</td><td>속도 제한을 적용한다. 도면 1장이 CPU와 AI 호출을 소모하므로
-      자동 반복 요청은 무료 서버와 할당량을 함께 고갈시킨다</td></tr>
-  </table>
+  
 
-  <h4>6. 변환 실패의 기록</h4>
-  <p>0/32 실패는 규칙이나 판독 로직의 문제가 아니라 <b>변환 도구의 판(version) 문제</b>였다.
-  이 사실을 기록해 두지 않으면 이후 동일 상황에서 원인을 처음부터 다시 찾게 된다.
-  본 사업은 이러한 사안도 문제 대장에 등재하여 관리한다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 22 -</span></div>
-</section>
-
-<!-- 23 제4장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제4장 도면 해석</span><span>제2절 추출 정보</span></div>
-  <h3 class="se">제2절 추출 정보</h3>
+<h3 class="se">제2절 추출 정보</h3>
 
   <p>채점은 전부 <b>도면 파일에서 실제로 읽어 낸 값</b> 위에서 이루어진다. 추출 항목과
   추출 방식, 그리고 그 방식에서 비롯되는 한계를 함께 기재한다.</p>
@@ -1594,19 +1342,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
         찾지 못하던 시기가 있었다</b></td></tr>
   </table>
 
-  <h4>2. 위험도 구분이 필요한 이유</h4>
-  <p>판독 방식에 따라 실패의 성격이 다르다. 엔티티 기반은 값이 있으면 읽히고 없으면 읽히지
-  않는다. 반면 <b>문자 기반과 이름 기반은 "있는데 못 읽는" 경우와 "없는 것을 있다고 읽는" 경우가
-  모두 발생</b>할 수 있다. 실제로 확인된 결함 7건 중 3건이 문자·이름 기반 판독에서 나왔다.</p>
-  <p class="ni">따라서 문자 기반 항목은 <b>오인 가능성을 함께 점검</b>하고, 기하 계산 항목은
-  <b>형태 가정을 실제 도면으로 검증</b>한다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 23 -</span></div>
-</section>
+  
 
-<!-- 24 제4장 제3절 -->
-<section class="page">
-  <div class="rh"><span>제4장 도면 해석</span><span>제3절 판정 불가 처리 원칙</span></div>
-  <h3 class="se">제3절 판정 불가 처리 원칙</h3>
+<h3 class="se">제3절 판정 불가 처리 원칙</h3>
 
   <h4>1. 원칙</h4>
   <div class="box">
@@ -1656,30 +1394,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <p class="ni">세 가지를 구분하지 않고 "못 잡는다"로 뭉뚱그리면 개선 대상과 개선 불가 대상이
   섞인다. 본 보고서는 제6장 제5절에서 이를 나누어 기재한다.</p>
 
-  <h4>4. 판정 불가 처리가 지표에 미치는 영향</h4>
-  <p>검사를 건너뛰면 그 항목은 검출률 계산의 분모에서도 제외된다. 따라서 <b>판정 불가 항목이
-  많아질수록 검출률은 높게 나온다.</b> 이 점을 감추면 수치가 실제보다 좋아 보인다.</p>
-  <table>
-    <tr><th style="width:40mm">상황</th><th>검출률 표기</th></tr>
-    <tr><td>전 항목을 판정한 경우</td><td>그대로 표기한다</td></tr>
-    <tr class="hl"><td>일부 항목을 건너뛴 경우</td>
-      <td><b>측정한 항목 수를 함께 표기한다.</b> 실제 도면 검증에서 "측정한 검사 항목 6개"를
-        명시한 것이 이 때문이다(제6장 제2절)</td></tr>
-  </table>
+  
 
-  <h4>5. 이 원칙의 비용</h4>
-  <ul class="dash">
-    <li><b>놓치는 결함이 생긴다.</b> 이용자가 통과하였다고 하여 해당 항목이 정상이라는 뜻은 아니다.</li>
-    <li><b>그럼에도 유지하는 이유</b> — 오지적은 정상 도면을 수정하게 만들며, 학습용 도구에서는
-    그 비용이 더 크다고 판단하였다.</li>
-  </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 24 -</span></div>
-</section>
-
-<!-- 25 제4장 제4절 -->
-<section class="page">
-  <div class="rh"><span>제4장 도면 해석</span><span>제4절 해석 오류 사례와 조치</span></div>
-  <h3 class="se">제4절 해석 오류 사례와 조치</h3>
+<h3 class="se">제4절 해석 오류 사례와 조치</h3>
 
   <p>본 사업에서 가장 크게 발생한 결함은 채점 규칙이 아니라 <b>판독</b>에서 나왔다. 사안별로
   증상·원인·조치·영향을 기재한다.</p>
@@ -1727,17 +1444,6 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     이 기준에 따른 것이다.</li>
   </ul>
 
-  <h4>사례별 공통 구조</h4>
-  <table>
-    <tr><th style="width:34mm">구분</th><th style="width:12mm">건수</th><th>공통점</th></tr>
-    <tr class="hl"><td>실제 도면 입력 후 발견</td><td class="c">3건</td>
-      <td>1 · 3 · 6번. <b>자체 제작 도면에서는 드러나지 않았다.</b> 표본의 성격이 검증의 성격을 결정한다</td></tr>
-    <tr><td>자동 시험으로 발견</td><td class="c">2건</td>
-      <td>4 · 5번. 합성 기준 도면은 지적 0건이 정상이므로 오지적이 즉시 드러난다</td></tr>
-    <tr><td>AI 입력을 저장해 발견</td><td class="c">2건</td>
-      <td>6 · 7번. <b>AI에 실제로 무엇을 전달하였는지 확인하지 않으면 원인을 특정할 수 없었다</b></td></tr>
-  </table>
-
   <h4>재발 방지를 위해 절차로 만든 것</h4>
   <ul class="circ">
     <li><b>AI 입력 그림을 저장하여 육안으로 확인한다.</b> 7번 사안은 그림 크기가 201바이트임을
@@ -1749,13 +1455,8 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li><b>한 번 조치한 지점을 다시 확인한다.</b> 6번 사안은 7번을 조치한 뒤에도 <b>같은 위치에
     남아 있던 절반짜리 결함</b>이었다.</li>
   </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 25 -</span></div>
-</section>
 
-<!-- 26 제5장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제1절 배점 체계와 분담 원칙</span></div>
-  <h2 class="ch">제5장 &nbsp;채 점 체 계</h2>
+<h2 class="ch">제5장 &nbsp;채 점 체 계</h2>
 
   <h3 class="se">제1절 배점 체계와 분담 원칙</h3>
 
@@ -1781,7 +1482,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   </table>
 
   <figure><img src="fig/fig_score.png" alt="배점 구성"></figure>
-  <div class="fcap">[그림 2] 배점 구성. <code>도면 배치와 외관 10점</code>은 오랫동안 누락되어
+  <div class="fcap">[그림 3] 배점 구성. <code>도면 배치와 외관 10점</code>은 오랫동안 누락되어
   만점이 90점이었고, 선 굵기·문자 크기와 같이 DXF에서 직접 판독되는 항목이 채점되지 않고 있었다.
   현재는 8개 항목 전체가 반영되어 있다.</div>
 
@@ -1802,13 +1503,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   부족·중심선 누락·단면도 문자 표기 누락·척도 표기 누락도 규칙으로 검출한다. AI와 규칙이 같은
   대상을 중복 확인하는 셈이나, <b>AI 경로가 전부 불가한 상황에서도 이 부분은 계속 동작</b>한다.</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 26 -</span></div>
-</section>
-
-<!-- 27 제5장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제2절 오작(실격) 판정 6종</span></div>
-  <h3 class="se">제2절 오작(실격) 판정 6종</h3>
+<h3 class="se">제2절 오작(실격) 판정 6종</h3>
 
   <p>공개문제 채점 기준에서 오작으로 규정된 항목이다. 하나라도 해당하면 다른 점수와 무관하게
   실격이므로, <b>점수 계산과 별도로 가장 먼저 판정하고 화면 최상단에 표시</b>한다.</p>
@@ -1856,34 +1551,18 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <p>실제 판정은 해당 회차의 <b>공개문제와 감독위원 지시사항</b>이 우선한다. 본 서비스의 오작
   판정은 공개된 기준에 따른 참고 판정이며 공식 판정이 아니다.</p>
 
-  <h4>4. 오작 판정과 점수 판정의 관계</h4>
-  <table>
-    <tr><th style="width:36mm">구분</th><th style="width:30mm">오작 판정</th><th>점수 판정</th></tr>
-    <tr><td class="c">판정 시점 · 주체</td><td>채점 이전 · 규칙 전부</td><td>채점 시 · 규칙 70점 + AI 30점</td></tr>
-    <tr><td class="c">결과의 성격</td><td>해당 시 <b>점수와 무관하게 불합격</b></td><td>합계 60점 이상이면 합격</td></tr>
-    <tr><td class="c">화면 위치</td><td>최상단 별도 영역</td><td>지적 목록 내</td></tr>
-    <tr class="hl"><td class="c">AI 불가 시</td><td><b>정상 동작한다</b></td>
-      <td>투상도 30점이 공란이 된다</td></tr>
-  </table>
-  <p>오작 판정을 전부 규칙으로 구성한 것은 의도적이다. <b>실격 여부가 AI의 가용성에 좌우되어서는
-  안 되기 때문이다.</b></p>
-
   <h4>5. 요구 도면 영역에 관한 처리</h4>
   <p>요구 도면 영역은 <b>A2</b>이며, <b>A3는 출력 크기</b>이므로 오작이 아니라 경고로 처리한다.
   이 구분이 없으면 A3로 출력한 정상 도면이 전부 실격으로 표시된다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 27 -</span></div>
-</section>
-<!-- 28 제5장 제3절 (1) -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제3절 검사 항목 37종 (1)</span></div>
-  <h3 class="se">제3절 검사 항목 37종 (1) — 치수 · 공차 · 표면거칠기</h3>
+
+<h3 class="se">제3절 검사 항목 37종 (1) — 치수 · 공차 · 표면거칠기</h3>
 
   <p>자동 검사 항목은 <b>총 37종</b>이며, 이 중 오작 판정 6종은 앞 절에 기재하였다.
   각 항목은 KS 규격 또는 공개된 채점 기준에서 도출되었으며, 항목별 근거를 웹 화면
   (<code>/ks</code>)에서도 공개한다.</p>
 
   <figure><img src="fig/fig_checks.png" alt="검사 항목 분류"></figure>
-  <div class="fcap">[그림 3] 검사 항목 37종의 분류별 개수. 주서·표제란·부품란이 9종으로 가장
+  <div class="fcap">[그림 4] 검사 항목 37종의 분류별 개수. 주서·표제란·부품란이 9종으로 가장
   많은데, 이는 확인 대상이 문자 기반이어서 규칙으로 판정 가능한 항목이 많기 때문이다.
   반대로 투상도 6종 중 1종(<code>AI_PROJECTION</code>)은 규칙으로 판정할 수 없어 AI에 위임한다.</div>
 
@@ -1931,30 +1610,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   값은 표에 <b>공단 규격 N번</b>으로 표기하였으며, 자동 시험이 그 예시를 그대로 통과시키는지
   확인한다.</div>
 
-  <h4>검사 항목 구성의 성격</h4>
-  <table>
-    <tr><th style="width:34mm">구분</th><th style="width:14mm">항목 수</th><th>성격</th></tr>
-    <tr><td>결함의 <b>존재</b>를 판정</td><td class="c">14종</td>
-      <td>"하나도 없음", "값이 비어 있음", "표기가 없음" 등. 판정이 명확하여 오지적 위험이 낮다</td></tr>
-    <tr class="hl"><td>결함의 <b>수량</b>을 판정</td><td class="c">6종</td>
-      <td>"개수가 부족", "비율이 낮음" 등. <b>기준값을 정해야 하므로 판단이 들어간다.</b>
-        실제 도면 검증에서 이들 항목에 정답을 부여하지 못한 이유이기도 하다</td></tr>
-    <tr><td>도면의 <b>형태</b>를 판정</td><td class="c">11종</td>
-      <td>배치 · 척도 · 선 굵기 · 문자 크기 등. 기하 계산에 의존하므로 형태 가정이 틀리면 전부 실패한다</td></tr>
-    <tr><td><b>오작</b>을 판정</td><td class="c">6종</td><td>점수와 별도로 먼저 판정한다(제2절)</td></tr>
-    <tr class="tot"><td class="c">계</td><td class="c">37종</td>
-      <td>이 중 1종(<code>AI_PROJECTION</code>)만 AI가 판정한다</td></tr>
-  </table>
-  <p class="ni">수량 판정 항목은 <b>기준값의 타당성이 곧 검사의 타당성</b>이 된다. 따라서 이들
-  항목은 공단 배포 규격과 채점 기준에서 근거를 직접 인용하고, 근거가 없는 기준값은 사용하지
-  않는다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 28 -</span></div>
-</section>
+  
 
-<!-- 29 제5장 제3절 (2) -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제3절 검사 항목 37종 (2)</span></div>
-  <h3 class="se">제3절 검사 항목 37종 (2) — 기하공차 · 주서 · 표제란</h3>
+<h3 class="se">제3절 검사 항목 37종 (2) — 기하공차 · 주서 · 표제란</h3>
 
   <div class="tcap">&lt;표 23&gt; 검사 항목 (2) — 형상(기하)공차(10점) · 주서·표제란·부품란(8점)</div>
   <table>
@@ -2007,32 +1665,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     실제 시험의 판정을 다투어서는 안 된다.</p>
   </div>
 
-  <h4>주서·표제란 항목이 많은 이유</h4>
-  <p>이 배점 항목은 8점으로 비중이 크지 않으나 검사 코드는 <b>9종</b>으로 가장 많다.
-  확인 대상이 문자와 표제란 칸으로 구성되어 <b>규칙으로 판정 가능한 항목이 많기 때문</b>이다.
-  배점과 검사 코드 수는 비례하지 않는다.</p>
-  <table>
-    <tr><th style="width:40mm">배점 항목</th><th style="width:16mm">배점</th><th style="width:18mm">검사 코드</th>
-      <th>배점 대비 코드 수의 의미</th></tr>
-    <tr><td>주서·표제란·부품란</td><td class="c">8점</td><td class="c">9종</td>
-      <td>문자 기반이라 판정 가능한 항목이 많다</td></tr>
-    <tr class="hl"><td>투상도 선택과 배열</td><td class="c">30점</td><td class="c">6종</td>
-      <td><b>배점이 가장 크나 규칙으로 판정 가능한 항목이 적다.</b> 이 격차가 AI 도입의 직접적 사유이다</td></tr>
-    <tr><td>치수 기입</td><td class="c">15점</td><td class="c">2종</td>
-      <td>판정은 명확하나 항목 수가 적다. "도면 내 한 곳에만 기입" 원칙 때문에 뷰별 확인을 하지 않는다</td></tr>
-  </table>
+  
 
-  <h4>근거 자료의 우선순위</h4>
-  <p class="ni"><b>1차</b> 시행 기관이 배포한 실기시험용 KS 기계제도 규격 · <b>2차</b> KS 원문 및
-  ISO 계열 규격 · <b>최우선</b> 해당 회차의 공개문제와 감독위원 지시사항. 본 표의 규격 표기는
-  참고용이다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 29 -</span></div>
-</section>
-
-<!-- 30 제5장 제3절 (3) -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제3절 검사 항목 37종 (3)</span></div>
-  <h3 class="se">제3절 검사 항목 37종 (3) — 외관 · 재료 · 투상도</h3>
+<h3 class="se">제3절 검사 항목 37종 (3) — 외관 · 재료 · 투상도</h3>
 
   <div class="tcap">&lt;표 24&gt; 검사 항목 (3) — 도면 배치와 외관(10점) · 재료 선택과 처리(7점) ·
     투상도 선택과 배열(30점)</div>
@@ -2086,30 +1721,23 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <table>
     <tr><th style="width:40mm">확인 대상</th><th style="width:24mm">규칙 판정</th><th style="width:24mm">AI 판정</th>
       <th>AI 불가 시</th></tr>
-    <tr><td>제3각법 배치</td><td class="c ok">가능(뷰 좌표)</td><td class="c">가능</td>
+    <tr><td>제3각법 배치</td><td class="c">가능(뷰 좌표)</td><td class="c">가능</td>
       <td class="ok">판정 유지</td></tr>
-    <tr><td>투상도 개수 부족</td><td class="c ok">가능(뷰 경계)</td><td class="c">가능</td>
+    <tr><td>투상도 개수 부족</td><td class="c">가능(뷰 경계)</td><td class="c">가능</td>
       <td class="ok">판정 유지</td></tr>
-    <tr><td>중심선·중심마크</td><td class="c ok">가능</td><td class="c">—</td><td class="ok">판정 유지</td></tr>
-    <tr><td>단면도·상세도 문자 표기</td><td class="c ok">가능</td><td class="c">—</td><td class="ok">판정 유지</td></tr>
-    <tr class="hl"><td><b>정면도 선정의 타당성</b></td><td class="c warn">불가</td><td class="c">가능</td>
+    <tr><td>중심선·중심마크</td><td class="c">가능</td><td class="c">—</td><td class="ok">판정 유지</td></tr>
+    <tr><td>단면도·상세도 문자 표기</td><td class="c">가능</td><td class="c">—</td><td class="ok">판정 유지</td></tr>
+    <tr class="hl"><td><b>정면도 선정의 타당성</b></td><td class="c">불가</td><td class="c">가능</td>
       <td class="warn"><b>판정 불가 — 30점 공란</b></td></tr>
-    <tr class="hl"><td><b>뷰 배치의 균형</b></td><td class="c warn">불가</td><td class="c">가능</td>
+    <tr class="hl"><td><b>뷰 배치의 균형</b></td><td class="c">불가</td><td class="c">가능</td>
       <td class="warn"><b>판정 불가 — 30점 공란</b></td></tr>
   </table>
   <p class="ni">표의 마지막 두 행이 <b>규칙으로는 채점할 방법이 없는 영역</b>이며,
   배점이 가장 큰 항목이 여기에 해당한다.</p>
 
-  <h4>순수 DXF에서의 제약</h4>
-  <p>순수 DXF는 뷰 경계를 알 수 없어 위 표의 첫 두 행도 판정하지 못한다. 이 경우
-  <b>"0개"로 단정하지 않고 검사를 건너뛴다.</b></p>
-  <div class="pf"><span>팀 네이놈</span><span>- 30 -</span></div>
-</section>
+  
 
-<!-- 31 제5장 제4절 -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제4절 AI 채점 체계</span></div>
-  <h3 class="se">제4절 AI 채점 체계</h3>
+<h3 class="se">제4절 AI 채점 체계</h3>
 
   <h4>1. 4중 경로를 구성한 이유</h4>
   <p>배점이 가장 큰 투상도 30점을 AI가 채점하므로, <b>AI가 정지하면 채점의 3분의 1이 정지</b>한다.
@@ -2170,17 +1798,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   </div>
   <p>조치 후에는 1순위가 사용량 초과·시간초과·할당량 초과로 응답하면 다음 경로로 전환된다.</p>
 
-  <h4>7. 응답 저장이 동작하기까지</h4>
-  <p>동일 도면에 동일 점수를 보장하는 응답 저장 역시 <b>한 번도 적중하지 않던 기간</b>이 있었다
-  (P21, 2026-09-08 조치). 조치 이전에는 같은 도면을 다시 검사할 때마다 외부 호출이 발생하였고,
-  점수도 매번 달라졌다. <b>편차 측정 결과를 해석할 때 이 시점을 구분하여야 한다.</b></p>
-  <div class="pf"><span>팀 네이놈</span><span>- 31 -</span></div>
-</section>
+  
 
-<!-- 32 제5장 제5절 -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제5절 채점 모델 선정 실측</span></div>
-  <h3 class="se">제5절 채점 모델 선정 실측</h3>
+<h3 class="se">제5절 채점 모델 선정 실측</h3>
 
   <h4>1. 측정 개요</h4>
   <p>1순위 모델은 <b>사전에 고정한 것이 아니라 측정 후 교체</b>하였다. 실제 수험생 도면 10장
@@ -2192,22 +1812,22 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <tr><th style="width:46mm">모델</th><th>호출</th><th>실패</th><th>중앙값</th><th>최대</th>
       <th>기준 모델과 점수 차</th><th>감점 0 비율</th></tr>
     <tr class="hl"><td><code>gemini-3.6-flash</code><br><span class="small">(당시 1순위)</span></td>
-      <td class="c">20</td><td class="c warn"><b>18</b></td><td class="c">7.4초</td>
+      <td class="c">20</td><td class="c"><b>18</b></td><td class="c">7.4초</td>
       <td class="c">40초 시간초과</td><td class="c">2.0점 (n=2)</td><td class="c">0 / 2</td></tr>
     <tr><td><code>gemini-3.5-flash</code></td><td class="c">10</td><td class="c">1</td>
       <td class="c">14.3초</td><td class="c">28.0초</td><td class="c">기준</td><td class="c">1 / 9</td></tr>
     <tr class="hl"><td><code>gemini-3.1-flash-lite</code><br><span class="small">(교체 후 1순위)</span></td>
-      <td class="c">30</td><td class="c">4</td><td class="c ok"><b>3.2초</b></td><td class="c">5.9초</td>
+      <td class="c">30</td><td class="c">4</td><td class="c"><b>3.2초</b></td><td class="c">5.9초</td>
       <td class="c"><b>2.7점</b></td><td class="c">11 / 26</td></tr>
     <tr><td><code>gemini-3.1-flash-lite</code> · thinking low</td><td class="c">10</td><td class="c">1</td>
       <td class="c">2.8초</td><td class="c">3.9초</td><td class="c">3.4점</td><td class="c">5 / 9</td></tr>
     <tr><td><code>gemini-3.5-flash-lite</code></td><td class="c">20</td><td class="c">0</td>
       <td class="c">2.1초</td><td class="c">15.5초</td><td class="c">4.6점</td>
-      <td class="c warn"><b>20 / 20</b></td></tr>
+      <td class="c"><b>20 / 20</b></td></tr>
   </table>
 
   <figure><img src="fig/fig_models.png" alt="채점 모델 실측"></figure>
-  <div class="fcap">[그림 4] 채점 모델별 호출 실패 비율과 "감점 0"을 부여한 비율.
+  <div class="fcap">[그림 5] 채점 모델별 호출 실패 비율과 "감점 0"을 부여한 비율.
   <b>속도만으로 선정하지 않았다.</b> 가장 빠른 <code>gemini-3.5-flash-lite</code>는 20회 전부
   감점 0을 부여하여 무엇을 입력하든 만점을 주는 상태였으므로 채택하지 않았다.</div>
 
@@ -2227,17 +1847,6 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   응답 시간이 실제와 다르게 나왔을 가능성이 있다. 표본의 성격이 측정 결과를 좌우한다는 점은
   정확도 검증(제6장)과 동일하다.</p>
 
-  <h4>4. 측정 절차</h4>
-  <table>
-    <tr><th style="width:32mm">항목</th><th>설정</th></tr>
-    <tr><td>표본</td><td>실제 수험생 도면 10장(A01·A05·A08·A09·A13·A17·A21·A27·1본체·3축)</td></tr>
-    <tr><td>입력 조건</td><td>모델마다 <b>동일한 지시문과 동일한 그림</b>을 사용</td></tr>
-    <tr><td>대기 시간</td><td>1회 채점을 <b>40초</b>까지 대기</td></tr>
-    <tr><td>실패 처리</td><td><b>실패를 실패로 계수한다</b></td></tr>
-    <tr class="hl"><td>제외 항목</td><td>AI 판정의 <b>정확도</b>는 측정하지 않았다.
-      실행마다 결과가 달라져 정답과 대조할 수 없기 때문이다(제6장 제1절)</td></tr>
-  </table>
-
   <h4>5. 선정 기준의 우선순위</h4>
   <ol>
     <li><b>틀린 것을 틀렸다고 하는가</b> — "감점 0 비율"이 과도하게 높은 모델은 제외한다.
@@ -2249,13 +1858,8 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   </ol>
   <p class="ni">순서가 중요하다. 속도를 1순위로 두었다면 20회 전부 감점 0을 부여한 모델이
   선정되었을 것이다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 32 -</span></div>
-</section>
 
-<!-- 33 제5장 제6절 -->
-<section class="page">
-  <div class="rh"><span>제5장 채점 체계</span><span>제6절 비채점 항목과 사유</span></div>
-  <h3 class="se">제6절 비채점 항목과 사유</h3>
+<h3 class="se">제6절 비채점 항목과 사유</h3>
 
   <p>제도 기본에 어긋나거나 도면만으로 판정할 수 없는 항목은 <b>의도적으로 채점하지 않는다.</b>
   채점하지 않는 사실과 그 사유를 함께 공개한다.</p>
@@ -2289,12 +1893,12 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <div class="two">
     <div>
       <figure><img src="demo/수정예시_전.png" alt="수정 예시 전"></figure>
-      <div class="fcap">[그림 14-1] 검사 결과 — 구멍에 지름 치수가 없어 번호 ①이 부여되었고
+      <div class="fcap">[그림 6-1] 검사 결과 — 구멍에 지름 치수가 없어 번호 ①이 부여되었고
       원에 중심선이 없다.</div>
     </div>
     <div>
       <figure><img src="demo/수정예시_후.png" alt="수정 예시 후"></figure>
-      <div class="fcap">[그림 14-2] 수정 예시 표시 — 같은 지름 구멍 4개를 <code>4-Ø16.81</code>로
+      <div class="fcap">[그림 6-2] 수정 예시 표시 — 같은 지름 구멍 4개를 <code>4-Ø16.81</code>로
       묶어 한 번만 기입하고 중심 마크 4개를 겹쳐 표시하였다.</div>
     </div>
   </div>
@@ -2305,23 +1909,6 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   도면이 아니며, 잘못 기입되었을 때 책임 소재도 불분명해진다. 이들 항목은 <b>누락 사실과 필요
   사유</b>만 제시하고 값은 이용자가 정하도록 둔다.</p>
 
-  <h4>비채점 결정의 기록 방식</h4>
-  <p>채점하지 않기로 한 항목은 <b>결정 시점과 사유를 함께 기록</b>한다. 기록하지 않으면 이후
-  "왜 이 항목은 검사하지 않는가"라는 질문에 답할 수 없고, 동일한 항목을 다시 추가하려는 시도가
-  반복된다.</p>
-  <table>
-    <tr><th style="width:36mm">항목</th><th style="width:26mm">결정 성격</th><th>재검토 조건</th></tr>
-    <tr><td>뷰별 치수 확인</td><td class="c">규격 해석 정정</td>
-      <td>재검토하지 않는다. KS 원칙에 반하는 검사였다</td></tr>
-    <tr><td>윤곽선 밖 요소</td><td class="c">채점 범위 정정</td><td>재검토하지 않는다</td></tr>
-    <tr><td>색으로 굵기를 준 도면</td><td class="c">판정 불가</td>
-      <td>DXF에 굵기 정보가 포함되는 경우에만 가능하다. 사실상 재검토 대상이 아니다</td></tr>
-    <tr class="hl"><td>각 부품의 균형 배치</td><td class="c">측정 결과에 따른 이관</td>
-      <td><b>정상과 불량을 구분하는 지표를 찾으면 재검토한다.</b> 현재는 표제란의 위치 때문에
-        정상 도면이 전부 치우친 것으로 산출된다</td></tr>
-    <tr><td>출력 잘림</td><td class="c">범위 밖</td><td>도면 파일에 정보가 없으므로 재검토 대상이 아니다</td></tr>
-  </table>
-
   <h4>수정 예시의 배치 계산</h4>
   <p>치수 문자를 임의 위치에 배치하면 기존 선과 문자를 덮어 오히려 판독이 어려워진다. 따라서
   서버가 <b>미리보기를 실제로 그려 본 뒤</b> 배치를 결정한다. 지시선은 원 중심을 향하는 사선으로
@@ -2329,12 +1916,8 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   요소를 가장 적게 덮는 위치에 놓는다. 중심선은 가는 1점 쇄선으로 외형선 밖 3mm까지 긋고,
   이웃한 원과 겹치면 두 중심 사이에서 끊는다. <b>숨은선으로만 작도된 원에는 치수를 넣지 않고,
   그 형상이 보이는 뷰에 기입하도록 안내한다.</b></p>
-  <div class="pf"><span>팀 네이놈</span><span>- 33 -</span></div>
-</section>
-<!-- 34 제6장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제1절 검증 방법과 지표 정의</span></div>
-  <h2 class="ch">제6장 &nbsp;정 확 도 검 증</h2>
+
+<h2 class="ch">제6장 &nbsp;정 확 도 검 증</h2>
 
   <h3 class="se">제1절 검증 방법과 지표 정의</h3>
 
@@ -2396,13 +1979,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <p>실제 도면은 <code>--only</code> 옵션으로 <b>정답을 부여한 6개 항목만</b> 대조한다.
   전체 항목을 대조하면 정답이 없는 항목까지 오답으로 계수되어 측정이 왜곡되기 때문이다.</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 34 -</span></div>
-</section>
-
-<!-- 35 제6장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제2절 표본별 검증 결과</span></div>
-  <h3 class="se">제2절 표본별 검증 결과</h3>
+<h3 class="se">제2절 표본별 검증 결과</h3>
 
   <div class="tcap">&lt;표 28&gt; 표본별 검증 결과 (2026-09-11 기준)</div>
   <table>
@@ -2415,13 +1992,13 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <tr><td class="c">정확도(precision)</td><td class="c">100% (23/23)</td><td class="c">100% (105/105)</td>
       <td class="c"><b>100% (63/63)</b></td></tr>
     <tr class="hl"><td class="c">측정한 검사 항목</td><td class="c">전 항목</td><td class="c">전 항목</td>
-      <td class="c warn"><b>6개 항목</b></td></tr>
+      <td class="c"><b>6개 항목</b></td></tr>
   </table>
   <div class="src">기준 도면과 합성 도면은 결함을 직접 삽입하여 제작한 것이므로 100%가 당연하다.
   <b>의미가 있는 것은 세 번째 열뿐이다.</b></div>
 
   <figure><img src="fig/fig_accuracy.png" alt="표본별 검출률"></figure>
-  <div class="fcap">[그림 5] 표본별 검출률과 오지적 건수. 세 표본 모두 검출률 100%, 오지적 0건을
+  <div class="fcap">[그림 7] 표본별 검출률과 오지적 건수. 세 표본 모두 검출률 100%, 오지적 0건을
   기록하였으나 표본의 성격과 측정 범위가 다르다는 점에 유의하여야 한다.</div>
 
   <div class="tcap">&lt;표 29&gt; 재측정 결과 (2026-09-16, 웹 정확도 화면 제작 시 현행 코드로 재실행)</div>
@@ -2451,13 +2028,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     사실을 그대로 기록한다.</p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 35 -</span></div>
-</section>
-
-<!-- 36 제6장 제3절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제3절 실제 수험생 도면 검증 상세</span></div>
-  <h3 class="se">제3절 실제 수험생 도면 검증 상세</h3>
+<h3 class="se">제3절 실제 수험생 도면 검증 상세</h3>
 
   <h4>1. 표본 확보 경위</h4>
   <p>자체 제작 도면만으로 측정한 정확도는 <b>도면을 만든 주체와 규칙을 만든 주체가 같다</b>는
@@ -2491,7 +2062,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   이 가운데 하나는 AI 입력 자체의 결함이었다.</p>
 
   <figure><img src="fig/fig_crop.png" alt="AI가 본 도면 넓이"></figure>
-  <div class="fcap">[그림 6] AI 채점기에 입력되던 그림의 비율(2026-09-11 이전). 채점용 그림의
+  <div class="fcap">[그림 8] AI 채점기에 입력되던 그림의 비율(2026-09-11 이전). 채점용 그림의
   페이지를 406mm로 제한하고 있었는데 이 제한은 축소가 아니라 <b>초과분을 잘라내는</b> 방식이었고,
   요구 도면 영역인 A2가 594mm여서 실제 도면이 전부 해당되었다. <b>잘려 나간 영역에 표제란,
   투상도 일부, 표면거칠기 비교표가 포함되어 있었다.</b> 즉 배점이 가장 큰 투상도 30점을
@@ -2500,36 +2071,19 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <table>
     <tr><th style="width:24mm">도면</th><th>실제 크기</th><th>AI가 받은 그림</th><th>AI가 본 넓이</th></tr>
     <tr><td class="c">A08 · A23</td><td class="c">584 × 410 mm</td><td class="c">406 × 287 mm</td>
-      <td class="c warn"><b>49%</b></td></tr>
+      <td class="c"><b>49%</b></td></tr>
     <tr><td class="c">A19</td><td class="c">430 × 305 mm</td><td class="c">406 × 290 mm</td>
       <td class="c">90%</td></tr>
     <tr class="hl"><td class="c">A07</td><td class="c">753 × 410 mm</td><td class="c">406 × 224 mm</td>
-      <td class="c warn"><b>29%</b></td></tr>
+      <td class="c"><b>29%</b></td></tr>
   </table>
   <p class="ni"><b>조치</b> — 자르지 않는 방식으로 변경하였다. 페이지를 도면 전체로 두고 픽셀이
   초과하면 해상도를 낮춘다. A2 도면은 102 DPI로 594×420mm 전체가 입력되고, 작은 도면은 150 DPI를
   유지한다.</p>
 
-  <h4>4. 실제 도면 입력으로 드러난 나머지 결함</h4>
-  <table>
-    <tr><th style="width:40mm">결함</th><th>영향</th><th style="width:26mm">조치</th></tr>
-    <tr><td>윤곽선을 선 4개로 인식하지 못함</td>
-      <td>모든 도면에 "표제란·도면양식 없음"이 표시되고 <b>도면 크기 판정이 수행되지 않았다</b></td>
-      <td class="c">2026-09-11 조치<br>30장 중 28장 인식</td></tr>
-    <tr><td>뷰 이름표를 주서로 계수</td>
-      <td>주서가 없는 도면 <b>8장</b>에서 "주서 없음"을 검출하지 못하였다</td>
-      <td class="c">계수 대상에서 제외</td></tr>
-  </table>
-  <p class="ni">두 결함 모두 <b>자체 제작 도면에서는 드러나지 않았다.</b> 자체 제작 도면은 윤곽선을
-  닫힌 사각형으로 작도하였고 뷰 이름표를 사용하지 않았기 때문이다. <b>표본이 검증의 성격을
-  결정한다는 점을 보여 주는 사례</b>이다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 36 -</span></div>
-</section>
+  
 
-<!-- 37 제6장 제4절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제4절 검증 결과의 한계</span></div>
-  <h3 class="se">제4절 검증 결과의 한계</h3>
+<h3 class="se">제4절 검증 결과의 한계</h3>
 
   <div class="warnbox">
     <div class="t">이 100%를 그대로 신뢰해서는 안 되는 세 가지 이유</div>
@@ -2574,28 +2128,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   ① <b>여러 학생의 완성 도면</b>으로 재측정, ② <b>교사가 채점한 도면</b>을 확보하여 전 항목
   정답 부여. 두 과제가 완료되기 전까지는 본 절의 한계 표기를 유지한다.</p>
 
-  <h4>7. 한계를 문서와 화면에 함께 기재하는 이유</h4>
-  <p>측정 수치만 게시하고 한계를 기재하지 않으면, 이용자는 <b>37개 항목 전부가 완성 도면에서
-  검증되었다</b>고 오인한다. 실제로는 6개 항목이 작업 중간 상태의 도면에서 검증되었다.
-  오인한 이용자는 본 서비스를 통과한 것을 "제출 가능한 상태"로 해석할 수 있으며, 이는 학습용
-  도구가 만들 수 있는 가장 나쁜 결과이다.</p>
+  
 
-  <h4>8. 한계 표기의 운용</h4>
-  <table>
-    <tr><th style="width:36mm">게시 위치</th><th>표기 내용</th></tr>
-    <tr><td>웹 정확도 화면</td><td>측정 수치 · 표본 성격 · 측정 항목 수 · 미검출 항목을 함께 게시</td></tr>
-    <tr><td>정확도 문서</td><td>일자별 재측정 이력과 그때마다 확인된 결함을 보존</td></tr>
-    <tr class="hl"><td>본 보고서</td><td><b>한계를 결과 뒤가 아니라 해당 장의 별도 절로 배치</b>하였다</td></tr>
-  </table>
-  <p class="ni">한계 표기는 <b>해소될 때까지 유지</b>한다. 여러 학생의 완성 도면으로 재측정이
-  완료되면 그 시점에 본 절의 내용을 갱신한다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 37 -</span></div>
-</section>
-
-<!-- 38 제6장 제5절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제5절 미검출 항목과 판정 제외 항목</span></div>
-  <h3 class="se">제5절 미검출 항목과 판정 제외 항목</h3>
+<h3 class="se">제5절 미검출 항목과 판정 제외 항목</h3>
 
   <p>제4장 제3절에서 구분한 세 가지 범주에 따라 기재한다. <b>개선 가능한 것과 개선 불가능한
   것을 뭉뚱그리지 않는다.</b></p>
@@ -2644,18 +2179,6 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li>세 표 모두 웹 화면의 정확도 페이지에 동일하게 공개한다.</li>
   </ul>
 
-  <h4>구분에 따른 조치 계획</h4>
-  <table>
-    <tr><th style="width:24mm">구분</th><th style="width:16mm">항목 수</th><th style="width:28mm">조치 가능성</th>
-      <th>계획</th></tr>
-    <tr><td class="c">미검출</td><td class="c">4</td><td class="c ok">기술로 해결 가능</td>
-      <td>향후 계획 3순위로 등재. 판독 방식을 보완한다</td></tr>
-    <tr><td class="c">판정 제외</td><td class="c">2</td><td class="c warn">해결 불가</td>
-      <td>조치하지 않는다. 억지로 판정하면 정상 도면을 감점하게 된다</td></tr>
-    <tr><td class="c">범위 밖</td><td class="c">2</td><td class="c warn">해결 불가</td>
-      <td>"검출하지 않는다"고 명시한다</td></tr>
-  </table>
-
   <h4>미검출 항목의 우선순위 판단</h4>
   <p>미검출 4건 중 <b>실제 도면에서 실제로 누락이 발생한 것은 요목표 판독 1건</b>이다. 나머지
   3건은 현 표본에서 누락 사례가 없었다. 따라서 조치 우선순위는 실제 발생 여부를 기준으로 한다.</p>
@@ -2668,13 +2191,8 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li><b>중심선 레이어 명칭</b> — 명명 규칙에 의존하므로 학교·교재에 따라 달라질 수 있다.
     여러 학생의 도면을 확보한 뒤 실제 명칭 분포를 확인하고 판단한다.</li>
   </ul>
-  <div class="pf"><span>팀 네이놈</span><span>- 38 -</span></div>
-</section>
 
-<!-- 39 제6장 제6절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제6절 AI 점수 편차 측정</span></div>
-  <h3 class="se">제6절 AI 점수 편차 측정</h3>
+<h3 class="se">제6절 AI 점수 편차 측정</h3>
 
   <h4>1. 측정 배경</h4>
   <p>투상도 30점은 AI가 채점하므로 같은 도면이라도 실행할 때마다 점수가 달라진다.
@@ -2690,7 +2208,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <tr><td><code>sample_autocad.dxf</code></td><td class="c">18, 18, 18, 18, 18</td>
       <td class="c">0점</td><td class="c">0.00점</td></tr>
     <tr class="hl"><td><code>sample_075em07z.dwg</code></td><td class="c">0, 18, 18, 18, 18</td>
-      <td class="c warn"><b>18점</b></td><td class="c warn"><b>8.05점</b></td></tr>
+      <td class="c"><b>18점</b></td><td class="c"><b>8.05점</b></td></tr>
   </table>
 
   <h4>2. 측정에서 확인된 사항</h4>
@@ -2717,7 +2235,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
 
   <h4>4. 조치 후 재측정</h4>
   <figure><img src="fig/fig_variance.png" alt="AI 점수 편차"></figure>
-  <div class="fcap">[그림 7] 백지 렌더링 조치 전후의 점수 분포(<code>sample_075em07z.dwg</code>, 5회).
+  <div class="fcap">[그림 9] 백지 렌더링 조치 전후의 점수 분포(<code>sample_075em07z.dwg</code>, 5회).
   <b>편차는 줄지 않았다.</b> 오히려 점수 중앙값이 18점에서 5점으로 하락하였고, 지적 건수도
   1건에서 1~3건으로 흔들리기 시작하였다.</div>
   <table>
@@ -2731,13 +2249,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   반드시 조치해야 할 결함이었으나 편차 문제는 별도로 남아 있으며, 문제 대장 <b>P02</b>로
   현재까지 미해결 상태로 관리한다.</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 39 -</span></div>
-</section>
-
-<!-- 40 제6장 제7절 -->
-<section class="page">
-  <div class="rh"><span>제6장 정확도 검증</span><span>제7절 자동 시험 체계</span></div>
-  <h3 class="se">제7절 자동 시험 체계</h3>
+<h3 class="se">제7절 자동 시험 체계</h3>
 
   <h4>1. 구성</h4>
   <p>코드를 변경할 때마다 자동 시험이 실행된다. 검사 규칙을 변경하였는데 기준 도면의 결과가
@@ -2784,12 +2296,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     그림을 저장해 보고서야 원인을 특정할 수 있었다.</li>
   </ul>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 40 -</span></div>
-</section>
-<!-- 41 제7장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제7장 문제 관리</span><span>제1절 기록 원칙과 현황</span></div>
-  <h2 class="ch">제7장 &nbsp;문 제 관 리</h2>
+<h2 class="ch">제7장 &nbsp;문 제 관 리</h2>
 
   <h3 class="se">제1절 기록 원칙과 현황</h3>
 
@@ -2813,15 +2320,15 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <div class="two" style="grid-template-columns:38mm 1fr;align-items:center">
     <div>
       <figure><img src="fig/fig_problems.png" alt="문제 처리 현황" style="border:none"></figure>
-      <div class="fcap" style="text-align:center">[그림 8] 문제 24건 처리 현황</div>
+      <div class="fcap" style="text-align:center">[그림 10] 문제 24건 처리 현황</div>
     </div>
     <div>
       <div class="tcap">&lt;표 33&gt; 문제 기록 현황 (2026-09-24 기준)</div>
       <table style="margin-bottom:1.6mm">
         <tr><th style="width:24mm">처리 상태</th><th style="width:16mm">건수</th><th>비고</th></tr>
-        <tr><td class="c ok">해결</td><td class="c"><b>17건</b></td><td>원인 특정 후 조치 완료</td></tr>
+        <tr><td class="c">해결</td><td class="c"><b>17건</b></td><td>원인 특정 후 조치 완료</td></tr>
         <tr><td class="c">부분 해결</td><td class="c"><b>2건</b></td><td>일부 조치, 잔여 사항 관리 중</td></tr>
-        <tr><td class="c warn">미해결</td><td class="c"><b>5건</b></td><td>원인 또는 해결 수단 미확보</td></tr>
+        <tr><td class="c">미해결</td><td class="c"><b>5건</b></td><td>원인 또는 해결 수단 미확보</td></tr>
         <tr class="tot"><td class="c">계</td><td class="c">24건</td><td>한 건당 문서 1개로 관리</td></tr>
       </table>
       <p class="ni small">기록 항목은 ① 증상 ② 처음 확인한 날 ③ 영향 범위 ④ 원인 ⑤ 조치
@@ -2835,38 +2342,32 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <tr><th style="width:12mm">번호</th><th>문제</th><th style="width:20mm">상태</th>
       <th style="width:22mm">확인일</th><th style="width:34mm">영향</th></tr>
     <tr><td class="c">P01</td><td>단위가 밀리미터가 아닌 도면이 백지로 렌더링된다</td>
-      <td class="c ok">해결</td><td class="c">08-22</td><td>AI 채점 30점 전부</td></tr>
+      <td class="c">해결</td><td class="c">08-22</td><td>AI 채점 30점 전부</td></tr>
     <tr class="hl"><td class="c">P02</td><td>같은 도면인데 AI 점수가 매번 달라진다</td>
-      <td class="c warn">미해결</td><td class="c">08-22</td><td>AI 채점 30점</td></tr>
+      <td class="c">미해결</td><td class="c">08-22</td><td>AI 채점 30점</td></tr>
     <tr><td class="c">P03</td><td>같은 판정인데 지적 제목이 매번 다르게 표기된다</td>
-      <td class="c ok">해결</td><td class="c">08-22</td><td>이용자 화면 · 재검사 비교</td></tr>
+      <td class="c">해결</td><td class="c">08-22</td><td>이용자 화면 · 재검사 비교</td></tr>
     <tr class="hl"><td class="c">P04</td><td>측정에 사용하는 표본이 실제 시험 도면이 아니다</td>
-      <td class="c warn">미해결</td><td class="c">08-22</td><td>정확도 · 편차 측정 전부</td></tr>
+      <td class="c">미해결</td><td class="c">08-22</td><td>정확도 · 편차 측정 전부</td></tr>
     <tr><td class="c">P05</td><td>제출처를 잘못 파악하여 안내를 이틀 늦게 확인하였다</td>
-      <td class="c ok">해결</td><td class="c">08-22</td><td>산출물 제출 경로 전체</td></tr>
-    <tr><td class="c">P14</td><td>도면 요소를 다른 것으로 오인한다</td><td class="c ok">해결</td>
+      <td class="c">해결</td><td class="c">08-22</td><td>산출물 제출 경로 전체</td></tr>
+    <tr><td class="c">P14</td><td>도면 요소를 다른 것으로 오인한다</td><td class="c">해결</td>
       <td class="c">—</td><td>오작 판정</td></tr>
     <tr><td class="c">P15</td><td>업로드 정리가 새 요청이 있을 때만 실행된다</td>
-      <td class="c ok">해결</td><td class="c">09-01</td><td>개인정보 보관 기간</td></tr>
+      <td class="c">해결</td><td class="c">09-01</td><td>개인정보 보관 기간</td></tr>
     <tr><td class="c">P19</td><td>실격 검사 5개 중 3개가 DXF에서 성립할 수 없었다</td>
-      <td class="c ok">해결</td><td class="c">09-08</td><td>오작 판정</td></tr>
+      <td class="c">해결</td><td class="c">09-08</td><td>오작 판정</td></tr>
     <tr><td class="c">P20</td><td>AI 채점기를 넷 구성하고 하나만 사용하고 있었다</td>
-      <td class="c ok">해결</td><td class="c">09-08</td><td>AI 가용성</td></tr>
+      <td class="c">해결</td><td class="c">09-08</td><td>AI 가용성</td></tr>
     <tr><td class="c">P21</td><td>같은 도면인데 캐시가 한 번도 적중하지 않았다</td>
-      <td class="c ok">해결</td><td class="c">09-08</td><td>점수 일관성 · 호출 비용</td></tr>
-    <tr><td class="c">P23</td><td>답변·번역 생성이 채점보다 오래 걸린다</td><td class="c ok">해결</td>
+      <td class="c">해결</td><td class="c">09-08</td><td>점수 일관성 · 호출 비용</td></tr>
+    <tr><td class="c">P23</td><td>답변·번역 생성이 채점보다 오래 걸린다</td><td class="c">해결</td>
       <td class="c">—</td><td>검사 소요 시간</td></tr>
   </table>
   <div class="src">24건 중 11건을 발췌한 것이다. 전체 목록과 각 건의 원인·조치는 문제 대장에
   한 건당 문서 1개로 보존되어 있다.</div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 41 -</span></div>
-</section>
-
-<!-- 42 제7장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제7장 문제 관리</span><span>제2절 주요 사례 분석</span></div>
-  <h3 class="se">제2절 주요 사례 분석</h3>
+<h3 class="se">제2절 주요 사례 분석</h3>
 
   <h4>1. P01 — AI가 백지를 채점하고 있었다</h4>
   <table>
@@ -2925,13 +2426,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <li>심사 의견에서도 <b>되지 않는 것을 공개하는 점</b>을 본 사업의 강점으로 평가하였다.</li>
   </ul>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 42 -</span></div>
-</section>
-
-<!-- 43 제8장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제8장 이용 현황과 지표</span><span>제1절 계측 설계</span></div>
-  <h2 class="ch">제8장 &nbsp;이 용 현 황 과 지 표</h2>
+<h2 class="ch">제8장 &nbsp;이 용 현 황 과 지 표</h2>
 
   <h3 class="se">제1절 계측 설계</h3>
 
@@ -2967,12 +2462,12 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   집계에서 제외하였다(제2절).</p>
 
   <figure><img src="fig/fig_daily.png" alt="일자별 이용"></figure>
-  <div class="fcap">[그림 9] 일자별 방문 인원과 검사 횟수(2026-09-10 ~ 09-18). 점선은 공개 서버
+  <div class="fcap">[그림 11] 일자별 방문 인원과 검사 횟수(2026-09-10 ~ 09-18). 점선은 공개 서버
   운영 개시 시점이다. 운영 개시 직후인 09-16에 방문 20명·검사 13회, 09-18에 검사 21회를
   기록하였다. <b>본 구간은 비인적 접속 제외 적용 이전이므로 일부 혼입 가능성이 있다.</b></div>
 
   <figure><img src="fig/fig_weekly.png" alt="주차별 이용 추이"></figure>
-  <div class="fcap">[그림 9-2] 주차별 방문 인원 · 검사 인원 · 재검사 인원(북극성 지표).
+  <div class="fcap">[그림 11-2] 주차별 방문 인원 · 검사 인원 · 재검사 인원(북극성 지표).
   2026-09-21 주간은 제2절에 기재한 사유로 제외하였다. 재검사 인원은 <b>0 → 5 → 10명</b>으로
   증가하여 8주 목표인 주 20명의 50% 수준에 도달하였다. 주 단위로 집계하는 것은 방문자
   식별값이 주 안에서만 유효하기 때문이다.</div>
@@ -2982,13 +2477,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   비공개 집계를 따로 두지 않는다. 신고·문의 내용만 관리 화면에서 팀이 열람하며, 이는 공개하지
   않는다(제9장 제1절).</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 43 -</span></div>
-</section>
-
-<!-- 44 제8장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제8장 이용 현황과 지표</span><span>제2절 퍼널 분석</span></div>
-  <h3 class="se">제2절 퍼널 분석</h3>
+<h3 class="se">제2절 퍼널 분석</h3>
 
   <div class="tcap">&lt;표 35&gt; 주차별 퍼널 (사람 수 기준, 횟수 아님)</div>
   <table>
@@ -3006,7 +2495,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   "파일 선택" 단계는 2026-09-25에 추가하여 위 구간에는 수치가 없다.</div>
 
   <figure><img src="fig/fig_funnel.png" alt="퍼널"></figure>
-  <div class="fcap">[그림 10] 퍼널(2026-09-14 주간). 방문 31명 중 11명이 검사를 시작하고,
+  <div class="fcap">[그림 12] 퍼널(2026-09-14 주간). 방문 31명 중 11명이 검사를 시작하고,
   그 11명 전원이 결과까지 도달하며, 그중 10명이 같은 주에 재검사하였다.</div>
 
   <h4>1. 분석 결과 — 이탈은 첫 단계에 집중</h4>
@@ -3036,13 +2525,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     <b>이러한 수치를 그대로 "이용자 1,199명"으로 제시하는 것이 곧 허수 지표이다.</b></p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 44 -</span></div>
-</section>
-
-<!-- 45 제8장 제3절 -->
-<section class="page">
-  <div class="rh"><span>제8장 이용 현황과 지표</span><span>제3절 리텐션과 개선 조치</span></div>
-  <h3 class="se">제3절 리텐션과 개선 조치</h3>
+<h3 class="se">제3절 리텐션과 개선 조치</h3>
 
   <h4>1. 리텐션 곡선을 제시하지 못하는 사유</h4>
   <p>방문자 식별값이 <code>서버만 아는 임의값 + 해당 주차 + IP</code>의 해시이므로,
@@ -3093,12 +2576,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     분리하였다. <b>두 수치가 모두 움직이지 않으면 이 조치는 틀린 것이며, 그 사실을 기록한다.</b></p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 45 -</span></div>
-</section>
-<!-- 46 제9장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제9장 준수 사항</span><span>제1절 개인정보 보호</span></div>
-  <h2 class="ch">제9장 &nbsp;준 수 사 항</h2>
+<h2 class="ch">제9장 &nbsp;준 수 사 항</h2>
 
   <h3 class="se">제1절 개인정보 보호</h3>
 
@@ -3162,13 +2640,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   공개하지 않는다. <b>연락처는 선택 입력</b>이고 기재하지 않아도 접수된다. 신고 내용은
   <b>AI로 전송하지 않고</b> 기록에만 보관한다.</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 46 -</span></div>
-</section>
-
-<!-- 47 제9장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제9장 준수 사항</span><span>제2절 미성년자 보호와 AI 윤리</span></div>
-  <h3 class="se">제2절 미성년자 보호와 AI 윤리</h3>
+<h3 class="se">제2절 미성년자 보호와 AI 윤리</h3>
 
   <h4>1. 미성년자 보호 조치</h4>
   <div class="tcap">&lt;표 38&gt; 미성년자 보호 조치</div>
@@ -3226,13 +2698,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   직접 제작하였거나 개인정보를 제거한 것이며, <b>제3자의 도면을 임의로 저장소에 포함하지
   않았다.</b> 공개문제 파일을 저장소에 재게시하지 않았다.</p>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 47 -</span></div>
-</section>
-
-<!-- 48 제9장 제3절 -->
-<section class="page">
-  <div class="rh"><span>제9장 준수 사항</span><span>제3절 보안 점검과 라이선스</span></div>
-  <h3 class="se">제3절 보안 점검과 라이선스</h3>
+<h3 class="se">제3절 보안 점검과 라이선스</h3>
 
   <h4>1. 보안 점검 결과</h4>
   <p>2026-09-01 ~ 09-07 기간에 실시하였다. <b>확인하지 못한 항목은 확인한 것처럼 기재하지
@@ -3285,29 +2751,9 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
   <p class="ni"><b>이용자가 업로드한 도면의 저작권은 업로드한 사람에게 있으며 본 라이선스와
   무관하다.</b></p>
 
-  <h4>5. 점검에서 확인된 구조적 사항</h4>
-  <table>
-    <tr><th style="width:40mm">사항</th><th>성격</th></tr>
-    <tr><td>비밀 파일이 형상관리 제외 목록에서 누락</td>
-      <td><b>사고가 발생한 것이 아니라 발생할 수 있는 구조였다.</b> 실제 유출은 없었으나 구조를 먼저 차단하였다</td></tr>
-    <tr class="hl"><td>정리 작업이 요청 시에만 실행</td>
-      <td><b>화면 문구와 실제 동작이 달라질 수 있는 구조였다.</b> 문구를 바꾸지 않고 동작을 문구에 맞추었다</td></tr>
-    <tr><td>응답 캐시에 이름이 혼입될 가능성</td>
-      <td>현재는 비어 있으나 <b>축적 시 재점검이 필요</b>하다</td></tr>
-  </table>
+  
 
-  <h4>6. 점검 결과의 기재 방침</h4>
-  <p>점검 항목 4건 중 <b>2건이 "일부 적합"</b>이다. 적합으로 반올림하지 않았다. 또한 확인하지
-  못한 사항(운영 서버 실증, 휴면 전환 시 동작)은 <b>미확인으로 남기고 담당과 조건을 함께
-  기재</b>하였다. 점검표의 목적은 적합 판정을 받는 것이 아니라 <b>확인된 것과 확인되지 않은 것을
-  구분하는 것</b>이다.</p>
-  <div class="pf"><span>팀 네이놈</span><span>- 48 -</span></div>
-</section>
-
-<!-- 49 제10장 제1절 -->
-<section class="page">
-  <div class="rh"><span>제10장 기대효과와 향후 계획</span><span>제1절 사회적 가치와 사업화 가능성</span></div>
-  <h2 class="ch">제10장 &nbsp;기 대 효 과 와 향 후 계 획</h2>
+<h2 class="ch">제10장 &nbsp;기 대 효 과 와 향 후 계 획</h2>
 
   <h3 class="se">제1절 사회적 가치와 사업화 가능성</h3>
 
@@ -3330,7 +2776,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
 
   <h4>2. 타 종목 확장 가능성</h4>
   <figure><img src="fig/fig_reuse.png" alt="타 종목 규칙 재사용률"></figure>
-  <div class="fcap">[그림 12] 타 종목별 규칙 재사용 추정. 배점 항목 7개를 각 종목의 출제기준에
+  <div class="fcap">[그림 13] 타 종목별 규칙 재사용 추정. 배점 항목 7개를 각 종목의 출제기준에
   대조하여 <b>그대로 / 상수만 조정 / 신규 개발</b>로 구분한 결과이다.
   <b>코드를 변경하기 전에 근거를 먼저 정리한 것이며 현재 구현은 하지 않았다.</b></div>
   <p class="ni">일반기계기사는 필답형(기계요소설계)이 포함되어 실기 전체를 다루지 못한다.
@@ -3363,13 +2809,7 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
     규제 대상</b>으로 법정대리인 동의 등의 요건이 따른다.</p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 49 -</span></div>
-</section>
-
-<!-- 50 제10장 제2절 -->
-<section class="page">
-  <div class="rh"><span>제10장 기대효과와 향후 계획</span><span>제2절 향후 계획 · 붙임</span></div>
-  <h3 class="se">제2절 향후 계획</h3>
+<h3 class="se">제2절 향후 계획</h3>
 
   <p>번호가 곧 우선순위이다. <b>상위 항목이 해결되지 않으면 하위 항목을 수행할 의미가 없다.</b></p>
 
@@ -3445,7 +2885,6 @@ code{font-family:Consolas,monospace;font-size:8.2pt;background:#eef3f8;padding:.
       팀 네이놈 &nbsp;&nbsp;박지완 · 장우영 · 안대열 · 김승준</p>
   </div>
 
-  <div class="pf"><span>팀 네이놈</span><span>- 50 -</span></div>
-</section>
 </body>
+
 </html>
