@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>CADLens W6 리텐션·지표 실측 결과 보고</title>
+<style>
+@page{size:A4;margin:11mm 13mm 10mm}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"HCR Batang","Batang","바탕",serif;color:#111;font-size:8.6pt;line-height:1.45;letter-spacing:-.1px;word-break:keep-all}
+.top{display:flex;justify-content:space-between;font-size:7.5pt;color:#333;border-bottom:.6px solid #777;padding-bottom:.8mm}
+.title{text-align:center;border-top:2.4px solid #111;border-bottom:.8px solid #111;margin:2mm 0 1.2mm;padding:1.8mm 0 1.4mm}
+.title h1{font-size:15pt;letter-spacing:3px;font-weight:700}
+.title .st{font-size:8.8pt;margin-top:.4mm;letter-spacing:1px}
+.meta{text-align:right;font-size:8pt;margin-bottom:1.4mm}
+h2{font-size:10pt;font-weight:700;margin:2mm 0 .9mm}
+h2::before{content:"□ "}
+h3{font-size:8.9pt;font-weight:700;margin:1.4mm 0 .6mm}
+ul{list-style:none}
+ul.o>li{padding-left:4.2mm;text-indent:-4.2mm;margin-bottom:.3mm}
+ul.o>li::before{content:"○ "}
+.note{font-size:7.8pt;padding-left:4.2mm;text-indent:-4.2mm;margin:.4mm 0}
+.note::before{content:"※ "}
+table{width:100%;border-collapse:collapse;font-size:7.7pt;line-height:1.33;margin:.6mm 0}
+th,td{border:.6px solid #555;padding:.55mm 1.3mm;vertical-align:middle}
+th{background:#ebebeb;font-weight:700;text-align:center}
+td.c{text-align:center}
+td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+tr.hl td{background:#f5f5f5}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.cap{font-family:Consolas,"D2Coding",monospace;font-size:6.3pt;line-height:1.35;border:.6px solid #555;background:#f6f6f6;padding:1.2mm 1.6mm;white-space:pre-wrap;word-break:break-all}
+.capt{font-size:7.4pt;font-weight:700;margin:.8mm 0 .4mm}
+b.u{text-decoration:underline;text-underline-offset:1.5px}
+.end{text-align:right;font-weight:700;margin-top:1mm;font-size:9pt}
+</style>
+</head>
+<body>
+
+<div class="top"><span>스타프로젝트 비대면 코칭 · W6 리텐션·지표 산출물</span><span>팀 네이놈 (CADLens)</span></div>
+
+<div class="title">
+  <h1>리텐션·지표 실측 결과 보고</h1>
+  <div class="st">실측 대시보드 및 리텐션 커브</div>
+</div>
+<div class="meta">2026. 9. 28.(월) 18:24 기준</div>
+
+<h2>개요</h2>
+<ul class="o">
+  <li>목적 : W6 산출물 다섯 가지(계측 이벤트 · 퍼널 · 리텐션 · 개선 1건 · 북극성 지표)를 실측값으로 보고</li>
+  <li>기준 : 횟수가 아닌 <b>사람 수</b>(그 주에 해당 행동을 한 번 이상 한 방문자), 로봇 제외 · 자료는 서버 원자료 1,464건</li>
+</ul>
+
+<h2>사용자 수 검증 결과</h2>
+<ul class="o">
+  <li>기록된 검사 1,227회 중 <b class="u">1,147회(93%)를 로봇으로 판정하여 제외</b>, 사람이 한 검사는 <b>80회</b></li>
+</ul>
+<table>
+  <tr><th style="width:26%">제외 기준</th><th>판정 근거</th><th style="width:17%">제외 규모</th></tr>
+  <tr><td>① 첫 화면 없이 검사</td><td>검사 화면은 첫 화면 하나뿐이므로 사람은 검사 전에 방문 기록이 남음</td><td class="c">25개 값 · 920회</td></tr>
+  <tr><td>② 하루 100회 이상 검사</td><td>사람이 하루에 한 검사의 최대는 30회(09-08)</td><td class="c">1개 값 · 227회</td></tr>
+  <tr><td>③ 09-21~23 방문만 기록</td><td>로봇 유입이 몰린 사흘로, 방문만 한 값은 사람과 구분 불가</td><td class="c">1,191개 값</td></tr>
+</table>
+<p class="note">①·②는 서버 집계에 반영하여 공개 지표도 같은 값을 보여 줌. ③은 이 보고에서만 제외</p>
+<p class="note">W5에 제출한 북극성 지표(09-14 주 10명)는 ①에 해당하는 값 3개가 섞인 값으로, <b>7명으로 정정</b></p>
+
+<h2>산출물별 결과</h2>
+
+<h3>① 계측 이벤트 — 네 가지 모두 기록 중</h3>
+<div class="two">
+  <div>
+    <table>
+      <tr><th>단계</th><th>이벤트</th><th>누적 기록</th><th>로봇 제외</th></tr>
+      <tr><td class="c">방문</td><td>visit</td><td class="n">1,523회</td><td class="n">1,516회 ※</td></tr>
+      <tr><td class="c">시작</td><td>check · sample</td><td class="n">1,227회</td><td class="n"><b>80회</b></td></tr>
+      <tr><td class="c">완료</td><td>done</td><td class="n">1,056회</td><td class="n"><b>76회</b></td></tr>
+      <tr><td class="c">재방문</td><td>new → ret</td><td class="c" colspan="2">처음 온 3명 중 1명 다시 옴</td></tr>
+    </table>
+    <p class="note">방문만 한 로봇은 가를 수 없어 방문 수에 포함됨</p>
+  </div>
+  <div>
+    <div class="capt">증빙 — 공개 지표 원문 발췌</div>
+    <pre class="cap" id="cap">GET naverogq.onrender.com/api/stats · 2026-09-28 18:31
+"total":{"visits":1516,"checks":65,"samples":15,"done":76,…},
+"weeks":[…,
+ {"since":"2026-09-21","visitors":1214,"pickers":0,"checkers":8,"finishers":8,"recheckers":1},
+ {"since":"2026-09-14","visitors":31,"pickers":0,"checkers":7,"finishers":7,"recheckers":7},
+ …],
+"retention":[{"cohort":"2026-09-21","size":3,"weeks":[{"since":"2026-09-28","back":1,"rate":0.333}]}]</pre>
+  </div>
+</div>
+
+<h3>② 퍼널 — 단계별 인원과 이탈률</h3>
+<table>
+  <tr><th>주</th><th>방문</th><th>시작 (이탈률)</th><th>완료 (이탈률)</th><th>재방문 — 결과를 본 뒤 다른 날 다시 옴 (이탈률)</th></tr>
+  <tr><td class="c">09-07 ~ 09-13</td><td class="c">38명</td><td class="c">9명 (76%)</td><td class="c">9명 (0%)</td><td class="c">0명 (100%)</td></tr>
+  <tr class="hl"><td class="c">09-14 ~ 09-20 (런칭)</td><td class="c">31명</td><td class="c">7명 (77%)</td><td class="c">7명 (0%)</td><td class="c">0명 (100%)</td></tr>
+</table>
+<ul class="o">
+  <li>가장 많은 사람이 빠지는 구간은 <b>방문 → 시작</b>(넷 중 셋). 시작한 사람은 전원 결과를 받음</li>
+  <li>결과를 본 사람 중 다음 날 이후 다시 온 사람은 <b>두 주 모두 0명</b>(같은 주 · 같은 인터넷 주소 기준)</li>
+</ul>
+
+<div class="two">
+<div>
+<h3>③ 리텐션 — 1주차 → 2주차 재방문율</h3>
+<table>
+  <tr><th>처음 온 주</th><th>인원</th><th>1주 뒤</th><th>2주 뒤</th></tr>
+  <tr><td class="c">09-21 ~ 09-27</td><td class="n">3명</td><td class="c">1명 (집계 중)</td><td class="c">10-05부터</td></tr>
+</table>
+<ul class="o">
+  <li>09-23 집계 시작 · 표본 3명으로 <b>비율 미산정</b> (10-04 마감)</li>
+  <li>같은 날 반복은 확인 — 런칭 주 검사자 7명 전원 그날 2회 이상 검사</li>
+</ul>
+</div>
+<div>
+<h3>④ 개선 1건 — 예제를 버튼 한 번으로 (W6 FIX 01, 09-23)</h3>
+<table>
+  <tr><th>구분</th><th>개선 전</th><th>개선 후 (4일)</th></tr>
+  <tr><td>예제까지 누름</td><td class="c">2번</td><td class="c">1번</td></tr>
+  <tr><td>예제 검사</td><td class="c">25일 동안 15건</td><td class="c">0건</td></tr>
+  <tr><td>방문 → 시작</td><td class="c">23 ~ 24%</td><td class="c">0% (0/13)</td></tr>
+</table>
+<ul class="o">
+  <li>판정 : <b>개선 효과 확인 안 됨</b> · 표본이 작아 단정하지 않음</li>
+</ul>
+</div>
+</div>
+
+<h3>⑤ 북극성 지표 — 주간 재검사 사용자 (목표 주 20명)</h3>
+<table>
+  <tr><th style="width:21%">구분</th><th>09-07 ~ 09-13</th><th>09-14 ~ 09-20</th><th>09-21 ~ 09-27</th><th style="width:31%">판정</th></tr>
+  <tr><td class="c">재검사 사용자 (목표 대비)</td><td class="c">5명 (25%)</td><td class="c"><b>7명 (35%)</b></td><td class="c">1명 (5%)</td><td class="c">현 추세로 <b>목표 미달 예상</b> · 목표는 유지</td></tr>
+</table>
+
+<h2>자가 점검 (W6 다섯 문항)</h2>
+<table>
+  <tr><th>사용자 수를 숫자로<br>말할 수 있다</th><th>가장 많이 빠지는<br>단계를 안다</th><th>재방문율을<br>%로 말할 수 있다</th><th>고친 뒤 숫자 변화를<br>안다</th><th>지표 표에<br>빈칸이 없다</th></tr>
+  <tr><td class="c"><b>예</b> · 지난주 검사 8명</td><td class="c"><b>예</b> · 방문 → 시작</td><td class="c"><b>반쯤</b> · 같은 주 0%, 주 넘는 값은 10-04 이후</td><td class="c"><b>예</b> · 변화 없음</td><td class="c"><b>아니오</b> · 리텐션 칸</td></tr>
+</table>
+
+<h2>향후 조치</h2>
+<ul class="o">
+  <li>10-04 마감 후 1주차 → 2주차 재방문율 산정 · 개선 효과를 개선 전과 같은 7일 기준으로 다시 측정</li>
+  <li>검사를 하지 않고 나간 사람 3명에게 이유를 직접 묻고 받은 말을 그대로 기록</li>
+</ul>
+<div class="end">끝.</div>
+
+</body>
+</html>
