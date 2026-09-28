@@ -19,6 +19,7 @@ def test_unknown_event_rejected():
 
 
 def test_sample_counts_start_and_done():
+    client.get("/")                     # 화면을 안 열고 부른 검사는 사람으로 세지 않는다
     before = client.get("/api/stats").json()["total"]
     r = client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"})
     assert r.status_code == 200, r.text

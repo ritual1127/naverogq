@@ -483,6 +483,53 @@ def test_stats_counts_by_ip():
             importlib.reload(_stats)
 
 
+def test_scripts_are_not_counted_as_people():
+    """검사 화면은 `/` 하나뿐이라 사람은 검사 전에 방문이 찍힌다. 화면 없이 검사 API 만
+    부른 값과 하루 100번 이상 검사한 값은 사람이 아니다. 09-28 까지 기록된 검사
+    1227번 중 1147번이 이런 값이라 사람이 한 80번이 묻혀 있었다."""
+    import datetime
+    import importlib
+    import stats as _stats
+
+    class Req:
+        def __init__(self, ip):
+            self.headers = {"cf-connecting-ip": ip,
+                            "user-agent": "Mozilla/5.0 (Windows NT 10.0) Chrome/140"}
+            self.client = None
+
+    with tempfile.TemporaryDirectory() as tmp:
+        kept = {k: os.environ.get(k)
+                for k in ("CADLENS_STAT_DB", "CADLENS_STAT_SALT")}
+        os.environ["CADLENS_STAT_DB"] = os.path.join(tmp, "stats.db")
+        os.environ["CADLENS_STAT_SALT"] = "test-salt"
+        stats = importlib.reload(_stats)
+        try:
+            day = datetime.date(2026, 9, 21)
+            for kind in ("visit", "check", "check"):          # 사람 — 화면을 열고 두 번
+                stats.bump(Req("203.0.113.1"), kind, day)
+            for _ in range(5):                                # 화면 없이 API 만
+                stats.bump(Req("203.0.113.2"), "check", day)
+            stats.bump(Req("203.0.113.3"), "visit", day)      # 화면은 열었지만 하루 100번
+            for _ in range(60):                               # 올리기와 예제를 합쳐 센다
+                stats.bump(Req("203.0.113.3"), "check", day)
+            for _ in range(40):
+                stats.bump(Req("203.0.113.3"), "sample", day)
+
+            s = stats.summary(day)
+            assert s["today"] == {"visitors": 1, "checks": 2}, s["today"]
+            assert s["week"]["checkers"] == 1, s["week"]
+            assert s["week"]["recheckers"] == 1, s["week"]
+            assert s["weeks"][0]["checkers"] == 1, s["weeks"]
+            assert s["weeks"][0]["recheckers"] == 1, s["weeks"]
+        finally:
+            for k, v in kept.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+            importlib.reload(_stats)
+
+
 def test_retention_counts_people_who_come_back_a_week_later():
     """리텐션 커브. 방문자 해시는 주가 바뀌면 달라지므로, 주를 넘어 같은 사람인지는
     화면이 남겨 둔 '처음 온 주'로만 안다. 이게 깨지면 리텐션 숫자가 전부 0이 된다."""

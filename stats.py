@@ -279,48 +279,62 @@ def notes(limit=200):
     return [dict(zip(NOTE_COLS, r)) for r in rows]
 
 
-CHECK_KINDS = ("check", "sample")
-
 _cache = [0.0, None]                         # 마지막으로 읽은 때, 그 값
 CACHE_SEC = 30
 
 
-SUMMARY_SQL = """SELECT
- (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day=?1 AND kind='visit'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE day=?1 AND kind IN ('check','sample')),
- (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day>=?2 AND kind='visit'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE day>=?2 AND kind IN ('check','sample')),
- (SELECT COUNT(*) FROM (SELECT visitor, SUM(n) s FROM hits WHERE day>=?2
-    AND kind IN ('check','sample') GROUP BY visitor HAVING s >= 2)),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='visit'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='check'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='sample'),
- (SELECT COUNT(DISTINCT day) FROM hits),
- (SELECT COALESCE(MIN(day),?1) FROM hits),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE day>=?2 AND kind='recheck'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='recheck'),
- (SELECT COALESCE(SUM(n),0) FROM hits WHERE kind='done'),
- (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day>=?2 AND kind IN ('check','sample')),
- (SELECT COUNT(DISTINCT visitor) FROM hits WHERE day>=?2 AND kind='done')"""
+# 사람이 아닌 검사를 뺀 기록. 세는 곳은 모두 `hits` 대신 이 `people` 을 읽는다.
+# 검사 화면은 `/` 하나뿐이라 사람은 검사 전에 방문이 찍힌다. 방문 없이 검사만 한 값은
+# 화면을 거치지 않고 API 를 부른 스크립트다. 하루 100번 이상 검사한 값도 뺀다 — 사람이
+# 하루에 한 최대는 30번이었다(2026-09-08). 2026-09-28 까지 기록된 검사 1227번 중
+# 1147번이 이 둘에 걸렸다. 방문만 한 값은 사람인지 가를 수 없어 그대로 둔다.
+# 방문자 값에 주차가 들어 있으므로 '방문이 있다'는 곧 '그 주에 방문했다'이다.
+PEOPLE = """WITH bots AS (
+  SELECT visitor FROM hits WHERE kind IN ('check','sample')
+   GROUP BY visitor, day HAVING SUM(n) >= 100
+  UNION
+  SELECT visitor FROM hits WHERE kind IN ('check','sample')
+   AND visitor NOT IN (SELECT visitor FROM hits WHERE kind='visit')),
+ people AS (SELECT * FROM hits WHERE visitor NOT IN (SELECT visitor FROM bots))
+"""
 
-DAILY_SQL = ("SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v, "
-             "SUM(CASE WHEN kind IN ('check','sample') THEN n ELSE 0 END) c "
-             "FROM hits WHERE day>=?1 GROUP BY day ORDER BY day")
+SUMMARY_SQL = PEOPLE + """SELECT
+ (SELECT COUNT(DISTINCT visitor) FROM people WHERE day=?1 AND kind='visit'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE day=?1 AND kind IN ('check','sample')),
+ (SELECT COUNT(DISTINCT visitor) FROM people WHERE day>=?2 AND kind='visit'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE day>=?2 AND kind IN ('check','sample')),
+ (SELECT COUNT(*) FROM (SELECT visitor, SUM(n) s FROM people WHERE day>=?2
+    AND kind IN ('check','sample') GROUP BY visitor HAVING s >= 2)),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='visit'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='check'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='sample'),
+ (SELECT COUNT(DISTINCT day) FROM people),
+ (SELECT COALESCE(MIN(day),?1) FROM people),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE day>=?2 AND kind='recheck'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='recheck'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='done'),
+ (SELECT COUNT(DISTINCT visitor) FROM people WHERE day>=?2 AND kind IN ('check','sample')),
+ (SELECT COUNT(DISTINCT visitor) FROM people WHERE day>=?2 AND kind='done')"""
+
+DAILY_SQL = PEOPLE + (
+    "SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v, "
+    "SUM(CASE WHEN kind IN ('check','sample') THEN n ELSE 0 END) c "
+    "FROM people WHERE day>=?1 GROUP BY day ORDER BY day")
 
 
 # 주 단위 기록 — 북극성 지표(주간 재검사 사용자)를 주마다 남긴다.
 # 방문자 값은 주가 바뀌면 달라지므로 주 안에서만 사람을 셀 수 있다. 그래서 주가 단위다.
 MONDAY = "date(day, '-' || ((CAST(strftime('%w', day) AS INTEGER) + 6) % 7) || ' days')"
 
-WEEKLY_SQL = f"""SELECT {MONDAY} AS wk,
+WEEKLY_SQL = PEOPLE + f"""SELECT {MONDAY} AS wk,
  COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v,
  COUNT(DISTINCT CASE WHEN kind='pick' THEN visitor END) p,
  COUNT(DISTINCT CASE WHEN kind IN ('check','sample') THEN visitor END) c,
  COUNT(DISTINCT CASE WHEN kind='done' THEN visitor END) f
- FROM hits GROUP BY wk ORDER BY wk DESC LIMIT {{n}}"""
+ FROM people GROUP BY wk ORDER BY wk DESC LIMIT {{n}}"""
 
-WEEKLY_AGAIN_SQL = f"""SELECT wk, COUNT(*) AS r FROM (
- SELECT {MONDAY} AS wk, visitor, SUM(n) s FROM hits WHERE kind IN ('check','sample')
+WEEKLY_AGAIN_SQL = PEOPLE + f"""SELECT wk, COUNT(*) AS r FROM (
+ SELECT {MONDAY} AS wk, visitor, SUM(n) s FROM people WHERE kind IN ('check','sample')
  GROUP BY wk, visitor HAVING s >= 2) GROUP BY wk"""
 
 
@@ -378,24 +392,30 @@ def _summary_d1(today, days):
     monday = today - datetime.timedelta(days=today.weekday())
     first = (today - datetime.timedelta(days=days - 1)).isoformat()
     row = _d1(SUMMARY_SQL, (today.isoformat(), monday.isoformat()))[0][0]
+    daily = [(r["day"], r["v"], r["c"]) for r in _d1(DAILY_SQL, (first,))[0]]
+    out = _summary_from(list(row.values()), daily, today, "d1")
+    out["weeks"] = weekly()
+    out["retention"] = retention()
+    return out
+
+
+def _summary_from(row, daily, today, store):
+    monday = today - datetime.timedelta(days=today.weekday())
     (tv, tc, wv, wc, wr, vis, chk, smp, nday, since,
-     wrc, rc, dn, wdo, wfin) = list(row.values())
-    daily = _d1(DAILY_SQL, (first,))[0]
+     wrc, rc, dn, wdo, wfin) = row
     return {
-        "available": True, "store": "d1",
+        "available": True, "store": store,
         "today": {"visitors": tv or 0, "checks": tc or 0},
         "week": {"since": monday.isoformat(), "visitors": wv or 0,
-                 "checks": wc or 0, "recheckers": wr or 0,
-                 "rechecks": wrc or 0,
+                 "checks": wc or 0,
+                 "recheckers": wr or 0,      # 북극성 — 그 주에 두 번 이상 검사한 사람
+                 "rechecks": wrc or 0,       # 화면이 '지난번과 비교'를 띄운 횟수
                  # 사람 단위 — 횟수가 아니라 몇 명이 했나. 방문 → 검사 → 결과 순서다.
                  "checkers": wdo or 0, "finishers": wfin or 0},
         "total": {"visits": vis or 0, "checks": chk or 0, "samples": smp or 0,
                   "rechecks": rc or 0, "done": dn or 0,
                   "days": nday or 0, "since": since or today.isoformat()},
-        "daily": [{"day": r["day"], "visitors": r["v"] or 0, "checks": r["c"] or 0}
-                  for r in daily],
-        "weeks": weekly(),
-        "retention": retention(),
+        "daily": [{"day": d, "visitors": v or 0, "checks": c or 0} for d, v, c in daily],
     }
 
 
@@ -416,62 +436,13 @@ def summary(today=None, days=14):
         con = _connect()
     except Exception:                                          # noqa: BLE001
         return {"available": False}
+    # D1 과 같은 SQL 을 쓴다. 따로 쓰면 한쪽만 고쳐져 로컬과 공개 숫자가 달라진다.
+    first = (today - datetime.timedelta(days=days - 1)).isoformat()
     with con:
-        def one(sql, args=()):
-            return con.execute(sql, args).fetchone()[0] or 0
-
-        marks = ",".join("?" * len(CHECK_KINDS))
-        day, week = today.isoformat(), monday.isoformat()
-        out = {
-            "available": True, "store": "sqlite",
-            "missing_env": missing_conf(),
-            "today": {
-                "visitors": one("SELECT COUNT(DISTINCT visitor) FROM hits "
-                                "WHERE day=? AND kind='visit'", (day,)),
-                "checks": one(f"SELECT SUM(n) FROM hits WHERE day=? "
-                              f"AND kind IN ({marks})", (day, *CHECK_KINDS)),
-            },
-            "week": {
-                "since": week,
-                "visitors": one("SELECT COUNT(DISTINCT visitor) FROM hits "
-                                "WHERE day>=? AND kind='visit'", (week,)),
-                "checks": one(f"SELECT SUM(n) FROM hits WHERE day>=? "
-                              f"AND kind IN ({marks})", (week, *CHECK_KINDS)),
-                # 북극성 지표 — 한 주에 두 번 이상 검사한 사람
-                "recheckers": one(
-                    f"SELECT COUNT(*) FROM (SELECT visitor, SUM(n) s FROM hits "
-                    f"WHERE day>=? AND kind IN ({marks}) "
-                    f"GROUP BY visitor HAVING s >= 2)", (week, *CHECK_KINDS)),
-                # 화면이 '지난번과 비교'를 실제로 띄운 횟수
-                "rechecks": one("SELECT SUM(n) FROM hits WHERE day>=? "
-                                "AND kind='recheck'", (week,)),
-                # 사람 단위 — 방문한 사람 중 몇 명이 검사를 시작했고 몇 명이 결과까지 갔나.
-                # 횟수(checks)는 한 사람이 여러 번 올리면 여러 번으로 세어 전환율이 될 수 없다.
-                "checkers": one(f"SELECT COUNT(DISTINCT visitor) FROM hits "
-                                f"WHERE day>=? AND kind IN ({marks})", (week, *CHECK_KINDS)),
-                "finishers": one("SELECT COUNT(DISTINCT visitor) FROM hits "
-                                 "WHERE day>=? AND kind='done'", (week,)),
-            },
-            "total": {
-                "visits": one("SELECT SUM(n) FROM hits WHERE kind='visit'"),
-                "checks": one("SELECT SUM(n) FROM hits WHERE kind='check'"),
-                "samples": one("SELECT SUM(n) FROM hits WHERE kind='sample'"),
-                "rechecks": one("SELECT SUM(n) FROM hits WHERE kind='recheck'"),
-                "done": one("SELECT SUM(n) FROM hits WHERE kind='done'"),
-                "days": one("SELECT COUNT(DISTINCT day) FROM hits"),
-                "since": (con.execute("SELECT MIN(day) FROM hits").fetchone()[0]
-                          or day),
-            },
-            "daily": [],
-        }
-        first = (today - datetime.timedelta(days=days - 1)).isoformat()
-        rows = con.execute(
-            f"SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END), "
-            f"SUM(CASE WHEN kind IN ({marks}) THEN n ELSE 0 END) "
-            f"FROM hits WHERE day>=? GROUP BY day ORDER BY day",
-            (*CHECK_KINDS, first)).fetchall()
-        out["daily"] = [{"day": d, "visitors": v or 0, "checks": c or 0}
-                        for d, v, c in rows]
+        row = con.execute(SUMMARY_SQL, (today.isoformat(), monday.isoformat())).fetchone()
+        daily = con.execute(DAILY_SQL, (first,)).fetchall()
+        out = _summary_from(row, daily, today, "sqlite")
+        out["missing_env"] = missing_conf()
         out["weeks"] = weekly(con)
         out["retention"] = retention(con)
     con.close()
