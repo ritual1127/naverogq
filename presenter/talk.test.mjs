@@ -1,9 +1,13 @@
 // node --test presenter/*.test.mjs   — 대본 파일을 고치다 생긴 실수를 발표 전에 잡는다.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { TALK, KINDS, targetSeconds } from "./talk.js";
 
-const NEEDS = { cover: ["headline"], big: ["value", "caption"], flow: ["steps"], ask: ["question"] };
+const NEEDS = {
+  cover: ["headline"], compare: ["head", "rows"], big: ["value", "caption"],
+  pair: ["items"], flow: ["steps"], ask: ["question"],
+};
 
 test("talk is well formed", () => {
   assert.ok(TALK.slides.length > 0);
@@ -17,10 +21,17 @@ test("talk is well formed", () => {
       assert.ok(TALK.people.includes(line.who), `${at} 읽는 사람 '${line.who}' 가 people 에 없다`);
       assert.ok(line.say.trim(), `${at} 빈 대사`);
     }
-  }
-  if (TALK.slides.some((s) => s.view.kind === "flow")) {
-    for (const s of TALK.slides.filter((x) => x.view.kind === "flow")) {
-      assert.ok(s.view.steps.length >= 2 && s.view.steps.every((st) => st.n && st.label));
+    const v = s.view;
+    if (v.kind === "flow") assert.ok(v.steps.length >= 2 && v.steps.every((st) => st.n && st.label), `${at} 단계`);
+    if (v.kind === "compare") {
+      for (const row of v.rows) assert.equal(row.length, v.head.length, `${at} 표 칸 수`);
+    }
+    if (v.kind === "pair") {
+      assert.equal(v.items.length, 2, `${at} 그림은 두 장`);
+      for (const it of v.items) {
+        assert.ok(it.label, `${at} 그림 설명`);
+        assert.ok(existsSync(new URL(it.src, import.meta.url)), `${at} 그림 파일이 없다: ${it.src}`);
+      }
     }
   }
 });
