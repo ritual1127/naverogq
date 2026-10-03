@@ -17,3 +17,8 @@ jobs:
       - run: pip install -r requirements.txt pytest
       - run: pytest -q test_rules.py test_events.py test_prune.py
       - run: python bench.py --check
+      # 발표 도우미 (presenter/) — 장 넘기기 규칙과 대본 파일 오타
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test presenter/*.test.mjs
