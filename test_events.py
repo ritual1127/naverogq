@@ -378,6 +378,39 @@ def test_a_flood_of_checks_is_stopped(monkeypatch):
     main._ran_all.clear()
 
 
+def test_checks_run_one_at_a_time(monkeypatch):
+    """무료 서버는 메모리가 512MB 다. 검사가 동시에 여럿 돌면 그만큼 쌓여 서버가 재시작됐다
+    (2026-10-03 Render 메모리 초과 메일 · 리눅스 재현에서 동시 12장에 491MB). 하나씩 돌린다."""
+    import os
+    import threading
+    import time
+
+    running, most = [0], [0]
+    lock = threading.Lock()
+    real = main.check.analyze
+
+    def counted(*a, **k):
+        with lock:
+            running[0] += 1
+            most[0] = max(most[0], running[0])
+        time.sleep(0.2)
+        try:
+            return real(*a, **{**k, "use_ai": False})
+        finally:
+            with lock:
+                running[0] -= 1
+
+    monkeypatch.setattr(main.check, "analyze", counted)
+    path = os.path.join(main.SAMPLES, "sample_plate.dxf")
+    threads = [threading.Thread(target=main._result, args=(f"slot{i}", path, "sample_plate.dxf"))
+               for i in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert most[0] == 1
+
+
 def test_link_preview_tags_and_image_exist():
     """링크 미리보기는 깨져도 눈에 안 띈다 — 남이 공유해 봐야 안다. 여기서 잡는다."""
     page = client.get("/").text

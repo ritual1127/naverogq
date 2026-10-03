@@ -781,9 +781,18 @@ def _timing(payload, total):
 # 채점이 오면 화면이 /api/ai-extra 로 받아 채운다.
 AI_WAIT_SEC = float(os.environ.get("CADLENS_AI_WAIT", "8"))
 
+# 검사는 한 번에 하나만 돈다. 무료 서버는 메모리가 512MB 인데 검사 하나가 수십 MB 를 잠깐
+# 잡고, 동시에 여럿 돌면 그만큼 쌓여 서버가 재시작됐다(2026-10-03 · plan/문제점/P27).
+# CPU 도 0.1 이라 동시에 돌려도 빨라지지 않는다. 기다리다 넘치면 다시 올리라고 돌려보낸다.
+CHECK_SLOT = threading.BoundedSemaphore(1)
+CHECK_QUEUE_SEC = 60
+
 
 def _result(job, path, name, enabled=None):
     _prune_uploads()
+    if not CHECK_SLOT.acquire(timeout=CHECK_QUEUE_SEC):
+        raise HTTPException(503, "검사가 밀려 있습니다. 잠시 뒤에 다시 올려 주세요.",
+                            headers={"Retry-After": "30"})
     try:
         facts, findings, summary = check.analyze(path, enabled=enabled, alongside=_render,
                                                  defer_extras=True, ai_wait=AI_WAIT_SEC)
@@ -791,6 +800,8 @@ def _result(job, path, name, enabled=None):
         traceback.print_exc()
         # Traceback already went to the log; the client only needs the summary.
         raise HTTPException(500, f"분석 실패: {type(e).__name__}: {e}") from None
+    finally:
+        CHECK_SLOT.release()
 
     svg, marked, marker_index, svg_note, svg_tf, fix = facts["alongside"]
     later, pending = facts.get("ai_later"), facts.get("ai_late")
