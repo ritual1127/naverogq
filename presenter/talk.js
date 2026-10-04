@@ -54,7 +54,7 @@ export const TALK = {
       ],
     },
     {
-      // 영상은 presenter/video/ — 로컬 서버에서 실제 화면을 찍어 만든 32초. 목소리는 부분마다 그 사람(AI 합성 · 그 사람 말투와 빠르기).
+      // 영상은 presenter/video/ — 로컬 서버에서 실제 화면을 찍어 만든 32초. 목소리는 부분마다 그 사람(AI 합성 · Qwen3-TTS 가 그 사람 녹음을 본떠 읽음).
       // 만드는 법은 docs/demo/시연영상/README.md. 대사를 바꾸면 영상을 다시 만들어야 한다(story.js 의 VOICE 와 같은 글)
       title: "시연 — 수정 예시",
       view: { kind: "video", src: "video/demo.mp4", poster: "video/demo.jpg", seconds: 33,
