@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { TALK, KINDS, CHARTS, targetSeconds } from "./talk.js";
+import { TALK, KINDS, CHARTS, VOICE, targetSeconds } from "./talk.js";
 
 const NEEDS = {
   cover: ["headline"], compare: ["head", "rows"], big: ["value"],
@@ -18,7 +18,8 @@ test("talk is well formed", () => {
     for (const key of NEEDS[s.view.kind]) assert.ok(s.view[key], `${at} ${key}`);
     assert.ok(s.lines.length > 0, `${at} 대사가 없다`);
     for (const line of s.lines) {
-      assert.ok(TALK.people.includes(line.who), `${at} 읽는 사람 '${line.who}' 가 people 에 없다`);
+      const ok = TALK.people.includes(line.who) || (s.view.kind === "video" && line.who === VOICE);
+      assert.ok(ok, `${at} 읽는 사람 '${line.who}' 가 people 에 없다(영상 장만 '${VOICE}')`);
       assert.ok(line.say.trim(), `${at} 빈 대사`);
     }
     const v = s.view;
@@ -67,5 +68,5 @@ test("talk fits the time limit", () => {
 test("target seconds come from the length of the lines", () => {
   const s = { lines: [{ who: "a", say: "가".repeat(45) }] };
   assert.equal(targetSeconds(s), 10);
-  assert.equal(targetSeconds({ ...s, view: { seconds: 23 } }), 23, "영상이 대사보다 길면 영상 길이");
+  assert.equal(targetSeconds({ ...s, view: { seconds: 30 } }), 30, "영상 장은 영상 길이");
 });

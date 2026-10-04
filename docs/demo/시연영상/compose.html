@@ -50,6 +50,7 @@
          box-shadow: 0 0 0 1px rgba(255,255,255,.07) inset, 0 20px 50px rgba(2,6,23,.32); }
   #cap .n { flex: none; width: 50px; height: 50px; border-radius: 15px; background: #2a78d6; color: #fff;
             display: grid; place-items: center; font-size: 27px; font-weight: 850; }
+  #cap .w { margin-bottom: 4px; font-size: 20px; font-weight: 700; color: #8fb6ec; letter-spacing: .2px; white-space: nowrap; }
   #cap .m { font-size: 37px; font-weight: 780; color: #fff; letter-spacing: -.6px; line-height: 1.2; white-space: nowrap; }
   #cap .s { margin-top: 3px; font-size: 25px; font-weight: 600; color: #b8c5d8; letter-spacing: -.2px; white-space: nowrap; }
 
@@ -81,13 +82,13 @@
     <path d="M3.6 3 L3.6 35.2 L11.6 27.6 L16.9 39.6 L22.3 37.3 L17.1 25.5 L27.6 25.5 Z"
           fill="#111" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>
   </svg>
-  <div id="cap" class="hide"><div class="n" id="capN"></div><div><div class="m" id="capM"></div><div class="s" id="capS"></div></div></div>
+  <div id="cap" class="hide"><div class="n" id="capN"></div><div><div class="w" id="capW"></div><div class="m" id="capM"></div><div class="s" id="capS"></div></div></div>
   <div id="ff" class="pill hide"><svg viewBox="0 0 34 22"><path d="M2 2l14 9-14 9zM17 2l14 9-14 9z" fill="#fff"/></svg>빨리 감기</div>
   <div id="url" class="pill hide"><i><svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.4 2.2 3.6 4.7 3.6 7.5S12.4 15.3 10 17.5M10 2.5C7.6 4.7 6.4 7.2 6.4 10s1.2 5.3 3.6 7.5"/></svg></i><small>지금 써 보기</small>naverogq.onrender.com</div>
 </div>
 <script src="story.js"></script>
 <script>
-const { FPS, T, ease, cursorAt } = STORY;
+const { FPS, T, CAPS, cursorAt } = STORY;
 let M;                                   // capture 가 남긴 manifest
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -122,18 +123,21 @@ function buildShots() {
   const heroZ = Math.min(1640 / ((heroBox.x1 - heroBox.x0) * .92), 740 / ((heroBox.y1 - heroBox.y0) * .92));
   const hb = W({ x: (heroBox.x0 + heroBox.x1) / 2, y: (heroBox.y0 + heroBox.y1) / 2 });
   const heroC = { x: (hb.x - 235) / .92, y: (hb.y + 90 / heroZ - 64) / .92 };
+  // 결과 화면 — 실격 카드 · 도면 위 번호 · 목록의 번호를 한 화면에 (장우영 대사 "실격 사유와 … 도면 위에 번호로")
+  const both = { x: 645, y: 494 };
   return [
     { t0: 0, t1: 0, to: { cx: 960, cy: 540, z: 1 } },
-    { t0: 0, t1: 1.25, to: { cx: 972, cy: 532, z: 1.025 }, lin: true },
-    { t0: 1.25, t1: 3.05, to: at(center(r.drop), 1.75) },
-    { t0: 3.30, t1: 4.25, to: at(center(r.busyCard), 1.95) },
-    { t0: 4.70, t1: 5.75, to: { cx: 960, cy: 540, z: 1 } },
-    { t0: 6.75, t1: 7.85, to: at({ x: 1218, y: 497 }, 1.7) },
-    { t0: 8.40, t1: 9.35, to: at({ x: 486, y: 515 }, 1.62) },
-    { t0: 10.30, t1: 11.30, to: at({ x: 470, y: 420 }, 1.85) },
-    { t0: 11.95, t1: 13.45, to: at(heroC, heroZ) },
-    { t0: 13.45, t1: 16.40, to: at(heroC, heroZ * 1.07), lin: true },
-    { t0: 16.40, t1: 17.95, to: at(center(r.viewerAfter), 1.5) },
+    { t0: 0, t1: T.enter + 0.7, to: { cx: 972, cy: 532, z: 1.025 }, lin: true },
+    { t0: T.enter + 0.7, t1: T.drop - 0.12, to: at(center(r.drop), 1.75) },
+    { t0: T.drop + 0.05, t1: T.drop + 1.0, to: at(center(r.busyCard), 1.95) },
+    { t0: T.busyEnd, t1: T.busyEnd + 1.25, to: at(both, 1.59) },
+    { t0: T.chipClick + 0.1, t1: T.chipClick + 1.05, to: at({ x: 486, y: 515 }, 1.62) },
+    { t0: T.travel2[0] - 0.05, t1: T.travel2[1], to: at({ x: 470, y: 420 }, 1.85) },
+    { t0: T.fixClick + 0.25, t1: T.fixClick + 1.75, to: at(heroC, heroZ) },
+    { t0: T.fixClick + 1.75, t1: T.valuePush - 0.1, to: at(heroC, heroZ * 1.04), lin: true },
+    // 값 쪽으로 더 — 도면 미리보기 폭에 딱 맞춰(양옆 여백 없이) 번호 1 · 구멍 · 초록 치수가 다 들어오게
+    { t0: T.valuePush, t1: T.valuePush + 4.2, to: at({ x: r.stage.x + r.stage.w / 2, y: 497 }, 1920 / (r.stage.w * .92)) },
+    { t0: T.pullBack, t1: T.pullBack + 1.5, to: at(center(r.viewerAfter), 1.5) },
   ];
 }
 function camAt(t) {
@@ -162,12 +166,6 @@ async function setLayer(full, patch, e) {
   if (p) Object.assign(patch.style, { left: p.x + 'px', top: p.y + 'px', width: p.width + 'px', height: p.height + 'px' });
 }
 
-const CAPS = [
-  { t0: 0.75, t1: 3.55, n: 1, m: '도면 파일을 끌어다 놓으면' },
-  { t0: 5.30, t1: 8.25, n: 2, m: '실격 사유와 빠뜨린 치수 자리', s: '도면 위에 번호로 찍어 줍니다' },
-  { t0: 8.60, t1: 11.50, n: 3, m: '번호를 누르면 그 자리로' },
-  { t0: 12.05, t1: 16.60, n: 4, m: '수정 예시 — W4 이후 새 기능', s: '도면에서 읽은 좌표 그대로, 빠진 치수를 초록으로' },
-];
 const CLICKS = () => [T.drop, T.chipClick, T.fixClick];
 const XFADE = () => [{ t0: T.fixClick, d: 0.16 }];
 
@@ -237,11 +235,12 @@ async function renderFrame(f) {
   if (!cap) $('cap').classList.add('hide');
   else {
     $('capN').textContent = cap.n; $('capM').textContent = cap.m;
+    $('capW').textContent = `${cap.who} 목소리 · AI 음성`;          // 대회 AI 사용 공개 — 팀원 녹음을 본뜬 합성 음성
     $('capS').textContent = cap.s || ''; $('capS').classList.toggle('hide', !cap.s);
     overlay($('cap'), t, cap.t0, cap.t1, 'translateX(-50%)');
   }
   overlay($('ff'), t, T.busyEnd - .22, T.resIn + .22, 'translateX(-50%)', -12);
-  overlay($('url'), t, 18.3, 1e9, '', -12);
+  overlay($('url'), t, T.pullBack + 1.7, 1e9, '', -12);
   return true;
 }
 

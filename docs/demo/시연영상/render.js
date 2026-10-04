@@ -3,6 +3,7 @@
 const fs = require('fs'), path = require('path'), http = require('http');
 const { spawn } = require('child_process');
 const { chromium } = require('playwright-core');
+const { VOICE, T } = require('./story.js');
 
 const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const FFMPEG = 'ffmpeg';                      // PATH 에 있어야 한다 (winget install Gyan.FFmpeg.Essentials)
@@ -37,7 +38,7 @@ const server = http.createServer((req, res) => {
       await page.screenshot({ path: path.join(ROOT, 'check', `f${String(f).padStart(4, '0')}.png`) });
     }
   } else {
-    const out = path.join(DEST, 'demo.mp4');
+    const out = path.join(ROOT, 'video_only.mp4');
     const ff = spawn(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', '60', '-c:v', 'png', '-i', '-',
       '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
       '-c:v', 'libx264', '-preset', 'slower', '-crf', '16', '-profile:v', 'high',
@@ -53,6 +54,14 @@ const server = http.createServer((req, res) => {
     }
     ff.stdin.end();
     console.log('ffmpeg exit', await done);
+    // 목소리 — 대사마다 콘티 시각에 놓고 섞는다. 대사 파일은 -18 LUFS 로 맞춰 두었고 섞은 뒤 +2dB(약 -16 LUFS, 말소리 웹 기준)
+    const ins = VOICE.flatMap((v) => ['-i', path.join(ROOT, 'voice', v.id + '.wav')]);
+    const lanes = VOICE.map((v, i) => `[${i + 1}]adelay=${Math.round(v.t * 1000)}:all=1[a${i}]`).join(';');
+    const mix = `${lanes};${VOICE.map((_, i) => `[a${i}]`).join('')}amix=inputs=${VOICE.length}:normalize=0:dropout_transition=0,` +
+      `apad=whole_dur=${(info.n / 60).toFixed(3)},volume=2dB,alimiter=limit=0.84:level=false[a]`;
+    await new Promise((r) => spawn(FFMPEG, ['-y', '-loglevel', 'error', '-i', out, ...ins, '-filter_complex', mix,
+      '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest',
+      '-movflags', '+faststart', path.join(DEST, 'demo.mp4')], { stdio: 'inherit' }).on('close', r));
     await new Promise((r) => spawn(FFMPEG, ['-y', '-loglevel', 'error', '-i', path.join(ROOT, 'poster.png'), '-q:v', '3',
       path.join(DEST, 'demo.jpg')], { stdio: 'inherit' }).on('close', r));
     console.log('->', DEST);

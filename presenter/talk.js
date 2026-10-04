@@ -7,10 +7,13 @@
 export const KINDS = ["cover", "compare", "big", "video", "flow", "ask"];
 export const CHARTS = ["hbar", "stack", "column"];
 
-// W4 원고에서 잰 읽는 속도 — 1초에 4.5자(띄어쓰기 포함). 영상이 대사보다 길면 영상 길이.
+// 영상이 스스로 말하는 장의 읽는 사람 — 대본 탭에 회색으로 보이고, 아무도 소리 내어 읽지 않는다
+export const VOICE = "영상";
+
+// W4 원고에서 잰 읽는 속도 — 1초에 4.5자(띄어쓰기 포함). 영상 장은 영상 길이.
 const CHARS_PER_SEC = 4.5;
-export const targetSeconds = (slide) => Math.max(slide.view?.seconds || 0,
-  Math.round(slide.lines.reduce((n, l) => n + l.say.length, 0) / CHARS_PER_SEC));
+export const targetSeconds = (slide) => slide.view?.seconds ||
+  Math.round(slide.lines.reduce((n, l) => n + l.say.length, 0) / CHARS_PER_SEC);
 
 export const TALK = {
   title: "CADLens · 데모데이 ②",
@@ -51,16 +54,16 @@ export const TALK = {
       ],
     },
     {
-      // 영상은 presenter/video/ — 로컬 서버에서 실제 화면을 찍어 만든 23초. 만드는 법은 W8_준비.md
+      // 영상은 presenter/video/ — 로컬 서버에서 실제 화면을 찍어 만든 30초. 목소리는 부분마다 그 사람(AI 합성).
+      // 만드는 법은 docs/demo/시연영상/README.md. 대사를 바꾸면 영상을 다시 만들어야 한다(story.js 의 VOICE 와 같은 글)
       title: "시연 — 수정 예시",
-      view: { kind: "video", src: "video/demo.mp4", poster: "video/demo.jpg", seconds: 23,
+      view: { kind: "video", src: "video/demo.mp4", poster: "video/demo.jpg", seconds: 30,
               label: "CADLens 시연 — 본체 도면을 끌어다 놓고, 번호를 눌러 그 자리로 가고, 수정 예시로 빠진 Ø20.5 를 초록으로 그린다" },
       lines: [
-        { who: "박지완", say: "도면을 끌어다 놓으면," },
-        { who: "박지완", say: "실격 사유와 빠뜨린 치수 자리가 번호로 나옵니다." },
-        { who: "박지완", say: "번호를 누르면 그 자리로 갑니다." },
-        { who: "박지완", say: "W4 뒤에 만든 수정 예시는 빠진 치수를 도면 좌표 그대로 그려 줍니다." },
-        { who: "박지완", say: "그림을 지어내는 AI가 아니라 위치와 값이 정확합니다." },
+        { who: VOICE, say: "안대열 목소리 — 실기 도면을, 이렇게 끌어다 놓기만 하면 됩니다." },
+        { who: VOICE, say: "장우영 목소리 — 그러면 실격 사유와 빠뜨린 치수 자리가, 도면 위에 번호로 나옵니다." },
+        { who: VOICE, say: "박지완 목소리 — 번호를 누르면, 그 자리로 바로 갑니다." },
+        { who: VOICE, say: "김승준 목소리 — 그리고 지난 데모데이 이후 새로 만든 수정 예시는, 빠진 치수를 도면 좌표 그대로 초록색으로 그려 줍니다. 그림을 지어내는 AI가 아니라서, 위치와 값이 정확합니다." },
       ],
     },
     {

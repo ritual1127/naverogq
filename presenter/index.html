@@ -254,7 +254,7 @@
 
 <script type="module">
 import { initial, step, setTimer, toWire, receive } from "./state.js";
-import { TALK, targetSeconds } from "./talk.js";
+import { TALK, VOICE, targetSeconds } from "./talk.js";
 
 // 기기 사이 중계 — Supabase 실시간 채널. 이 키는 브라우저에 두라고 만든 공개용 키이고 테이블은 쓰지 않는다.
 const SUPABASE_URL = "https://hgmshnoaipajahvmzcqw.supabase.co";
@@ -264,9 +264,20 @@ const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const $ = (id) => document.getElementById(id);
 const COUNT = TALK.slides.length;
 
-// 시연 영상 — 한 요소를 처음부터 받아 두고 계속 쓴다. 그 장에 오자마자 끊김 없이 돈다. 누르면 처음부터 다시
+// 시연 영상 — 한 요소를 처음부터 받아 두고 계속 쓴다. 그 장에 오자마자 끊김 없이 돈다. 누르면 처음부터 다시.
+// 소리(팀원 목소리)는 전체화면(F)인 기기에서만 — Meet 로 공유하는 노트북 하나. 대본을 보는 기기들까지 소리를 내면
+// 한 방에서 겹치고 마이크로 다시 들어간다.
 const VIDEO = Object.assign(document.createElement("video"), { muted: true, playsInline: true, preload: "auto" });
-VIDEO.addEventListener("click", () => { VIDEO.currentTime = 0; VIDEO.play().catch(() => {}); });
+function playVideo() {
+  VIDEO.currentTime = 0;
+  VIDEO.muted = !document.body.classList.contains("full");
+  VIDEO.play().catch(() => {            // 이 탭에서 아직 아무것도 안 눌러 소리 재생이 막혔으면 소리 없이라도 돈다
+    VIDEO.muted = true;
+    VIDEO.play().catch(() => {});
+    toast("소리가 막혔습니다 — 영상을 한 번 누르면 소리와 함께 처음부터");
+  });
+}
+VIDEO.addEventListener("click", playVideo);
 const firstVideo = TALK.slides.find((s) => s.view.kind === "video");
 if (firstVideo) VIDEO.src = firstVideo.view.src;
 const ME_ID = crypto.getRandomValues(new Uint32Array(2)).join("").slice(0, 12);   // 이 기기(탭) — 동률 판정용
@@ -475,8 +486,7 @@ const VIEWS = {
     if (!VIDEO.src.endsWith(v.src)) VIDEO.src = v.src;
     VIDEO.poster = v.poster || "";
     VIDEO.setAttribute("aria-label", v.label || "시연 영상");
-    VIDEO.currentTime = 0;
-    VIDEO.play().catch(() => {});        // 소리가 없어 자동 재생이 막히지 않는다
+    playVideo();
     return [VIDEO];
   },
   flow: (v) => {
@@ -497,7 +507,7 @@ const here = () => Math.max(0, Math.min(COUNT - 1, state.slide));
 
 // 읽는 사람마다 색 — people 순서대로 붙는다. 노랑은 "내 줄" 강조에 남겨 둔다
 const PALETTE = ["#1d5fb5", "#127a45", "#b02a68", "#5b3fc4"];   // 흰 바탕에서 4.5:1 이상
-const colorOf = (who) => PALETTE[Math.max(0, TALK.people.indexOf(who)) % PALETTE.length];
+const colorOf = (who) => (who === VOICE ? "#64748b" : PALETTE[Math.max(0, TALK.people.indexOf(who)) % PALETTE.length]);
 function nameTag(who, cls = "name") {
   const n = el("span", cls, who);
   n.style.setProperty("--who", colorOf(who));
@@ -634,6 +644,7 @@ const toggleTab = () => showTab($("slides").hidden ? "slides" : "script");
 // 미트로 이 탭을 공유하면 슬라이드만 보인다.
 function toggleFull(on = !document.body.classList.contains("full")) {
   document.body.classList.toggle("full", on);
+  VIDEO.muted = !on;                    // 영상 장에서 F 를 누르면 그때부터 소리
   fit();
   if (on) toast("F 또는 Esc 를 누르면 띠가 다시 나옵니다", 2500);
 }

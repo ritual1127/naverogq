@@ -289,8 +289,11 @@ DWG를 DXF로 바꾸는 일은 **서버 안에 설치된 LibreDWG**가 합니다
 | Llama 4 Scout (`@cf/meta/llama-4-scout-17b-16e-instruct`) | Meta / Cloudflare Workers AI | **서비스가 돌아갈 때** — Gemini 가 막히면 대신 채점 |
 | Mistral Small (`mistral-small-latest`) | Mistral AI | **서비스가 돌아갈 때** — 앞의 둘이 다 막히면 대신 채점 |
 | Qwen3.6 27B (`qwen/qwen3.6-27b`) | Alibaba / Groq | **서비스가 돌아갈 때** — 마지막 예비 |
-| Claude Opus 5 / Sonnet 5 / Sonnet 4.8 | Anthropic | 만들 때 — 코드 작성·정리, 문서와 번역 초안 (Claude Code) |
+| Claude Opus 5.5 / Opus 5 / Sonnet 5 / Sonnet 4.8 | Anthropic | 만들 때 — 코드 작성·정리, 문서와 번역 초안, 발표 자료와 시연 영상 (Claude Code) |
 | GPT-5.6 Sol | OpenAI | 만들 때 — 코드 작성 도움 |
+| Chatterbox Multilingual (TTS · 음색 변환, MIT) | Resemble AI | 발표 — 데모데이 ② 시연 영상의 목소리. 팀원 4명이 직접 녹음한 목소리를 본떠 부분마다 그 사람 목소리로 합성했고, 영상 자막에 "AI 음성"이라고 적었습니다 |
+| 신경망 음성 `ko-KR-InJoonNeural` | Microsoft (Edge 읽어 주기) | 발표 — 위 목소리 중 박지완 · 김승준 부분의 발음 바탕(그 위에 음색만 바꿈) |
+| Whisper large-v3-turbo · WavLM · UTMOS | OpenAI · Microsoft · SpeechMOS | 발표 — 합성 후보 고르기(받아쓰기 오류율 · 목소리 닮음 · 자연스러움). 모두 이 컴퓨터에서 돌렸고 녹음은 밖으로 보내지 않았습니다 |
 
 **사용한 오픈소스** — 서버는 ezdxf 1.4.4(MIT), Pillow 12.3.0(MIT-CMU), FastAPI 0.141.1(MIT), Uvicorn 0.52.0(BSD-3-Clause), python-multipart 0.0.32(Apache-2.0), Requests 2.34.2(Apache-2.0), PyMuPDF 1.28.0(**AGPL-3.0**/상용), google-genai 2.16.0(Apache-2.0). Cloudflare Workers AI · Mistral · Groq 는 전용 SDK 없이 Requests로 REST를 직접 부릅니다. 화면 글꼴 나눔스퀘어라운드(SIL OFL 1.1)는 외부에서 안 불러오고 서버에 직접 올려서 씁니다. 서버에는 GNU LibreDWG `dwg2dxf` 0.14(**GPL-3.0-or-later**)가 DWG 변환용으로 들어가 있고, ODA File Converter(상용 무료)와 CloudConvert(외부 유료 API)를 변환 대체 경로로 붙여 뒀습니다. **대체 경로는 공개 서버에서 쓰지 않습니다.** 개발할 때만 pytest(MIT)와 fontTools(MIT)를 씁니다. 라이선스를 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 더 자세히 있습니다.
 
