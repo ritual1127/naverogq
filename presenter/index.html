@@ -59,11 +59,14 @@
   .stage {
     position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
     transform-origin: center; background: #fff; overflow: hidden;
-    display: flex; flex-direction: column; justify-content: center; padding: 104px 150px 140px 170px;
+    display: flex; flex-direction: column; justify-content: center; padding: 196px 150px 140px 170px;
     box-shadow: 0 10px 40px rgba(15, 23, 42, .12);
   }
-  .stage::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 22px; background: var(--accent); }
+  .stage::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 22px; background: var(--accent); z-index: 1; }
   .kicker { font-size: 46px; font-weight: 800; color: var(--accent-ink); letter-spacing: -.5px; margin-bottom: 34px; }
+  /* 장마다 제목 자리를 고정한다 — 넘길 때 눈이 제목을 다시 찾지 않게. 내용은 그 아래 가운데 */
+  .stage > .kicker { position: absolute; left: 170px; right: 150px; top: 88px; margin: 0; }
+  .kind-cover { padding-top: 104px; }
   .headline { font-size: 146px; font-weight: 850; line-height: 1.1; letter-spacing: -4px; }
   .sub { margin-top: 44px; font-size: 52px; font-weight: 650; color: var(--ink-2); line-height: 1.3; }
   .chip {
@@ -73,6 +76,7 @@
   .cover { display: grid; grid-template-columns: 1fr 600px; gap: 64px; align-items: center; }
   .cover img { display: block; width: 600px; border-radius: 26px; box-shadow: 0 22px 50px rgba(15, 23, 42, .28); }
   .cover figcaption { margin-top: 16px; font-size: 34px; font-weight: 650; color: var(--ink-2); text-align: center; }
+  .byline { margin-top: 30px; font-size: 32px; font-weight: 650; color: var(--muted); }
   .value { font-size: 188px; font-weight: 850; letter-spacing: -5px; line-height: 1; white-space: nowrap; }
   .caption { margin-top: 50px; font-size: 54px; font-weight: 700; line-height: 1.3; }
   .note { margin-top: 24px; font-size: 40px; font-weight: 550; color: var(--ink-2); line-height: 1.35; }
@@ -100,7 +104,6 @@
   .c-axis { font-size: 36px; font-weight: 650; fill: var(--ink-2); }
   .c-target { font-size: 36px; font-weight: 800; fill: var(--ink); }
   /* W4 → 지금 표 */
-  .kind-compare { padding-top: 84px; }
   .cmp { width: 100%; border-collapse: collapse; }
   .cmp th { text-align: left; font-size: 34px; color: var(--muted); font-weight: 750; padding: 0 22px 16px; border-bottom: 3px solid var(--ink); }
   .cmp td { padding: 18px 22px; border-bottom: 1px solid var(--line); font-size: 42px; vertical-align: baseline; line-height: 1.25; }
@@ -108,16 +111,10 @@
   .cmp td:nth-child(2) { width: 19%; color: var(--muted); }
   .cmp td:nth-child(3) { font-weight: 800; }
   .cmp-note { margin-top: 18px; font-size: 32px; color: var(--muted); }
-  /* 실제 화면 두 장 — 설명은 그림 바깥 위에 (그림 안에 얹으면 초록 치수를 가린다) */
-  .kind-pair { padding-top: 70px; padding-bottom: 116px; }
-  .kind-pair .kicker { margin-bottom: 22px; }
-  .pair { display: flex; gap: 60px; justify-content: center; }
-  .pair figure { margin: 0; }
-  .pair figcaption { margin-bottom: 12px; font-size: 36px; font-weight: 750; }
-  .pair figure:last-child figcaption { color: #127a45; }
-  .pair img { display: block; height: 600px; width: auto; border-radius: 20px; box-shadow: 0 14px 34px rgba(15, 23, 42, .22); }
-  .kind-pair .caption { margin-top: 26px; font-size: 44px; text-align: center; }
-  .kind-pair .note { margin-top: 8px; font-size: 34px; text-align: center; }
+  /* 시연 영상 — 슬라이드 전체. 자막이 영상 안에 있어 제목과 아래 글은 얹지 않는다 */
+  .kind-video { padding: 0; background: #eef3f9; }
+  .kind-video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .kind-video .foot { display: none; }
   /* 런칭 주 흐름 */
   .steps { display: flex; align-items: flex-start; gap: 24px; }          /* 이름표가 두 줄이어도 숫자 높이는 맞춘다 */
   .step { flex: 1 1 0; min-width: 0; text-align: center; }
@@ -266,6 +263,12 @@ const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const $ = (id) => document.getElementById(id);
 const COUNT = TALK.slides.length;
+
+// 시연 영상 — 한 요소를 처음부터 받아 두고 계속 쓴다. 그 장에 오자마자 끊김 없이 돈다. 누르면 처음부터 다시
+const VIDEO = Object.assign(document.createElement("video"), { muted: true, playsInline: true, preload: "auto" });
+VIDEO.addEventListener("click", () => { VIDEO.currentTime = 0; VIDEO.play().catch(() => {}); });
+const firstVideo = TALK.slides.find((s) => s.view.kind === "video");
+if (firstVideo) VIDEO.src = firstVideo.view.src;
 const ME_ID = crypto.getRandomValues(new Uint32Array(2)).join("").slice(0, 12);   // 이 기기(탭) — 동률 판정용
 
 const store = {
@@ -401,7 +404,7 @@ const CHART = {
     const svg = chartSvg(base + 72,
       `${c.title}: ${c.cols.map((k) => `${k.label} ${k.value}${c.unit}`).join(", ")}${c.target ? `, ${c.target.label}` : ""}`);
     svg.append(svgEl("text", { x: 0, y: 30, class: "c-title" }, c.title));
-    svg.append(svgEl("line", { x1: 0, x2: CW - right + 40, y1: base, y2: base, stroke: "var(--line)", "stroke-width": 3 }));
+    svg.append(svgEl("line", { x1: 0, x2: CW - 10, y1: base, y2: base, stroke: "var(--line)", "stroke-width": 3 }));   // 목표선과 같은 길이
     if (c.target) {
       const ty = y(c.target.value);
       svg.append(svgEl("line", { x1: 0, x2: CW - 10, y1: ty, y2: ty, stroke: "var(--ink)", "stroke-width": 3 }));
@@ -438,7 +441,7 @@ const VIEWS = {
   cover: (v) => {
     const text = el("div");
     text.append(el("div", "kicker", v.kicker), el("div", "headline", v.headline), el("div", "sub", v.sub),
-                ...(v.note ? [el("div", "chip", v.note)] : []));
+                ...(v.note ? [el("div", "chip", v.note)] : []), ...(v.by ? [el("div", "byline", v.by)] : []));
     if (!v.img) return [text];
     const fig = el("figure");
     const img = document.createElement("img");
@@ -468,18 +471,13 @@ const VIEWS = {
             v.chart ? chartBox(v.chart) : "", v.caption ? el("div", "caption", v.caption) : "",
             v.note ? el("div", "note", v.note) : ""];
   },
-  pair: (v) => {
-    const row = el("div", "pair");
-    v.items.forEach((it) => {
-      const fig = el("figure");
-      const img = document.createElement("img");
-      img.src = it.src;
-      img.alt = it.label;
-      fig.append(el("figcaption", "", it.label), img);
-      row.append(fig);
-    });
-    return [el("div", "kicker", v.kicker), row, el("div", "caption", v.caption),
-            v.note ? el("div", "note", v.note) : ""];
+  video: (v) => {
+    if (!VIDEO.src.endsWith(v.src)) VIDEO.src = v.src;
+    VIDEO.poster = v.poster || "";
+    VIDEO.setAttribute("aria-label", v.label || "시연 영상");
+    VIDEO.currentTime = 0;
+    VIDEO.play().catch(() => {});        // 소리가 없어 자동 재생이 막히지 않는다
+    return [VIDEO];
   },
   flow: (v) => {
     const row = el("div", "steps");
@@ -509,11 +507,15 @@ function nameTag(who, cls = "name") {
 function render() {
   const i = here(), s = TALK.slides[i];
   const stage = $("stage");
-  stage.className = `stage kind-${s.view.kind}${s.view.points ? " with-points" : ""}${s.view.chart ? " with-chart" : ""}`;
-  stage.replaceChildren(...VIEWS[s.view.kind](s.view).filter(Boolean));
-  const foot = el("div", "foot");
-  foot.append(el("span", "", "CADLens · 팀 네이놈"), el("span", "", `${i + 1} / ${COUNT}`));
-  stage.append(foot);
+  if (stage.dataset.slide !== String(i)) {     // 같은 장이면 다시 그리지 않는다 — 타이머·이름을 바꿔도 영상이 처음으로 안 돌아간다
+    stage.dataset.slide = i;
+    if (s.view.kind !== "video") VIDEO.pause();
+    stage.className = `stage kind-${s.view.kind}${s.view.points ? " with-points" : ""}${s.view.chart ? " with-chart" : ""}`;
+    stage.replaceChildren(...VIEWS[s.view.kind](s.view).filter(Boolean));
+    const foot = el("div", "foot");
+    foot.append(el("span", "", "CADLens · 팀 네이놈" + (s.source ? ` · 출처 ${s.source}` : "")), el("span", "", `${i + 1} / ${COUNT}`));
+    stage.append(foot);
+  }
 
   const me = $("me").value;
   const who = [...new Set(s.lines.map((l) => l.who))];

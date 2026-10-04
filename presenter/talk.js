@@ -1,15 +1,16 @@
 // 데모데이 ② 5분 발표 — 슬라이드와 대사. 팀이 고치는 파일은 이것 하나다.
-// 숫자의 출처는 plan/w8/W8_준비.md 와 docs/ 에 있다. 날짜는 커밋 기록으로 확인했다.
-// 읽는 사람(who)은 W1 역할표로 나눈 초안이다 — 바꾸면 people 에 있는 이름만 쓴다. 이름 색은 people 순서대로 붙는다.
+// 숫자의 출처는 장마다 source 에 적고 화면 아래에 띄운다. 날짜는 커밋 기록으로 확인했다.
+// 읽는 사람(who)은 사람마다 한 덩어리로 묶었다 — 바뀌는 횟수가 적을수록 흐름이 덜 끊긴다(W7 TRAP 04).
+// 바꾸면 people 에 있는 이름만 쓴다. 이름 색은 people 순서대로 붙는다.
 // 고친 뒤에는 node --test presenter/*.test.mjs 로 오타를 잡는다.
 
-export const KINDS = ["cover", "compare", "big", "pair", "flow", "ask"];
+export const KINDS = ["cover", "compare", "big", "video", "flow", "ask"];
 export const CHARTS = ["hbar", "stack", "column"];
 
-// W4 원고에서 잰 읽는 속도 — 1초에 4.5자(띄어쓰기 포함)
+// W4 원고에서 잰 읽는 속도 — 1초에 4.5자(띄어쓰기 포함). 영상이 대사보다 길면 영상 길이.
 const CHARS_PER_SEC = 4.5;
-export const targetSeconds = (slide) =>
-  Math.round(slide.lines.reduce((n, l) => n + l.say.length, 0) / CHARS_PER_SEC);
+export const targetSeconds = (slide) => Math.max(slide.view?.seconds || 0,
+  Math.round(slide.lines.reduce((n, l) => n + l.say.length, 0) / CHARS_PER_SEC));
 
 export const TALK = {
   title: "CADLens · 데모데이 ②",
@@ -18,10 +19,11 @@ export const TALK = {
   slides: [
     {
       title: "막혀 있던 것",
-      view: { kind: "cover", kicker: "CADLens · 팀 네이놈 · 데모데이 ②",
+      view: { kind: "cover", kicker: "CADLens · 팀 네이놈 · 데모데이 ② 최종 발표",
               headline: "W4 이후\n무엇이 달라졌나",
-              sub: "실기 도면을 올리면 빠뜨린 곳을 도면 위 번호로 찍어 주는 검사기",
+              sub: "실기 도면을 올리면 빠뜨린 곳을\n도면 위 번호로 찍어 주는 검사기",
               note: "그때 막혀 있던 것 — 실제 수험생 도면이 2장뿐",
+              by: "김승준 · 박지완 · 안대열 · 장우영",
               img: "img/fix_after.png", imgAlt: "CADLens 수정 예시 — 동력전달장치 도면의 Ø9 치수와 중심선" },
       lines: [
         { who: "김승준", say: "CADLens는 실기 도면을 올리면 빠뜨린 곳을 도면 위에 번호로 찍어 주는 검사기입니다." },
@@ -31,7 +33,7 @@ export const TALK = {
     {
       // W4 칸은 데모데이 ①(9월 9일) 때 상태다. 검사 시간 16.9초만 9월 18일 고치기 전에 잰 값이다.
       title: "W4 → 지금",
-      view: { kind: "compare", kicker: "한 장으로 먼저",
+      view: { kind: "compare", kicker: "W4 이후 달라진 것 — 한 장으로",
               head: ["", "W4 · 9월 9일", "지금 · 10월 4일"],
               rows: [
                 ["실제 수험생 도면", "2장", "23장 측정 · 6개 항목 63/63"],
@@ -42,59 +44,35 @@ export const TALK = {
                 ["세는 방법", "검사 횟수", "사람 수 (프로그램 1,147번 뺌)"],
               ],
               note: "* 9월 18일 고치기 전 공개 서버에서 잰 값" },
+      source: "W8 KPI 리포트 · docs/accuracy.md",
       lines: [
-        { who: "김승준", say: "그 뒤 무엇이 달라졌는지 한 장으로 먼저 보여 드리겠습니다." },
-        { who: "김승준", say: "하나씩 말씀드리겠습니다." },
+        { who: "김승준", say: "W4 뒤에 달라진 것을 한 장으로 먼저 보여 드리겠습니다." },
+        { who: "김승준", say: "지금 화면부터 보시겠습니다." },
       ],
     },
     {
-      title: "실제 도면 23장",
-      view: { kind: "big", kicker: "실제 수험생 도면 — 9월 11일", value: "2장 → 23장",
-              points: ["AI가 도면 넓이의 29~51%만 보고 채점 → 도면 전체를 보냄",
-                       "선 4개로 그린 윤곽선을 한 장도 못 찾음 → 30장 중 28장",
-                       "주서 없는 도면 8장에서 '주서 없음'을 놓침 → 고침"],
-              caption: "고친 뒤 — 그림만 보고 가릴 수 있는 6개 항목 · 63건 모두 맞음",
-              note: "한 학생의 도면이라 정확도라고 부르지 않습니다" },
+      // 영상은 presenter/video/ — 로컬 서버에서 실제 화면을 찍어 만든 23초. 만드는 법은 W8_준비.md
+      title: "시연 — 수정 예시",
+      view: { kind: "video", src: "video/demo.mp4", poster: "video/demo.jpg", seconds: 23,
+              label: "CADLens 시연 — 본체 도면을 끌어다 놓고, 번호를 눌러 그 자리로 가고, 수정 예시로 빠진 Ø20.5 를 초록으로 그린다" },
       lines: [
-        { who: "안대열", say: "9월 11일, 한 학생의 Inventor 도면 스물세 장으로 처음 쟀습니다." },
-        { who: "안대열", say: "넣어 보니 AI는 도면 넓이의 29에서 51퍼센트만 보고 채점하고 있었고, 윤곽선은 한 장도 못 찾았고, 주서 없는 도면 여덟 장을 놓쳤습니다." },
-        { who: "안대열", say: "고친 뒤 여섯 개 항목, 예순세 건이 모두 맞았습니다." },
-        { who: "안대열", say: "다만 한 학생의 도면이라 이 숫자를 정확도라고 부르지 않습니다." },
-      ],
-    },
-    {
-      title: "새로 생긴 것",
-      view: { kind: "pair", kicker: "W4 이후 새로 생긴 것 — 수정 예시",
-              items: [{ src: "img/fix_before.png", label: "전 — 지름 치수가 없는 구멍에 번호" },
-                      { src: "img/fix_after.png", label: "후 — Ø9 치수와 중심선을 초록으로" }],
-              caption: "동력전달장치 도면 · 도면에서 읽은 좌표 그대로 그려 넣음",
-              note: "1번 Ø15 는 숨은선으로만 그려져 있어 일부러 안 그림 · CADLens 화면을 확대해 일부만 잘라 보여 줌" },
-      lines: [
-        { who: "박지완", say: "W4 뒤에 새로 만든 것 중 하나가 수정 예시입니다." },
-        { who: "박지완", say: "동력전달장치 도면에서 지름 치수가 빠진 구멍을 찾아, 도면에서 읽은 좌표 그대로 Ø9 치수와 중심선을 초록색으로 그려 줍니다." },
-        { who: "박지완", say: "그림을 지어내는 AI가 아니라서 위치와 값이 정확합니다." },
-      ],
-    },
-    {
-      title: "런칭 주",
-      view: { kind: "flow", kicker: "9월 16일 · 런칭 주",
-              steps: [{ n: "31", label: "방문" }, { n: "7", label: "검사" },
-                      { n: "7", label: "결과까지" }, { n: "7", label: "같은 날 다시 검사" }],
-              caption: "친구들 단톡방 · 전산응용기계제도 네이버 카페" },
-      lines: [
-        { who: "장우영", say: "9월 16일, 친구들 단톡방과 네이버 카페에 링크를 올렸습니다." },
-        { who: "장우영", say: "그 주에 서른한 명이 들어와 일곱 명이 검사했고, 일곱 명 모두 같은 날 다시 검사했습니다." },
+        { who: "박지완", say: "도면을 끌어다 놓으면," },
+        { who: "박지완", say: "실격 사유와 빠뜨린 치수 자리가 번호로 나옵니다." },
+        { who: "박지완", say: "번호를 누르면 그 자리로 갑니다." },
+        { who: "박지완", say: "W4 뒤에 만든 수정 예시는 빠진 치수를 도면 좌표 그대로 그려 줍니다." },
+        { who: "박지완", say: "그림을 지어내는 AI가 아니라 위치와 값이 정확합니다." },
       ],
     },
     {
       title: "검사 속도",
       // docs/ai_usage.md 모델 선택 근거 — 실제 수험생 도면 10장, 2026-09-18
-      view: { kind: "big", kicker: "검사 한 번", value: "16.9초 → 9.9초",
+      view: { kind: "big", kicker: "AI 모델 넷을 재서 바꿨습니다", value: "16.9초 → 9.9초",
               chart: { type: "hbar", title: "AI 채점 한 번 · 중앙값 · 실제 수험생 도면 10장으로 잼", unit: "초",
                        rows: [{ label: "가장 자세한 모델", value: 14.3, note: "기준" },
                               { label: "쓰던 모델", value: 7.4, note: "20번 중 18번 실패" },
                               { label: "고른 모델", value: 3.2, note: "지금 1순위", focus: true },
                               { label: "가장 빠른 모델", value: 2.1, note: "20번 모두 만점 → 버림" }] } },
+      source: "docs/ai_usage.md",
       lines: [
         { who: "박지완", say: "사람들이 첫 화면에서 나가서 재 보니 검사 한 번이 16.9초였습니다." },
         { who: "박지완", say: "1순위 AI가 스무 번 중 열여덟 번 실패하고 있었습니다." },
@@ -103,28 +81,59 @@ export const TALK = {
       ],
     },
     {
+      title: "실제 도면 23장",
+      view: { kind: "big", kicker: "실제 수험생 도면으로 처음 쟀습니다 · 9월 11일", value: "2장 → 23장",
+              points: ["AI가 도면 넓이의 29~51%만 보고 채점 → 도면 전체를 보냄",
+                       "선 4개로 그린 윤곽선을 한 장도 못 찾음 → 30장 중 28장",
+                       "주서 없는 도면 8장에서 '주서 없음'을 놓침 → 고침"],
+              caption: "고친 뒤 — 그림만 보고 가릴 수 있는 6개 항목 · 63건 모두 맞음",
+              note: "한 학생의 도면이라 정확도라고 부르지 않습니다" },
+      source: "docs/accuracy.md",
+      lines: [
+        { who: "안대열", say: "9월 11일, 한 학생의 Inventor 도면 스물세 장으로 처음 쟀습니다." },
+        { who: "안대열", say: "넣어 보니 AI가 도면의 절반 남짓만 보고 채점하는 등 세 군데가 틀려 있었습니다." },
+        { who: "안대열", say: "고친 뒤 여섯 개 항목, 예순세 건이 모두 맞았습니다." },
+        { who: "안대열", say: "다만 한 학생의 도면이라 이 숫자를 정확도라고 부르지 않습니다." },
+      ],
+    },
+    {
       title: "숫자 다시 세기",
       // docs/metrics.md 로봇을 빼는 규칙 — ① 920번 + ② 227번 = 1,147번. 사람 80번은 /api/stats(업로드 65 + 예제 15)와 같다
-      view: { kind: "big", kicker: "숫자를 다시 셌습니다", value: "1,227번 중 1,147번",
+      // 큰 숫자의 파란 80 과 그래프의 파란 조각이 같은 것을 가리킨다
+      view: { kind: "big", kicker: "숫자도 다시 셌습니다 — 사람만", value: "1,227번 → 80번",
               chart: { type: "stack", label: "기록된 검사", unit: "번",   // 합계는 parts 를 더해 그린다
                        parts: [{ label: "프로그램", value: 1147 }, { label: "사람", value: 80, focus: true }] },
-              note: "W5에 낸 10명 → 7명" },
+              note: "1,147번(93%)은 사람이 아닌 프로그램 · W5에 낸 10명 → 7명" },
+      source: "docs/metrics.md",
       lines: [
         { who: "안대열", say: "숫자도 다시 셌습니다." },
-        { who: "안대열", say: "기록된 검사 천이백이십칠 번 중 천백사십칠 번이 사람이 아니라 프로그램이었습니다. 사람이 한 검사는 여든 번입니다." },
-        { who: "안대열", say: "W5에 낸 열 명은 일곱 명이 맞습니다." },
+        { who: "안대열", say: "기록된 검사 천이백이십칠 번 중 천백사십칠 번, 93퍼센트가 사람이 아니라 프로그램이었습니다." },
+        { who: "안대열", say: "사람이 한 검사는 여든 번입니다. W5에 낸 열 명은 일곱 명이 맞습니다." },
+      ],
+    },
+    {
+      title: "런칭 주",
+      view: { kind: "flow", kicker: "9월 16일 런칭 — 친구들 단톡방 · 전산응용기계제도 네이버 카페",
+              steps: [{ n: "31", label: "방문" }, { n: "7", label: "검사" },
+                      { n: "7", label: "결과까지" }, { n: "7", label: "같은 날 다시 검사" }],
+              caption: "31명 중 7명(23%)이 검사 · 7명 모두 같은 날 다시 검사" },
+      source: "W8 KPI 리포트 주별 표",
+      lines: [
+        { who: "장우영", say: "9월 16일, 친구들 단톡방과 네이버 카페에 링크를 올렸습니다." },
+        { who: "장우영", say: "그 주에 서른한 명이 들어와 일곱 명이 검사했고, 일곱 명 모두 같은 날 다시 검사했습니다." },
       ],
     },
     {
       // "이번 주" 와 "그 뒤로" 숫자는 발표 직전 /api/stats 로 다시 본다 (슬라이드와 대사 둘 다)
       title: "안 된 것",
-      view: { kind: "big", kicker: "안 된 것", value: "7명 / 20명",
+      view: { kind: "big", kicker: "안 된 것 — 가장 많았던 주도 목표의 35%", value: "7명 / 20명",
               chart: { type: "column", title: "한 주에 두 번 이상 검사한 사람", unit: "명",
                        target: { value: 20, label: "목표 20명" },
                        cols: [{ label: "8/31 주", value: 0 }, { label: "9/7 주", value: 5 },
                               { label: "9/14 주", value: 7, focus: true }, { label: "9/21 주", value: 1 },
                               { label: "9/28 주 *", value: 0 }] },
               note: "* 10월 3일까지 · 예제 버튼을 고친 뒤 사람 검사 0건 · 다음 날 다시 온 사람 0명" },
+      source: "W8 KPI 리포트",
       lines: [
         { who: "장우영", say: "안 된 것도 말씀드립니다." },
         { who: "장우영", say: "목표는 한 주에 스무 명이었는데 가장 많았던 주가 일곱 명이고, 그 뒤 한 명, 이번 주는 아직 영 명입니다." },
@@ -134,7 +143,7 @@ export const TALK = {
     },
     {
       title: "질문 하나",
-      view: { kind: "ask", kicker: "여쭙고 싶은 것",
+      view: { kind: "ask", kicker: "8주를 마치며 — 여쭙고 싶은 것",
               question: "시험 전 몇 주 동안\n다시 오게 하려면,\n무엇을 바꿔야 할까요?",
               sub: "다음 — 실기를 준비하는 반에 직접 들고 갑니다",
               note: "겪은 문제 28건 · 고친 것도 못 고친 것도 저장소에 공개" },
@@ -143,7 +152,7 @@ export const TALK = {
         { who: "김승준", say: "그래서 남은 기간에는 첫 화면을 더 고치기보다, 실기를 준비하는 반에 직접 들고 가려고 합니다." },
         { who: "김승준", say: "여쭙고 싶은 건 하나입니다." },
         { who: "김승준", say: "실기를 준비하는 학생들이 시험 전 몇 주 동안 다시 오게 하려면, 저희가 무엇을 바꿔야 할까요?" },
-        { who: "김승준", say: "겪은 문제 스물여덟 건은 모두 저장소에 공개해 두었습니다. 감사합니다." },
+        { who: "김승준", say: "8주 동안 감사했습니다." },
       ],
     },
   ],

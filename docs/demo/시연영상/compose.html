@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #eef3f9; }
+  body { font-family: "Pretendard Variable", Pretendard, sans-serif; word-break: keep-all; -webkit-font-smoothing: antialiased; }
+  #frame { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  #bg {
+    position: absolute; inset: -400px;
+    background:
+      radial-gradient(1100px 700px at 76% 22%, rgba(42,120,214,.11), transparent 62%),
+      radial-gradient(900px 640px at 14% 88%, rgba(42,120,214,.07), transparent 62%),
+      linear-gradient(180deg, #f7f9fd 0%, #e6edf7 100%);
+  }
+  #win {
+    position: absolute; left: 235px; top: 64px; width: 1600px; height: 900px;
+    transform: scale(.92); transform-origin: 0 0; border-radius: 22px; overflow: hidden; background: #fff;
+    box-shadow: 0 0 0 1px rgba(15,23,42,.09), 0 3px 8px rgba(15,23,42,.06),
+                0 30px 70px rgba(15,23,42,.17), 0 70px 140px -50px rgba(15,23,42,.26);
+  }
+  #win img { position: absolute; left: 0; top: 0; display: block; }
+  #win img.full { width: 1600px; height: 900px; }
+  .hide { display: none !important; }
+
+  /* 화면 위에 얹는 것 — 카메라와 상관없이 같은 크기 */
+  #cursor { position: absolute; left: 0; top: 0; width: 30px; height: 44px; transform-origin: 3.6px 3px;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,.32)); z-index: 5; }
+  .ripple { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; z-index: 4; }
+  .ripple.ring { border: 3px solid rgba(42,120,214,.95); }
+  .ripple.disc { background: rgba(42,120,214,.28); }
+  #file {
+    position: absolute; left: 0; top: 0; z-index: 4; display: flex; align-items: center; gap: 14px;
+    padding: 12px 22px 12px 12px; border-radius: 18px; background: #fff; transform-origin: 0 0;
+    box-shadow: 0 0 0 1px rgba(15,23,42,.06), 0 18px 40px rgba(15,23,42,.26), 0 3px 8px rgba(15,23,42,.12);
+  }
+  #file .ic { width: 50px; height: 58px; border-radius: 10px; background: #e5f5ec; color: #0f7a4b; position: relative;
+              display: grid; place-items: end center; padding-bottom: 9px; font-size: 14px; font-weight: 850; letter-spacing: .4px; }
+  #file .ic::before { content: ""; position: absolute; right: 0; top: 0; width: 16px; height: 16px;
+                      background: linear-gradient(225deg, #fff 50%, #bfe6cf 50%); border-bottom-left-radius: 5px; }
+  #file b { display: block; font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -.3px; }
+  #file span { display: block; margin-top: 2px; font-size: 17px; font-weight: 600; color: #5b6678; }
+
+  #cap { position: absolute; left: 50%; bottom: 58px; z-index: 6; display: flex; align-items: center; gap: 18px;
+         padding: 16px 32px 16px 16px; border-radius: 24px; transform-origin: 50% 100%;
+         background: rgba(11,17,31,.84); backdrop-filter: blur(16px) saturate(150%);
+         box-shadow: 0 0 0 1px rgba(255,255,255,.07) inset, 0 20px 50px rgba(2,6,23,.32); }
+  #cap .n { flex: none; width: 50px; height: 50px; border-radius: 15px; background: #2a78d6; color: #fff;
+            display: grid; place-items: center; font-size: 27px; font-weight: 850; }
+  #cap .m { font-size: 37px; font-weight: 780; color: #fff; letter-spacing: -.6px; line-height: 1.2; white-space: nowrap; }
+  #cap .s { margin-top: 3px; font-size: 25px; font-weight: 600; color: #b8c5d8; letter-spacing: -.2px; white-space: nowrap; }
+
+  .pill { position: absolute; z-index: 6; display: flex; align-items: center; gap: 12px; border-radius: 999px; white-space: nowrap; }
+  #ff { left: 50%; top: 42px; padding: 11px 24px 11px 18px; background: rgba(11,17,31,.82); backdrop-filter: blur(14px);
+        color: #fff; font-size: 25px; font-weight: 750; box-shadow: 0 14px 34px rgba(2,6,23,.28); }
+  #ff svg { width: 34px; height: 22px; }
+  #url { right: 44px; top: 38px; padding: 12px 26px 12px 16px; background: rgba(255,255,255,.94); backdrop-filter: blur(14px);
+         color: #1d5fb5; font-size: 26px; font-weight: 800; letter-spacing: -.2px;
+         box-shadow: 0 0 0 1px rgba(15,23,42,.08), 0 16px 40px rgba(15,23,42,.18); }
+  #url i { width: 36px; height: 36px; border-radius: 50%; background: #2a78d6; display: grid; place-items: center; }
+  #url i svg { width: 20px; height: 20px; }
+  #url small { font-size: 20px; font-weight: 650; color: #5b6678; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="world">
+    <div id="bg"></div>
+    <div id="win">
+      <img id="A" class="full" alt=""><img id="Ap" alt="">
+      <img id="B" class="full" alt=""><img id="Bp" alt="">
+    </div>
+  </div>
+  <div class="ripple disc hide" id="rd"></div>
+  <div class="ripple ring hide" id="rr"></div>
+  <div id="file" class="hide"><div class="ic">DXF</div><div><b>본체.dxf</b><span>96 KB</span></div></div>
+  <svg id="cursor" viewBox="0 0 30 44" aria-hidden="true">
+    <path d="M3.6 3 L3.6 35.2 L11.6 27.6 L16.9 39.6 L22.3 37.3 L17.1 25.5 L27.6 25.5 Z"
+          fill="#111" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>
+  </svg>
+  <div id="cap" class="hide"><div class="n" id="capN"></div><div><div class="m" id="capM"></div><div class="s" id="capS"></div></div></div>
+  <div id="ff" class="pill hide"><svg viewBox="0 0 34 22"><path d="M2 2l14 9-14 9zM17 2l14 9-14 9z" fill="#fff"/></svg>빨리 감기</div>
+  <div id="url" class="pill hide"><i><svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.4 2.2 3.6 4.7 3.6 7.5S12.4 15.3 10 17.5M10 2.5C7.6 4.7 6.4 7.2 6.4 10s1.2 5.3 3.6 7.5"/></svg></i><small>지금 써 보기</small>naverogq.onrender.com</div>
+</div>
+<script src="story.js"></script>
+<script>
+const { FPS, T, ease, cursorAt } = STORY;
+let M;                                   // capture 가 남긴 manifest
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const io = (u) => { u = clamp(u, 0, 1); return u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; };   // easeInOutCubic
+const out3 = (u) => 1 - Math.pow(1 - clamp(u, 0, 1), 3);
+const smooth = (a, b, x) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
+
+// 앱 화면(CSS px) → 세계 좌표
+const W = (p) => ({ x: 235 + p.x * .92, y: 64 + p.y * .92 });
+const center = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+
+// 카메라 — 세계에서 화면 가운데에 둘 점과 배율. 많이 당기면 창 밖 배경이 안 보이게 키 값을 미리 맞춘다
+function bounds(z) {
+  const b = smooth(1.0, 1.35, z);
+  return { L: lerp(0, 235, b), R: lerp(1920, 1707, b), T: lerp(0, 64, b), B: lerp(1080, 892, b) };
+}
+function fitKey(k) {
+  const { L, R, T: Tp, B } = bounds(k.z), hw = 960 / k.z, hh = 540 / k.z;
+  const cx = R - L <= 2 * hw ? (L + R) / 2 : clamp(k.cx, L + hw, R - hw);
+  const cy = B - Tp <= 2 * hh ? (Tp + B) / 2 : clamp(k.cy, Tp + hh, B - hh);
+  return { cx, cy, z: k.z };
+}
+let SHOTS;
+function buildShots() {
+  const r = M.rects, at = (p, z) => { const w = W(p); return fitKey({ cx: w.x, cy: w.y, z }); };
+  const hole = center(r.stage);                                  // 번호를 누르면 그 구멍이 미리보기 한가운데로 온다
+  const fl = r.fixLayer;
+  const heroBox = { x0: Math.min(fl.x, hole.x - 120), x1: Math.max(fl.x + fl.w, hole.x + 250),
+                    y0: hole.y - 250, y1: Math.max(fl.y + fl.h, hole.y + 125) };
+  // 자막에 안 가리게 — 화면 위쪽 안전 영역(x 140~1780, y 80~820)에 맞춘다
+  const heroZ = Math.min(1640 / ((heroBox.x1 - heroBox.x0) * .92), 740 / ((heroBox.y1 - heroBox.y0) * .92));
+  const hb = W({ x: (heroBox.x0 + heroBox.x1) / 2, y: (heroBox.y0 + heroBox.y1) / 2 });
+  const heroC = { x: (hb.x - 235) / .92, y: (hb.y + 90 / heroZ - 64) / .92 };
+  return [
+    { t0: 0, t1: 0, to: { cx: 960, cy: 540, z: 1 } },
+    { t0: 0, t1: 1.25, to: { cx: 972, cy: 532, z: 1.025 }, lin: true },
+    { t0: 1.25, t1: 3.05, to: at(center(r.drop), 1.75) },
+    { t0: 3.30, t1: 4.25, to: at(center(r.busyCard), 1.95) },
+    { t0: 4.70, t1: 5.75, to: { cx: 960, cy: 540, z: 1 } },
+    { t0: 6.75, t1: 7.85, to: at({ x: 1218, y: 497 }, 1.7) },
+    { t0: 8.40, t1: 9.35, to: at({ x: 486, y: 515 }, 1.62) },
+    { t0: 10.30, t1: 11.30, to: at({ x: 470, y: 420 }, 1.85) },
+    { t0: 11.95, t1: 13.45, to: at(heroC, heroZ) },
+    { t0: 13.45, t1: 16.40, to: at(heroC, heroZ * 1.07), lin: true },
+    { t0: 16.40, t1: 17.95, to: at(center(r.viewerAfter), 1.5) },
+  ];
+}
+function camAt(t) {
+  let cur = SHOTS[0].to;
+  for (const s of SHOTS.slice(1)) {
+    if (t <= s.t0) break;
+    const k = s.lin ? clamp((t - s.t0) / (s.t1 - s.t0), 0, 1) : io((t - s.t0) / (s.t1 - s.t0));
+    const lz = lerp(Math.log(cur.z), Math.log(s.to.z), k);
+    cur = { cx: lerp(cur.cx, s.to.cx, k), cy: lerp(cur.cy, s.to.cy, k), z: Math.exp(lz) };
+    if (t < s.t1) break;
+  }
+  return cur;
+}
+const toScreen = (w, c) => ({ x: (w.x - c.cx) * c.z + 960, y: (w.y - c.cy) * c.z + 540 });
+
+// 장면 그림 — 같은 그림이면 다시 안 읽는다
+async function setImg(el, src) {
+  if (!src) { el.classList.add('hide'); return; }
+  el.classList.remove('hide');
+  if (el.dataset.src !== src) { el.dataset.src = src; el.src = 'cap/' + src; await el.decode(); }
+}
+async function setLayer(full, patch, e) {
+  await setImg(full, e && e.base);
+  const p = e && e.patch;
+  await setImg(patch, p && p.src);
+  if (p) Object.assign(patch.style, { left: p.x + 'px', top: p.y + 'px', width: p.width + 'px', height: p.height + 'px' });
+}
+
+const CAPS = [
+  { t0: 0.75, t1: 3.55, n: 1, m: '도면 파일을 끌어다 놓으면' },
+  { t0: 5.30, t1: 8.25, n: 2, m: '실격 사유와 빠뜨린 치수 자리', s: '도면 위에 번호로 찍어 줍니다' },
+  { t0: 8.60, t1: 11.50, n: 3, m: '번호를 누르면 그 자리로' },
+  { t0: 12.05, t1: 16.60, n: 4, m: '수정 예시 — W4 이후 새 기능', s: '도면에서 읽은 좌표 그대로, 빠진 치수를 초록으로' },
+];
+const CLICKS = () => [T.drop, T.chipClick, T.fixClick];
+const XFADE = () => [{ t0: T.fixClick, d: 0.16 }];
+
+function overlay(el, t, t0, t1, base, dy = 16) {          // 들어올 때 0.34초, 나갈 때 0.24초
+  const a = out3((t - t0) / .34), b = 1 - smooth(t1 - .24, t1, t);
+  const o = Math.min(a, b);
+  if (o <= 0.001) { el.classList.add('hide'); return; }
+  el.classList.remove('hide');
+  el.style.opacity = o;
+  const y = (1 - a) * dy - (1 - b) * 8;
+  el.style.transform = `${base} translateY(${y}px) scale(${.985 + .015 * a})`;
+}
+
+async function renderFrame(f) {
+  const t = f / FPS, fr = M.frames[f];
+  const cam = camAt(t);
+  $('world').style.transform = `translate(960px,540px) scale(${cam.z}) translate(${-cam.cx}px,${-cam.cy}px)`;
+
+  // 앱 화면 — 수정 예시처럼 순간 바뀌는 곳은 0.16초 녹여서
+  let a = fr.a, b = fr.b, mix = fr.b ? io(fr.mix) : 0;
+  for (const x of XFADE()) if (t >= x.t0 && t < x.t0 + x.d) {
+    b = fr.a; a = M.frames[Math.round(x.t0 * FPS) - 1].a; mix = io((t - x.t0) / x.d);
+  }
+  await setLayer($('A'), $('Ap'), a);
+  await setLayer($('B'), $('Bp'), b);
+  $('B').style.opacity = $('Bp').style.opacity = mix;
+
+  // 커서
+  const p = cursorAt(M.segs, t), s = toScreen(W(p), cam);
+  const cur = $('cursor');
+  let press = 1;
+  for (const c of CLICKS()) {
+    const u = t - c;
+    if (u > -0.06 && u < 0.2) press = Math.min(press, 1 - .14 * (u < 0 ? (u + .06) / .06 : 1 - u / .2));
+  }
+  const vis = t < T.enter ? 0 : 1 - smooth(T.fadeOut[0], T.fadeOut[1], t);
+  cur.style.opacity = vis;
+  cur.style.transform = `translate(${s.x - 3.6}px,${s.y - 3}px) scale(${press})`;
+
+  // 눌렀을 때 퍼지는 원
+  const rd = $('rd'), rr = $('rr');
+  let rip = null;
+  for (const c of CLICKS()) if (t >= c && t < c + .6) rip = t - c;
+  if (rip === null) { rd.classList.add('hide'); rr.classList.add('hide'); }
+  else {
+    const k = out3(rip / .6), rad = 8 + 30 * k;
+    for (const [el, r0, o] of [[rr, rad, .95 * (1 - k)], [rd, rad * .72, .9 * (1 - k)]]) {
+      el.classList.remove('hide');
+      Object.assign(el.style, { width: 2 * r0 + 'px', height: 2 * r0 + 'px', opacity: o,
+                                transform: `translate(${s.x - r0}px,${s.y - r0}px)` });
+    }
+  }
+
+  // 끌고 오는 파일
+  const fe = $('file');
+  if (t < T.enter || t > T.drop + .28) fe.classList.add('hide');
+  else {
+    fe.classList.remove('hide');
+    const k = t < T.drop ? 0 : out3((t - T.drop) / .28);
+    const tilt = -4 * (1 - smooth(T.dragArrive - .5, T.dragArrive + .2, t));
+    fe.style.opacity = 1 - k;
+    fe.style.transform = `translate(${s.x + 18 * (1 - k)}px,${s.y + 30 * (1 - k)}px) rotate(${tilt}deg) scale(${1 - .55 * k})`;
+  }
+
+  // 자막
+  const cap = CAPS.find((c) => t >= c.t0 && t < c.t1);
+  if (!cap) $('cap').classList.add('hide');
+  else {
+    $('capN').textContent = cap.n; $('capM').textContent = cap.m;
+    $('capS').textContent = cap.s || ''; $('capS').classList.toggle('hide', !cap.s);
+    overlay($('cap'), t, cap.t0, cap.t1, 'translateX(-50%)');
+  }
+  overlay($('ff'), t, T.busyEnd - .22, T.resIn + .22, 'translateX(-50%)', -12);
+  overlay($('url'), t, 18.3, 1e9, '', -12);
+  return true;
+}
+
+async function init() {
+  M = await (await fetch('cap/manifest.json')).json();
+  SHOTS = buildShots();
+  await document.fonts.ready;
+  await document.fonts.load('800 37px "Pretendard Variable"', '도면파일을끌어다놓으면실격사유빠뜨린치수자리번호예시');
+  return { n: M.n, fonts: document.fonts.check('800 37px "Pretendard Variable"'), shots: SHOTS };
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "발표 도우미 3장 시연 영상을 만드는 도구 — README.md",
+  "dependencies": { "playwright-core": "^1.63.0" }
+}

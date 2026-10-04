@@ -6,7 +6,7 @@ import { TALK, KINDS, CHARTS, targetSeconds } from "./talk.js";
 
 const NEEDS = {
   cover: ["headline"], compare: ["head", "rows"], big: ["value"],
-  pair: ["items"], flow: ["steps"], ask: ["question"],
+  video: ["src"], flow: ["steps"], ask: ["question"],
 };
 
 test("talk is well formed", () => {
@@ -29,12 +29,9 @@ test("talk is well formed", () => {
     if (v.kind === "compare") {
       for (const row of v.rows) assert.equal(row.length, v.head.length, `${at} 표 칸 수`);
     }
-    if (v.kind === "pair") {
-      assert.equal(v.items.length, 2, `${at} 그림은 두 장`);
-      for (const it of v.items) {
-        assert.ok(it.label, `${at} 그림 설명`);
-        assert.ok(existsSync(new URL(it.src, import.meta.url)), `${at} 그림 파일이 없다: ${it.src}`);
-      }
+    if (v.kind === "video") {
+      for (const f of [v.src, v.poster]) assert.ok(f && existsSync(new URL(f, import.meta.url)), `${at} 영상 파일이 없다: ${f}`);
+      assert.ok(v.seconds > 0, `${at} 영상 길이`);
     }
   }
 });
@@ -70,4 +67,5 @@ test("talk fits the time limit", () => {
 test("target seconds come from the length of the lines", () => {
   const s = { lines: [{ who: "a", say: "가".repeat(45) }] };
   assert.equal(targetSeconds(s), 10);
+  assert.equal(targetSeconds({ ...s, view: { seconds: 23 } }), 23, "영상이 대사보다 길면 영상 길이");
 });
