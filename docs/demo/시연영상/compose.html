@@ -89,6 +89,9 @@
 <script src="story.js"></script>
 <script>
 const { FPS, T, CAPS, cursorAt } = STORY;
+// 어느 장면인가 — ?cap=cap2/explain 처럼. 없으면 5분판 영상(cap/, 콘티는 story.js).
+// capture2.js 가 찍은 장면은 카메라 · 누른 때 · 자막 · 커서를 manifest 에 직접 적어 둔다.
+const DIR = new URLSearchParams(location.search).get('cap') || 'cap';
 let M;                                   // capture 가 남긴 manifest
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -142,6 +145,12 @@ function buildShots() {
     { t0: T.pullBack, t1: T.pullBack + 1.5, to: at(center(r.viewerAfter), 1.5) },
   ];
 }
+// capture2 장면 — 카메라 목표를 앱 화면 좌표로 적어 둔다
+function manifestShots() {
+  const at = (p, z) => { const w = W(p); return fitKey({ cx: w.x, cy: w.y, z }); };
+  return [{ t0: 0, t1: 0, to: { cx: 960, cy: 540, z: 1 } },
+          ...M.shots.map((s) => ({ t0: s.t0, t1: s.t1, lin: s.lin, to: at(s.p, s.z) }))];
+}
 function camAt(t) {
   let cur = SHOTS[0].to;
   for (const s of SHOTS.slice(1)) {
@@ -159,7 +168,7 @@ const toScreen = (w, c) => ({ x: (w.x - c.cx) * c.z + 960, y: (w.y - c.cy) * c.z
 async function setImg(el, src) {
   if (!src) { el.classList.add('hide'); return; }
   el.classList.remove('hide');
-  if (el.dataset.src !== src) { el.dataset.src = src; el.src = 'cap/' + src; await el.decode(); }
+  if (el.dataset.src !== src) { el.dataset.src = src; el.src = DIR + '/' + src; await el.decode(); }
 }
 async function setLayer(full, patch, e) {
   await setImg(full, e && e.base);
@@ -168,8 +177,11 @@ async function setLayer(full, patch, e) {
   if (p) Object.assign(patch.style, { left: p.x + 'px', top: p.y + 'px', width: p.width + 'px', height: p.height + 'px' });
 }
 
-const CLICKS = () => [T.drop, T.chipClick, T.fixClick];
-const XFADE = () => [{ t0: T.fixClick, d: 0.16 }];
+const CLICKS = () => M.clicks || [T.drop, T.chipClick, T.fixClick];
+const XFADE = () => M.xfade || [{ t0: T.fixClick, d: 0.16 }];
+const CURSOR = () => M.cursor || { in: T.enter, out: T.fadeOut };
+// 끌고 오는 파일 카드 — t0 에 나타나 커서를 따라오고, drop 에 작아지며 사라진다
+const FILE = () => M.file || (M.shots ? null : { t0: T.enter, drop: T.drop, arrive: T.dragArrive });
 
 function overlay(el, t, t0, t1, base, dy = 16) {          // 들어올 때 0.34초, 나갈 때 0.24초
   const a = out3((t - t0) / .34), b = 1 - smooth(t1 - .24, t1, t);
@@ -203,7 +215,7 @@ async function renderFrame(f) {
     const u = t - c;
     if (u > -0.06 && u < 0.2) press = Math.min(press, 1 - .14 * (u < 0 ? (u + .06) / .06 : 1 - u / .2));
   }
-  const vis = t < T.enter ? 0 : 1 - smooth(T.fadeOut[0], T.fadeOut[1], t);
+  const vis = t < CURSOR().in ? 0 : 1 - smooth(CURSOR().out[0], CURSOR().out[1], t);
   cur.style.opacity = vis;
   cur.style.transform = `translate(${s.x - 3.6}px,${s.y - 3}px) scale(${press})`;
 
@@ -222,35 +234,43 @@ async function renderFrame(f) {
   }
 
   // 끌고 오는 파일
-  const fe = $('file');
-  if (t < T.enter || t > T.drop + .28) fe.classList.add('hide');
+  const fe = $('file'), F = FILE();
+  if (!F || t < F.t0 || t > F.drop + .28) fe.classList.add('hide');
   else {
     fe.classList.remove('hide');
-    const k = t < T.drop ? 0 : out3((t - T.drop) / .28);
-    const tilt = -4 * (1 - smooth(T.dragArrive - .5, T.dragArrive + .2, t));
-    fe.style.opacity = 1 - k;
-    fe.style.transform = `translate(${s.x + 18 * (1 - k)}px,${s.y + 30 * (1 - k)}px) rotate(${tilt}deg) scale(${1 - .55 * k})`;
+    const k = t < F.drop ? 0 : out3((t - F.drop) / .28);
+    const tilt = F.arrive ? -4 * (1 - smooth(F.arrive - .5, F.arrive + .2, t)) : 0;
+    const pop = F.arrive ? 1 : out3((t - F.t0) / .3);           // 고르는 파일은 커서 옆에 톡 나타난다
+    fe.style.opacity = (1 - k) * pop;
+    fe.style.transform = `translate(${s.x + 18 * (1 - k)}px,${s.y + 30 * (1 - k)}px) rotate(${tilt}deg) scale(${(1 - .55 * k) * (.9 + .1 * pop)})`;
   }
 
   // 자막
-  const cap = CAPS.find((c) => t >= c.t0 && t < c.t1);
+  const cap = (M.caps || CAPS).find((c) => t >= c.t0 && t < c.t1);
   if (!cap) $('cap').classList.add('hide');
   else {
     $('capN').textContent = cap.n; $('capM').textContent = cap.m;
-    $('capW').textContent = `${cap.who} 목소리 · AI 음성`;          // 대회 AI 사용 공개 — 팀원 녹음을 본뜬 합성 음성
+    $('capW').textContent = M.capWho || `${cap.who} 목소리 · AI 음성`;   // 대회 AI 사용 공개 — 팀원 녹음을 본뜬 합성 음성
     $('capS').textContent = cap.s || ''; $('capS').classList.toggle('hide', !cap.s);
     overlay($('cap'), t, cap.t0, cap.t1, 'translateX(-50%)');
   }
-  overlay($('ff'), t, T.busyEnd - .22, T.resIn + .22, 'translateX(-50%)', -12);
-  overlay($('url'), t, T.pullBack + 1.7, 1e9, '', -12);
+  const ff = M.shots ? M.ff : [T.busyEnd - .22, T.resIn + .22];
+  if (ff) overlay($('ff'), t, ff[0], ff[1], 'translateX(-50%)', -12); else $('ff').classList.add('hide');
+  if (!M.shots) overlay($('url'), t, T.pullBack + 1.7, 1e9, '', -12); else $('url').classList.add('hide');
   return true;
 }
 
 async function init() {
-  M = await (await fetch('cap/manifest.json')).json();
-  SHOTS = buildShots();
+  M = await (await fetch(DIR + '/manifest.json')).json();
+  SHOTS = M.shots ? manifestShots() : buildShots();
+  if (M.file) {
+    document.querySelector('#file .ic').textContent = M.file.ext || 'DXF';
+    document.querySelector('#file b').textContent = M.file.name;
+    document.querySelector('#file span').textContent = M.file.sub || '';
+  }
   await document.fonts.ready;
-  await document.fonts.load('800 37px "Pretendard Variable"', '도면파일을끌어다놓으면실격사유빠뜨린치수자리번호예시');
+  await document.fonts.load('800 37px "Pretendard Variable"',
+    '도면파일을끌어다놓으면실격사유빠뜨린치수자리번호예시' + (M.caps || []).map((c) => c.m + (c.s || '')).join(''));
   return { n: M.n, fonts: document.fonts.check('800 37px "Pretendard Variable"'), shots: SHOTS };
 }
 </script>

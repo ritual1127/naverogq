@@ -74,8 +74,11 @@
     background: var(--soft); color: var(--accent-ink); font-size: 40px; font-weight: 750; align-self: flex-start;
   }
   .cover { display: grid; grid-template-columns: 1fr 600px; gap: 64px; align-items: center; }
-  .cover img { display: block; width: 600px; border-radius: 26px; box-shadow: 0 22px 50px rgba(15, 23, 42, .28); }
-  .cover figcaption { margin-top: 16px; font-size: 34px; font-weight: 650; color: var(--ink-2); text-align: center; }
+  /* 사진(실제 화면) — 표지와 숫자 장 오른쪽에 같은 모양으로 */
+  .shot img { display: block; width: 100%; border-radius: 26px; filter: drop-shadow(0 20px 26px rgba(15, 23, 42, .26)); }   /* 투명하게 오린 사진도 그 모양대로 그림자 */
+  .shot figcaption { margin-top: 16px; font-size: 34px; font-weight: 650; color: var(--ink-2); text-align: center; }
+  .split { display: grid; grid-template-columns: 1fr 640px; gap: 64px; align-items: center; }
+  .split .points li { font-size: 40px; }
   .byline { margin-top: 30px; font-size: 32px; font-weight: 650; color: var(--muted); }
   .value { font-size: 188px; font-weight: 850; letter-spacing: -5px; line-height: 1; white-space: nowrap; }
   .caption { margin-top: 50px; font-size: 54px; font-weight: 700; line-height: 1.3; }
@@ -90,6 +93,7 @@
   .with-points .caption { margin-top: 34px; font-size: 46px; }
   /* 그래프가 붙은 숫자 장 */
   .with-chart .value { font-size: 128px; letter-spacing: -3px; }
+  .value.long, .with-chart .value.long { font-size: 112px; letter-spacing: -3px; }   /* 긴 문장 — 한 줄에 들게 */
   .chart { margin-top: 40px; }
   .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
   .with-chart .note { margin-top: 18px; font-size: 38px; }
@@ -124,6 +128,28 @@
   /* 질문 */
   .question { font-size: 116px; font-weight: 850; line-height: 1.18; letter-spacing: -2px; }
   .kind-ask .sub { font-size: 48px; }
+  /* 인터뷰 인용 — 사람이 한 말 그대로. 따옴표는 강조색으로 크게 */
+  .quote { position: relative; font-size: 82px; font-weight: 800; line-height: 1.3; letter-spacing: -2px; }
+  .quote::before { content: "“"; position: absolute; left: -112px; top: -64px; font-size: 190px; line-height: 1; color: var(--accent); }
+  .by { margin-top: 26px; font-size: 38px; font-weight: 650; color: var(--muted); }
+  .kind-quote .chart { margin-top: 56px; }
+  /* 카드 — 목표 · 운영비 · 팀 */
+  .cards { display: grid; gap: 28px; }
+  .cards.c3 { grid-template-columns: repeat(3, 1fr); }
+  .cards.c4 { grid-template-columns: repeat(4, 1fr); }
+  .card { padding: 34px 36px 38px; border-radius: 26px; background: var(--sub); border: 2px solid var(--line); }
+  .card .cn { display: grid; place-items: center; width: 76px; height: 76px; margin-bottom: 26px; border-radius: 22px;
+              background: var(--accent); color: #fff; font-size: 44px; font-weight: 850; }
+  .card .ct { font-size: 46px; font-weight: 850; line-height: 1.2; letter-spacing: -1px; }
+  .card .cf { margin-top: 18px; font-size: 64px; font-weight: 850; letter-spacing: -2px; line-height: 1.1; white-space: nowrap; }
+  .card .cf .after { color: var(--accent); }
+  .card .cb { margin-top: 14px; font-size: 36px; font-weight: 600; color: var(--ink-2); line-height: 1.38; }
+  .cards-split { display: grid; grid-template-columns: 560px 1fr; gap: 64px; align-items: center; }
+  .cards-split .cards { grid-template-columns: repeat(2, 1fr); }
+  .cards-split .value { font-size: 230px; }
+  .vlabel { margin-top: 22px; font-size: 40px; font-weight: 650; color: var(--ink-2); line-height: 1.3; }
+  .kind-cards .chart { margin-top: 44px; }
+  .kind-cards .chip { margin-top: 40px; }
   .foot {
     position: absolute; left: 170px; right: 150px; bottom: 52px;
     display: flex; justify-content: space-between; font-size: 30px; color: var(--muted); font-weight: 600;
@@ -215,6 +241,8 @@
   </div>
   <span class="net" id="net" role="status">○ 연결 중…</span>
   <span class="spacer"></span>
+  <label title="바꾸면 그 발표로 다시 열립니다 — 방 코드는 그대로">발표 <select id="talk" aria-label="발표 고르기">
+    <option value="10">10분 · 2차 제출 · 본선</option><option value="5">5분 · 데모데이 ②</option></select></label>
   <label>나 <select id="me" aria-label="내 이름"><option value="">고르지 않음</option></select></label>
   <label title="켜면 이 기기에서는 넘기지 않고 다른 기기만 따라갑니다"><input type="checkbox" id="lock"> 따라가기만</label>
   <button id="share" type="button">방 주소 복사</button>
@@ -254,7 +282,13 @@
 
 <script type="module">
 import { initial, step, setTimer, toWire, receive } from "./state.js";
-import { TALK, VOICE, targetSeconds } from "./talk.js";
+import { VOICE, targetSeconds } from "./talk.js";
+
+// 발표 둘 — 주소 ?talk=5 는 데모데이 ② 5분판(talk.js), 그 밖에는 10분판(talk10.js).
+// 방 채널 이름에 발표가 들어가서, 다른 발표를 연 기기끼리는 서로 넘기지 않는다.
+const TALK_ID = new URLSearchParams(location.search).get("talk") === "5" ? "5" : "10";
+const { TALK } = await import(TALK_ID === "5" ? "./talk.js" : "./talk10.js");
+const aim = (s) => targetSeconds(s, TALK.pace);
 
 // 기기 사이 중계 — Supabase 실시간 채널. 이 키는 브라우저에 두라고 만든 공개용 키이고 테이블은 쓰지 않는다.
 const SUPABASE_URL = "https://hgmshnoaipajahvmzcqw.supabase.co";
@@ -264,22 +298,30 @@ const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 const $ = (id) => document.getElementById(id);
 const COUNT = TALK.slides.length;
 
-// 시연 영상 — 한 요소를 처음부터 받아 두고 계속 쓴다. 그 장에 오자마자 끊김 없이 돈다. 누르면 처음부터 다시.
-// 소리(팀원 목소리)는 전체화면(F)인 기기에서만 — Meet 로 공유하는 노트북 하나. 대본을 보는 기기들까지 소리를 내면
-// 한 방에서 겹치고 마이크로 다시 들어간다.
-const VIDEO = Object.assign(document.createElement("video"), { muted: true, playsInline: true, preload: "auto" });
-function playVideo() {
-  VIDEO.currentTime = 0;
-  VIDEO.muted = !document.body.classList.contains("full");
-  VIDEO.play().catch(() => {            // 이 탭에서 아직 아무것도 안 눌러 소리 재생이 막혔으면 소리 없이라도 돈다
-    VIDEO.muted = true;
-    VIDEO.play().catch(() => {});
-    toast("소리가 막혔습니다 — 영상을 한 번 누르면 소리와 함께 처음부터");
+// 시연 영상 — 영상마다 요소 하나를 처음부터 받아 두고 계속 쓴다. 그 장에 오자마자 끊김 없이 돈다. 누르면 처음부터 다시.
+// 소리(팀원 목소리)가 든 영상은 전체화면(F)인 기기에서만 소리를 낸다 — Meet 로 공유하는 노트북 하나. 대본을 보는
+// 기기들까지 소리를 내면 한 방에서 겹치고 마이크로 다시 들어간다. 소리 없는 영상은 사람이 그 위에 말한다.
+const VIDEOS = new Map();
+for (const s of TALK.slides) {
+  if (s.view.kind !== "video" || VIDEOS.has(s.view.src)) continue;
+  const v = Object.assign(document.createElement("video"),
+    { muted: true, playsInline: true, preload: "auto", src: s.view.src, poster: s.view.poster || "" });
+  v.dataset.voice = s.lines.some((l) => l.who === VOICE) ? "1" : "";
+  v.setAttribute("aria-label", s.view.label || "시연 영상");
+  v.addEventListener("click", () => playVideo(v));
+  VIDEOS.set(s.view.src, v);
+}
+const voiced = (v) => Boolean(v.dataset.voice) && document.body.classList.contains("full");
+function playVideo(v) {
+  v.currentTime = 0;
+  v.muted = !voiced(v);
+  v.play().catch(() => {                // 이 탭에서 아직 아무것도 안 눌러 소리 재생이 막혔으면 소리 없이라도 돈다
+    v.muted = true;
+    v.play().catch(() => {});
+    if (v.dataset.voice) toast("소리가 막혔습니다 — 영상을 한 번 누르면 소리와 함께 처음부터");
   });
 }
-VIDEO.addEventListener("click", playVideo);
-const firstVideo = TALK.slides.find((s) => s.view.kind === "video");
-if (firstVideo) VIDEO.src = firstVideo.view.src;
+const pauseVideos = (keep) => { for (const v of VIDEOS.values()) if (v !== keep) v.pause(); };
 const ME_ID = crypto.getRandomValues(new Uint32Array(2)).join("").slice(0, 12);   // 이 기기(탭) — 동률 판정용
 
 const store = {
@@ -434,6 +476,38 @@ const CHART = {
     });
     return svg;
   },
+  // 시험 5시간 위에 빠뜨린 것을 찾은 때(점)와 고치는 데 든 시간(막대). 제출 뒤에야 안 사람은 시험 시간 칸을 점선으로.
+  timeline(c) {
+    const span = c.span, top = 74, rowH = 86, labelW = 330, x0 = 360, x1 = 1200, noteX = 1232;
+    const X = (m) => x0 + (Math.min(m, span) / span) * (x1 - x0);
+    const base = top + c.rows.length * rowH;
+    const svg = chartSvg(base + 64, `${c.title}: ${c.rows.map((r) => `${r.label} ${r.note || ""}`).join(", ")}`);
+    svg.append(svgEl("text", { x: 0, y: 34, class: "c-title" }, c.title));
+    for (let m = 0; m <= span; m += 60) {            // 한 시간마다 눈금, 끝은 진하게
+      const end = m === span;
+      svg.append(svgEl("line", { x1: X(m), x2: X(m), y1: top - 8, y2: base, stroke: end ? "var(--ink)" : "var(--line)",
+                                 "stroke-width": end ? 3 : 2 }));
+      svg.append(svgEl("text", { x: X(m), y: base + 46, "text-anchor": "middle", class: "c-axis" },
+                       m === 0 ? "시작" : end ? "제출" : `${m / 60}시간`));
+    }
+    c.rows.forEach((r, i) => {
+      const cy = top + i * rowH + rowH / 2, fill = markFill(r.focus);
+      svg.append(svgEl("text", { x: labelW, y: cy, "text-anchor": "end", "dominant-baseline": "central",
+                                 class: "c-label" + (r.focus ? " c-focus" : "") }, r.label));
+      if (r.after) {
+        svg.append(svgEl("line", { x1: x0, x2: x1, y1: cy, y2: cy, stroke: "var(--gray-mark)", "stroke-width": 5,
+                                   "stroke-dasharray": "1 14", "stroke-linecap": "round" }));
+      } else {
+        svg.append(svgEl("path", { d: hbarPath(x0, cy - 6, x1 - x0, 12, 6), fill: "#e8edf4" }));
+        const bar = svgEl("path", { d: hbarPath(X(r.at), cy - 17, Math.max(10, X(r.at + r.fix) - X(r.at)), 34, 8), fill });
+        bar.append(svgEl("title", {}, `${r.label} — ${r.note || ""}`));
+        svg.append(bar, svgEl("circle", { cx: X(r.at), cy, r: 15, fill: "#fff", stroke: fill, "stroke-width": 7 }));
+      }
+      if (r.note) svg.append(svgEl("text", { x: noteX, y: cy, "dominant-baseline": "central", "font-size": 34,
+                                             class: r.focus ? "c-num" : "c-note" }, r.note));
+    });
+    return svg;
+  },
 };
 function chartBox(c) {
   const box = el("div", "chart");
@@ -441,12 +515,13 @@ function chartBox(c) {
   return box;
 }
 
-function valueEl(text) {
-  const d = el("div", "value", text);
+// "지금 → 목표" 의 화살표 뒤를 강조색으로
+function arrowed(d) {
   const last = d.lastChild;
-  if (String(text).includes("→") && last?.nodeType === Node.TEXT_NODE) last.replaceWith(el("span", "after", last.textContent));
+  if (d.textContent.includes("→") && last?.nodeType === Node.TEXT_NODE) last.replaceWith(el("span", "after", last.textContent));
   return d;
 }
+const valueEl = (text) => arrowed(el("div", "value" + (String(text).length > 14 ? " long" : ""), text));
 
 const VIEWS = {
   cover: (v) => {
@@ -454,13 +529,9 @@ const VIEWS = {
     text.append(el("div", "kicker", v.kicker), el("div", "headline", v.headline), el("div", "sub", v.sub),
                 ...(v.note ? [el("div", "chip", v.note)] : []), ...(v.by ? [el("div", "byline", v.by)] : []));
     if (!v.img) return [text];
-    const fig = el("figure");
-    const img = document.createElement("img");
-    img.src = v.img;
-    img.alt = v.imgAlt || "";
-    fig.append(img, el("figcaption", "", "실제 화면 — 고칠 자리를 도면 위에"));
     const wrap = el("div", "cover");
-    wrap.append(text, fig);
+    if (v.imgW) wrap.style.gridTemplateColumns = `1fr ${v.imgW}px`;
+    wrap.append(text, shot(v, "실제 화면 — 고칠 자리를 도면 위에"));
     return [wrap];
   },
   compare: (v) => {
@@ -478,16 +549,20 @@ const VIEWS = {
   big: (v) => {
     const points = v.points ? el("ul", "points") : "";
     (v.points || []).forEach((p) => points.append(el("li", "", p)));
-    return [el("div", "kicker", v.kicker), valueEl(v.value), points,
-            v.chart ? chartBox(v.chart) : "", v.caption ? el("div", "caption", v.caption) : "",
-            v.note ? el("div", "note", v.note) : ""];
+    const body = [valueEl(v.value), points, v.chart ? chartBox(v.chart) : "",
+                  v.caption ? el("div", "caption", v.caption) : "", v.note ? el("div", "note", v.note) : ""];
+    if (!v.img) return [el("div", "kicker", v.kicker), ...body];
+    const text = el("div");
+    text.append(...body.filter(Boolean));
+    const wrap = el("div", "split");
+    wrap.append(text, shot(v));
+    return [el("div", "kicker", v.kicker), wrap];
   },
   video: (v) => {
-    if (!VIDEO.src.endsWith(v.src)) VIDEO.src = v.src;
-    VIDEO.poster = v.poster || "";
-    VIDEO.setAttribute("aria-label", v.label || "시연 영상");
-    playVideo();
-    return [VIDEO];
+    const el = VIDEOS.get(v.src);
+    pauseVideos(el);
+    playVideo(el);
+    return [el];
   },
   flow: (v) => {
     const row = el("div", "steps");
@@ -497,11 +572,40 @@ const VIEWS = {
       box.append(el("b", "", s.n), el("span", "", s.label));
       row.append(box);
     });
-    return [el("div", "kicker", v.kicker), row, el("div", "caption", v.caption)];
+    return [el("div", "kicker", v.kicker), row, el("div", "caption", v.caption), v.note ? el("div", "note", v.note) : ""];
   },
   ask: (v) => [el("div", "kicker", v.kicker), el("div", "question", v.question), el("div", "sub", v.sub),
                v.note ? el("div", "chip", v.note) : ""],
+  quote: (v) => [el("div", "kicker", v.kicker), el("blockquote", "quote", v.quote), el("div", "by", v.by),
+                 v.chart ? chartBox(v.chart) : ""],
+  cards: (v) => {
+    const grid = el("div", `cards c${v.cards.length}`);
+    for (const c of v.cards) {
+      const card = el("div", "card");
+      if (c.n) card.append(el("b", "cn", c.n));
+      card.append(el("div", "ct", c.title), ...(c.fig ? [arrowed(el("div", "cf", c.fig))] : []), el("div", "cb", c.body));
+      grid.append(card);
+    }
+    let body = grid;
+    if (v.value) {                                   // 큰 숫자 하나를 왼쪽에, 카드는 오른쪽에 두 줄로
+      const left = el("div");
+      left.append(el("div", "value", v.value), el("div", "vlabel", v.valueLabel || ""));
+      body = el("div", "cards-split");
+      body.append(left, grid);
+    }
+    return [el("div", "kicker", v.kicker), body, v.chart ? chartBox(v.chart) : "", v.note ? el("div", "chip", v.note) : ""];
+  },
 };
+
+// 사진(실제 화면) — 그림과 한 줄 설명
+function shot(v, cap = "") {
+  const fig = el("figure", "shot");
+  const img = document.createElement("img");
+  img.src = v.img;
+  img.alt = v.imgAlt || "";
+  fig.append(img, el("figcaption", "", v.imgCap || cap));
+  return fig;
+}
 
 const here = () => Math.max(0, Math.min(COUNT - 1, state.slide));
 
@@ -519,7 +623,7 @@ function render() {
   const stage = $("stage");
   if (stage.dataset.slide !== String(i)) {     // 같은 장이면 다시 그리지 않는다 — 타이머·이름을 바꿔도 영상이 처음으로 안 돌아간다
     stage.dataset.slide = i;
-    if (s.view.kind !== "video") VIDEO.pause();
+    if (s.view.kind !== "video") pauseVideos();
     stage.className = `stage kind-${s.view.kind}${s.view.points ? " with-points" : ""}${s.view.chart ? " with-chart" : ""}`;
     stage.replaceChildren(...VIEWS[s.view.kind](s.view).filter(Boolean));
     const foot = el("div", "foot");
@@ -550,7 +654,7 @@ function render() {
        el("b", "", `${i + 2} / ${COUNT} ${nx.title}`), document.createTextNode(" — "),
        nameTag(nx.lines[0].who), document.createTextNode(`: ${nx.lines[0].say}`)]
     : [el("b", "", "마지막 장입니다")]));
-  $("aim").textContent = fmt(targetSeconds(s));
+  $("aim").textContent = fmt(aim(s));
   $("count").textContent = `${i + 1} / ${COUNT}`;
   [...$("dots").children].forEach((d, j) => d.setAttribute("aria-current", String(j === i)));
   $("prev").disabled = i === 0 || $("lock").checked;
@@ -569,7 +673,7 @@ function tick() {
   const spent = (now - enteredAt) / 1000;
   const h = $("here");
   h.textContent = fmt(spent);
-  h.className = spent > targetSeconds(TALK.slides[here()]) ? "bad" : "";
+  h.className = spent > aim(TALK.slides[here()]) ? "bad" : "";
 }
 
 function renderNet() {
@@ -612,7 +716,8 @@ async function connect() {
     net = "off"; renderNet(); return;          // 중계를 못 불러와도 이 기기만으로 끝까지 발표할 수 있다
   }
   const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-  channel = sb.channel("presenter:" + ROOM, { config: { broadcast: { self: false }, presence: { key: ME_ID } } });
+  channel = sb.channel("presenter:" + (TALK.id ? TALK.id + ":" : "") + ROOM,
+                       { config: { broadcast: { self: false }, presence: { key: ME_ID } } });
   channel
     .on("broadcast", { event: "state" }, ({ payload }) => apply(receive(state, payload, Date.now())))
     .on("broadcast", { event: "hello" }, () => { if (state.seq > 0) send(); })
@@ -644,7 +749,7 @@ const toggleTab = () => showTab($("slides").hidden ? "slides" : "script");
 // 미트로 이 탭을 공유하면 슬라이드만 보인다.
 function toggleFull(on = !document.body.classList.contains("full")) {
   document.body.classList.toggle("full", on);
-  VIDEO.muted = !on;                    // 영상 장에서 F 를 누르면 그때부터 소리
+  for (const v of VIDEOS.values()) v.muted = !voiced(v);   // 영상 장에서 F 를 누르면 그때부터 소리
   fit();
   if (on) toast("F 또는 Esc 를 누르면 띠가 다시 나옵니다", 2500);
 }
@@ -702,6 +807,12 @@ function toast(text, ms = 6000) {
   toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }
 
+$("talk").value = TALK_ID;
+$("talk").addEventListener("change", () => {
+  const u = new URL(location.href);
+  u.searchParams.set("talk", $("talk").value);
+  location.href = u.href;                     // 방 코드(#)는 그대로 — 같은 방의 다른 발표로 다시 연다
+});
 for (const name of TALK.people) {
   $("me").append(new Option(name, name));
   $("legend").append(nameTag(name, ""));

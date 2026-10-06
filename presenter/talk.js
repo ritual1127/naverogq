@@ -4,16 +4,17 @@
 // 바꾸면 people 에 있는 이름만 쓴다. 이름 색은 people 순서대로 붙는다.
 // 고친 뒤에는 node --test presenter/*.test.mjs 로 오타를 잡는다.
 
-export const KINDS = ["cover", "compare", "big", "video", "flow", "ask"];
-export const CHARTS = ["hbar", "stack", "column"];
+export const KINDS = ["cover", "compare", "big", "video", "flow", "ask", "quote", "cards"];
+export const CHARTS = ["hbar", "stack", "column", "timeline"];
 
 // 영상이 스스로 말하는 장의 읽는 사람 — 대본 탭에 회색으로 보이고, 아무도 소리 내어 읽지 않는다
 export const VOICE = "영상";
 
-// W4 원고에서 잰 읽는 속도 — 1초에 4.5자(띄어쓰기 포함). 영상 장은 영상 길이.
+// W4 원고에서 잰 읽는 속도 — 1초에 4.5자(띄어쓰기 포함). pace 에 사람마다 다른 값을 주면 그 값(10분판).
+// 영상 장은 영상 길이와 그 위에 사람이 하는 말 중 긴 쪽.
 const CHARS_PER_SEC = 4.5;
-export const targetSeconds = (slide) => slide.view?.seconds ||
-  Math.round(slide.lines.reduce((n, l) => n + l.say.length, 0) / CHARS_PER_SEC);
+export const targetSeconds = (slide, pace = {}) => Math.round(Math.max(slide.view?.seconds || 0,
+  slide.lines.filter((l) => l.who !== VOICE).reduce((n, l) => n + l.say.length / (pace[l.who] || CHARS_PER_SEC), 0)));
 
 export const TALK = {
   title: "CADLens · 데모데이 ②",
@@ -135,13 +136,13 @@ export const TALK = {
                        target: { value: 20, label: "목표 20명" },
                        cols: [{ label: "8/31 주", value: 0 }, { label: "9/7 주", value: 5 },
                               { label: "9/14 주", value: 7, focus: true }, { label: "9/21 주", value: 1 },
-                              { label: "9/28 주 *", value: 0 }] },
-              note: "* 10월 3일까지 · 예제 버튼을 고친 뒤 사람 검사 0건 · 다음 날 다시 온 사람 0명" },
+                              { label: "9/28 주", value: 1 }, { label: "10/5 주 *", value: 0 }] },
+              note: "* 10월 6일까지 · 예제 버튼을 고친 뒤 예제 검사 0건 · 다음 날 다시 온 사람 0명" },
       source: "W8 KPI 리포트",
       lines: [
         { who: "장우영", say: "하지만 안 된 것도 있습니다." },
-        { who: "장우영", say: "목표는 한 주에 스무 명이었는데, 가장 많았던 주가 일곱 명, 그다음 주는 한 명, 이번 주는 아직 영 명입니다." },
-        { who: "장우영", say: "예제 버튼을 한 번으로 줄였지만, 그 뒤로 사람이 한 검사는 0건입니다." },
+        { who: "장우영", say: "목표는 한 주에 스무 명이었는데, 가장 많았던 주가 일곱 명, 그 뒤로는 한 명씩, 이번 주는 아직 영 명입니다." },
+        { who: "장우영", say: "예제 버튼을 한 번으로 줄였지만, 그 뒤로 예제로 검사한 사람은 한 명도 없었습니다." },
         { who: "장우영", say: "결과를 본 사람 가운데 다음 날 다시 온 사람도 없었습니다." },
       ],
     },
