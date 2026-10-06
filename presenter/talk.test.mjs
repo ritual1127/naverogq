@@ -2,7 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { TALK as TALK5, KINDS, CHARTS, VOICE, targetSeconds } from "./talk.js";
+import { KINDS, CHARTS, VOICE, targetSeconds } from "./talk.js";
+import { TALK as TALK5 } from "./talk5.js";
 import { TALK as TALK10 } from "./talk10.js";
 
 const NEEDS = {

@@ -13,8 +13,11 @@ LINES = [
     ("v4b", "kimseungjun", "누르면, 빠진 치수를 도면에서 읽은 좌표 그대로 초록색으로 그려 줍니다."),
     ("v4c", "kimseungjun", "에이아이가 그림을 지어내는 게 아니라서, 위치와 값이 정확합니다."),
 ]
+# 다른 대사 묶음 — LINES=lines.json(키: [사람, 글]) OUT=폴더 로 준다. 3분 영상은 docs/demo/3분영상/lines.json
+if os.environ.get("LINES"):
+    LINES = [(k, spk, text) for k, (spk, text) in json.load(open(os.environ["LINES"], encoding="utf-8")).items()]
 K = int(os.environ.get("K", 6))
-OUT = "qcand"; os.makedirs(OUT, exist_ok=True)
+OUT = os.environ.get("OUT", "qcand"); os.makedirs(OUT, exist_ok=True)
 refs = json.load(open("qrefs/text.json", encoding="utf-8"))
 m = Qwen3TTSModel.from_pretrained("Qwen/Qwen3-TTS-12Hz-1.7B-Base", device_map="cuda:0", dtype=torch.bfloat16, attn_implementation="sdpa")
 print("languages", m.model.get_supported_languages() if hasattr(m.model, "get_supported_languages") else "?", flush=True)

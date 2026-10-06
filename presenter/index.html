@@ -284,10 +284,10 @@
 import { initial, step, setTimer, toWire, receive } from "./state.js";
 import { VOICE, targetSeconds } from "./talk.js";
 
-// 발표 둘 — 주소 ?talk=5 는 데모데이 ② 5분판(talk.js), 그 밖에는 10분판(talk10.js).
+// 발표 둘 — 주소 ?talk=5 는 데모데이 ② 5분판(talk5.js), 그 밖에는 10분판(talk10.js).
 // 방 채널 이름에 발표가 들어가서, 다른 발표를 연 기기끼리는 서로 넘기지 않는다.
 const TALK_ID = new URLSearchParams(location.search).get("talk") === "5" ? "5" : "10";
-const { TALK } = await import(TALK_ID === "5" ? "./talk.js" : "./talk10.js");
+const { TALK } = await import(TALK_ID === "5" ? "./talk5.js" : "./talk10.js");
 const aim = (s) => targetSeconds(s, TALK.pace);
 
 // 기기 사이 중계 — Supabase 실시간 채널. 이 키는 브라우저에 두라고 만든 공개용 키이고 테이블은 쓰지 않는다.

@@ -12,7 +12,11 @@ TXT = {"v1": "실기 도면을, 이렇게 끌어다 놓기만 하면 됩니다."
        "v3": "번호를 누르면, 그 자리를 바로 확대해서 보여 줍니다.", "v4a": "지난 데모데이 이후에 새로 만든 기능, 수정 예시입니다.",
        "v4b": "누르면, 빠진 치수를 도면에서 읽은 좌표 그대로 초록색으로 그려 줍니다.", "v4c": "에이아이가 그림을 지어내는 게 아니라서, 위치와 값이 정확합니다."}
 SPK = {"v1": "andaeyeol", "v2": "jangwooyoung", "v3": "parkjiwan", "v4a": "kimseungjun", "v4b": "kimseungjun", "v4c": "kimseungjun"}
-REC = {"andaeyeol": "01_안대열.m4a", "jangwooyoung": "02_장우영 녹음.m4a", "parkjiwan": "03_박지완 녹음.m4a", "kimseungjun": "04_김승준 녹음.m4a"}
+# 다른 대사 묶음 — LINES=lines.json IN=후보폴더 OUT=다듬은폴더 (qgen.py 와 같은 env). 3분 영상은 docs/demo/3분영상/lines.json
+if os.environ.get("LINES"):
+    L = json.load(open(os.environ["LINES"], encoding="utf-8"))
+    TXT, SPK = {k: t for k, (_, t) in L.items()}, {k: s for k, (s, _) in L.items()}
+REC ={"andaeyeol": "01_안대열.m4a", "jangwooyoung": "02_장우영 녹음.m4a", "parkjiwan": "03_박지완 녹음.m4a", "kimseungjun": "04_김승준 녹음.m4a"}
 TARGET = json.load(open("final2/report.json", encoding="utf-8"))["target"]
 PROS = json.load(open("prosody.json", encoding="utf-8"))["person"]
 syl = lambda s: len(re.findall(r"[가-힣]", s)) + len(re.findall(r"[A-Za-z]", s)) * 0.6
@@ -27,7 +31,8 @@ asr = WhisperModel("large-v3-turbo", device="cuda", compute_type="float16")
 def words(path):
     segs, _ = asr.transcribe(path, language="ko", word_timestamps=True, beam_size=5)
     return [(w.word.strip(), round(w.start, 2), round(w.end, 2)) for s in segs for w in s.words if w.word.strip()]
-OUT = "qproc"; os.makedirs(OUT, exist_ok=True)
+OUT = os.environ.get("OUT", "qproc"); os.makedirs(OUT, exist_ok=True)
+IN = os.environ.get("IN", "qcand")
 def process(src, dst):
     y, sr = sf.read(src, dtype="float32"); y = y if y.ndim == 1 else y.mean(axis=1)
     ts = get_speech_timestamps(librosa.resample(y, orig_sr=sr, target_sr=16000), VadOptions(threshold=0.5, min_speech_duration_ms=120, min_silence_duration_ms=150, speech_pad_ms=0))
@@ -64,7 +69,7 @@ def st_std(y):
     f = f[v & ~np.isnan(f)]
     return float(np.std(12 * np.log2(f / np.median(f)))) if len(f) > 20 else float("nan")
 rows = []
-for src in sorted(glob.glob("qcand/*.wav")):
+for src in sorted(glob.glob(f"{IN}/*.wav")):
     key = os.path.basename(src).split("_")[0]
     dst = f"{OUT}/{os.path.basename(src)}"
     head = process(src, dst)
@@ -80,9 +85,17 @@ for src in sorted(glob.glob("qcand/*.wav")):
     r["human"] = min(r["mo"], r["gk"])
     rows.append(r)
     print(f"{r['file']:10} 오류율 {r['cer']:.3f} 닮음 {r['sim']:.3f} 사람(mo) {r['mo']:.3f} 사람(gk) {r['gk']:.3f} 빠르기 {r['rate_dev']:+.3f} 억양 {r['pros_dev']:+.2f} 앞 {r['head']}", flush=True)
-json.dump(rows, open("qpick.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-print("\nPICK")
+json.dump(rows, open(f"{OUT}/pick.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+print("PICK")
+# 받아쓰기 오류율이 가장 낮은 것들 중에서 고른다. 숫자를 한글로 적은 대사("십칠 분")는 받아쓰기가 숫자로 적어
+# 오류율이 0 이 안 될 수 있다 — 고른 것의 받아쓰기를 같이 찍어 눈으로 확인한다.
+picks = {}
 for key in TXT:
-    c = [r for r in rows if r["key"] == key and r["cer"] == 0]
+    c = [r for r in rows if r["key"] == key]
+    low = min(r["cer"] for r in c)
+    c = [r for r in c if r["cer"] <= low + 0.02]
     best = max(c, key=lambda r: (r["human"] >= 0.8, r["sim"] - 0.5 * abs(r["pros_dev"]) / PROS[SPK[key]] - 0.3 * abs(r["rate_dev"]) + 0.2 * r["human"]))
+    picks[key] = best["file"]
     print(key, best["file"], {k: best[k] for k in ("cer", "sim", "mo", "gk", "rate_dev", "pros_dev", "dur", "head")})
+    print("   ", "".join(w + " " for w, _, _ in best["words"]).strip())
+json.dump(picks, open(f"{OUT}/picks.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
