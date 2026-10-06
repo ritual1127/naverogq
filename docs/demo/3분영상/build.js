@@ -57,15 +57,17 @@ const server = http.createServer((req, res) => {
   await new Promise((r) => server.listen(8767, r));
   const browser = await chromium.launch({ executablePath: CHROME, headless: true });
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  const lp = await browser.newPage({ viewport: { width: 1920, height: 1080 } });     // 목소리 표시를 그리는 탭(슬라이드 탭과 따로)
 
   // 슬라이드 — 발표 도우미를 전체화면으로 띄워 그 장만 찍는다(중계 없이, 이 기기 혼자)
   await page.route('**/supabase-js@2/**', (r) => r.abort());
   await page.goto('http://127.0.0.1:8767/index.html?talk=10#video3', { waitUntil: 'networkidle' });
   await page.evaluate(() => document.fonts.ready);
   await page.keyboard.press('KeyF');
+  // 영상에는 10분판의 몇 장만 나오므로 "9 / 19" 같은 쪽 번호는 숨긴다(출처 줄은 둔다)
+  await page.addStyleTag({ content: '.foot span:last-child { display: none; }' });
   await page.evaluate(() => { document.getElementById('toast').hidden = true; });
   const shot = async (n) => {
-    const dots = await page.$$('#dots button');
     await page.evaluate((i) => document.querySelectorAll('#dots button')[i].click(), n - 1);
     await page.waitForTimeout(400);
     await page.evaluate(() => { document.getElementById('toast').hidden = true; });
@@ -76,13 +78,13 @@ const server = http.createServer((req, res) => {
   // 목소리 표시 — 오른쪽 위 작은 알약. 대회 AI 사용 공개(README 의 AI 표)
   const label = async (who) => {
     const f = path.join(BUILD, `label_${who}.png`);
-    await page.setContent(`<html><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"></head>
+    await lp.setContent(`<html><head><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"></head>
       <body style="margin:0;background:transparent"><div id="l" style="display:inline-flex;align-items:center;gap:12px;padding:12px 24px 12px 18px;border-radius:999px;
       background:rgba(11,17,31,.82);color:#fff;font:700 26px 'Pretendard Variable',sans-serif;letter-spacing:-.2px">
       <span style="width:12px;height:12px;border-radius:50%;background:#5ea2ef"></span>${NAME[who]} 목소리 · AI 음성</div></body></html>`);
-    await page.evaluate(() => document.fonts.ready);
-    await page.waitForTimeout(300);
-    await (await page.$('#l')).screenshot({ path: f, omitBackground: true });
+    await lp.evaluate(() => document.fonts.ready);
+    await lp.waitForTimeout(300);
+    await (await lp.$('#l')).screenshot({ path: f, omitBackground: true });
     return f;
   };
 
