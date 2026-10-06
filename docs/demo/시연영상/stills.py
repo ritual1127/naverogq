@@ -42,6 +42,10 @@ res = Image.open(os.path.join(HERE, "cap", "fix_base.png")).convert("RGB")
 thicken(res, box(80, 220, 893, 829))
 save(res.crop(box(80, 157, 893, 829)), "result.png", 1400)
 
+# CADLens 소개 — 같은 결과 화면의 오른쪽(실격 카드 · 지적 목록 · Ø20.5 번호 칩). 도면 쪽은 표지 사진이 맡는다
+panel = Image.open(os.path.join(HERE, "cap", "res_base.png")).convert("RGB")
+save(panel.crop(box(905, 148, 1532, 845)), "panel.png", 1120)
+
 # 안 된 것 — 첫 화면의 제목과 단추 둘. '예제로 먼저 보기' 에 테두리
 home = Image.open(os.path.join(HERE, "cap", "home_base.png")).convert("RGB")
 ring(home, box(375, 466, 570, 519), pad=8 * K, width=4 * K, radius=27 * K)

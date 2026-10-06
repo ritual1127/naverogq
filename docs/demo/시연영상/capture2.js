@@ -170,7 +170,7 @@ class Rec {
     await R.click();                                              // 치수 누락 — 이유 · 고치는 법 · 위치
     const dimBody = await rect(`#fb-${dimI}`);
     R.cam(R.t + 0.1, R.t + 1.2, { x: dimBody.x + dimBody.w / 2, y: dimBody.y + dimBody.h / 2 - 50 }, 1.85);
-    R.cap(R.t + 0.2, R.t + 4.2, 5, '지적을 열면 — 왜 깎였는지 · 고치는 법', '어디를 고치면 되는지 위치까지');
+    R.cap(R.t + 0.2, R.t + 4.2, 5, '지적을 열면 이유와 고치는 법', '어디를 고치면 되는지 위치까지');
     await R.wait(3.6, 0.4);
     const aiHead0 = await rect(`#finds .finding[data-i="${aiI}"] .fhead`);
     const dy = Math.round(aiHead0.y - 236);                        // AI 지적이 위쪽에 오게 내린다
@@ -189,7 +189,7 @@ class Rec {
     await R.click();                                              // '고친 뒤 확인은?' — 채점할 때 만들어 둔 답
     const ans = await rect(`#finds .finding[data-i="${aiI}"] .askbar`);
     R.cam(R.t + 0.1, R.t + 1.0, { x: ans.x + ans.w / 2, y: ans.y + ans.h / 2 }, 1.95);
-    R.cap(R.t - 1.4, R.t + 3.9, 6, '궁금한 건 정해 둔 질문 버튼으로', '답은 채점할 때 미리 만든 것 — AI와 자유 대화창은 없습니다');
+    R.cap(R.t - 1.4, R.t + 3.9, 6, '궁금한 건 정해 둔 질문 버튼으로', '답은 채점할 때 미리 만들어 둔 것, AI와 대화하는 창은 없습니다');
     await R.wait(4.0, 0.4);
     R.cam(R.t, R.t + 1.4, { x: list.x + list.w / 2, y: 520 }, 1.55);
     await R.scroll(-dy, 1.4);
@@ -200,7 +200,7 @@ class Rec {
     const items = await rect('#items');
     R.cam(R.t + 0.2, R.t + 1.4, { x: items.x + items.w / 2, y: items.y + items.h * 0.42 }, 1.75);
     R.cam(R.t + 1.4, R.t + 8.6, { x: items.x + items.w / 2, y: items.y + items.h * 0.42 }, 1.82, true);
-    R.cap(R.t + 0.3, R.t + 8.6, 7, '100점 = 규칙 70점 + AI 30점', 'AI가 매긴 투상도 칸에는 AI 표시');
+    R.cap(R.t + 0.3, R.t + 8.6, 7, '100점 중 70점은 규칙, 30점은 AI', 'AI가 매긴 투상도 칸에는 AI 표시');
     await R.move({ x: Math.round(items.x + items.w - 30), y: Math.round(items.y + items.h + 40) }, 0.9, 0.04);
     await R.wait(8.0, 0.3);
     R.save({ cursor: { in: 0.15, out: [R.t - 1.3, R.t - 0.9] } });
@@ -255,7 +255,7 @@ class Rec {
     const ff1 = R.t;
     const cmp = await rect('#cmp'), score = await rect('#score');
     R.cam(R.t + 0.1, R.t + 1.3, { x: cmp.x + cmp.w / 2, y: cmp.y + cmp.h / 2 }, 1.9);
-    R.cap(R.t + 0.4, R.t + 15.4, 9, '지난번과 비교 — 고쳐짐 · 그대로 · 새로 생김', '실격이 풀렸고, 고친 네 가지가 고쳐짐으로');
+    R.cap(R.t + 0.4, R.t + 15.4, 9, '지난번 결과와 비교해서 보여 줍니다', '실격이 풀렸고, 고친 네 가지는 고쳐짐으로');
     await R.wait(7.0, 1.0);
     R.cam(R.t, R.t + 1.5, { x: score.x + score.w / 2, y: (score.y + cmp.y + cmp.h) / 2 }, 1.45);
     await R.wait(7.4, 0.2);
@@ -276,7 +276,7 @@ class Rec {
     await R.move(at(pick, 0.45, 0.5), 1.0);
     await R.wait(0.2);
     await R.click();                                              // 부분 지정 — 도면에서 끌어 고른다
-    R.cap(R.t + 0.1, R.t + 7.0, 10, '틀린 것 같으면 — 도면에서 네모로 골라 신고', '고른 부분이 그림으로 같이 갑니다');
+    R.cap(R.t + 0.1, R.t + 7.0, 10, '결과가 틀린 것 같으면 도면에서 골라 신고', '고른 부분이 그림으로 같이 갑니다');
     await R.wait(0.6, 0.5);
     const a = { x: Math.round(stage.x + stage.w * 0.17), y: Math.round(stage.y + stage.h * 0.40) };
     const b = { x: Math.round(stage.x + stage.w * 0.47), y: Math.round(stage.y + stage.h * 0.80) };
@@ -299,7 +299,7 @@ class Rec {
     await R.wait(0.2);
     await R.click();                                              // 보내지 않고 닫는다
     R.cam(R.t + 0.1, R.t + 1.1, { x: 1000, y: 400 }, 1.5);
-    R.cap(R.t + 0.5, R.t + 6.9, 11, '한국어 · English · 日本語 · 中文', '화면과 지적이 그 말로 바뀝니다');
+    R.cap(R.t + 0.5, R.t + 6.9, 11, '한국어, English, 日本語, 中文', '화면과 지적이 그 언어로 바뀝니다');
     await R.wait(0.5, 0.4);
     for (const lang of ['en', 'ja', 'zh']) {
       const btn = await shown(`[data-lang="${lang}"]`);

@@ -6,7 +6,7 @@ import { TALK as TALK5, KINDS, CHARTS, VOICE, targetSeconds } from "./talk.js";
 import { TALK as TALK10 } from "./talk10.js";
 
 const NEEDS = {
-  cover: ["headline"], compare: ["head", "rows"], big: ["value"],
+  cover: ["headline"], compare: ["head", "rows"], big: [],
   video: ["src"], flow: ["steps"], ask: ["question"], quote: ["quote", "by"], cards: ["cards"],
 };
 const exists = (f) => f && existsSync(new URL(f, import.meta.url));
@@ -73,7 +73,7 @@ function checkChart(v, at) {
     const total = marks.reduce((n, m) => n + m.value, 0).toLocaleString("en-US");
     assert.ok(v.value.includes(total), `${at} 큰 숫자에 합계 ${total} 이 없다`);
   }
-  if (c.type === "column" && c.target) {
+  if (c.type === "column" && c.target && v.value) {
     assert.ok(c.target.value > 0 && c.target.label, `${at} 목표선`);
     assert.ok(v.value.includes(String(c.target.value)), `${at} 큰 숫자에 목표 ${c.target.value} 가 없다`);
     assert.ok(v.value.includes(String(Math.max(...marks.map((m) => m.value)))), `${at} 큰 숫자에 최고값이 없다`);

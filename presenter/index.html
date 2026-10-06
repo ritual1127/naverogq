@@ -80,6 +80,7 @@
   .split { display: grid; grid-template-columns: 1fr 640px; gap: 64px; align-items: center; }
   .split .points li { font-size: 40px; }
   .byline { margin-top: 30px; font-size: 32px; font-weight: 650; color: var(--muted); }
+  .kind-cover .byline { font-size: 38px; line-height: 1.45; color: var(--ink-2); }
   .value { font-size: 188px; font-weight: 850; letter-spacing: -5px; line-height: 1; white-space: nowrap; }
   .caption { margin-top: 50px; font-size: 54px; font-weight: 700; line-height: 1.3; }
   .note { margin-top: 24px; font-size: 40px; font-weight: 550; color: var(--ink-2); line-height: 1.35; }
@@ -129,8 +130,7 @@
   .question { font-size: 116px; font-weight: 850; line-height: 1.18; letter-spacing: -2px; }
   .kind-ask .sub { font-size: 48px; }
   /* 인터뷰 인용 — 사람이 한 말 그대로. 따옴표는 강조색으로 크게 */
-  .quote { position: relative; font-size: 82px; font-weight: 800; line-height: 1.3; letter-spacing: -2px; }
-  .quote::before { content: "“"; position: absolute; left: -112px; top: -64px; font-size: 190px; line-height: 1; color: var(--accent); }
+  .quote { font-size: 78px; font-weight: 750; line-height: 1.32; letter-spacing: -1.5px; }
   .by { margin-top: 26px; font-size: 38px; font-weight: 650; color: var(--muted); }
   .kind-quote .chart { margin-top: 56px; }
   /* 카드 — 목표 · 운영비 · 팀 */
@@ -478,7 +478,7 @@ const CHART = {
   },
   // 시험 5시간 위에 빠뜨린 것을 찾은 때(점)와 고치는 데 든 시간(막대). 제출 뒤에야 안 사람은 시험 시간 칸을 점선으로.
   timeline(c) {
-    const span = c.span, top = 74, rowH = 86, labelW = 330, x0 = 360, x1 = 1200, noteX = 1232;
+    const span = c.span, top = 74, rowH = c.rows.length > 3 ? 74 : 86, labelW = 330, x0 = 360, x1 = 1200, noteX = 1232;
     const X = (m) => x0 + (Math.min(m, span) / span) * (x1 - x0);
     const base = top + c.rows.length * rowH;
     const svg = chartSvg(base + 64, `${c.title}: ${c.rows.map((r) => `${r.label} ${r.note || ""}`).join(", ")}`);
@@ -549,12 +549,13 @@ const VIEWS = {
   big: (v) => {
     const points = v.points ? el("ul", "points") : "";
     (v.points || []).forEach((p) => points.append(el("li", "", p)));
-    const body = [valueEl(v.value), points, v.chart ? chartBox(v.chart) : "",
+    const body = [v.value ? valueEl(v.value) : "", points, v.chart ? chartBox(v.chart) : "",
                   v.caption ? el("div", "caption", v.caption) : "", v.note ? el("div", "note", v.note) : ""];
     if (!v.img) return [el("div", "kicker", v.kicker), ...body];
     const text = el("div");
     text.append(...body.filter(Boolean));
     const wrap = el("div", "split");
+    if (v.imgW) wrap.style.gridTemplateColumns = `1fr ${v.imgW}px`;
     wrap.append(text, shot(v));
     return [el("div", "kicker", v.kicker), wrap];
   },
@@ -603,7 +604,8 @@ function shot(v, cap = "") {
   const img = document.createElement("img");
   img.src = v.img;
   img.alt = v.imgAlt || "";
-  fig.append(img, el("figcaption", "", v.imgCap || cap));
+  const caption = v.imgCap ?? cap;             // "" 이면 설명 줄 없이
+  fig.append(img, ...(caption ? [el("figcaption", "", caption)] : []));
   return fig;
 }
 
