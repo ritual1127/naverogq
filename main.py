@@ -212,9 +212,16 @@ def site_stats():
     return stats.summary()
 
 
-def _done(request, response):
-    """검사 시작(check/sample)과 결과가 나온 것은 다른 수다. _run 이 예외를
-    던지면 여기까지 오지 않으므로 이 수는 실제로 결과를 본 횟수다."""
+def _done(request, run, *args):
+    """검사 시작(check/sample)과 결과가 나온 것은 다른 수다. 결과가 돌아가면 `done`,
+    오류로 끝나면 `fail:상태코드`(500 분석이 깨짐 · 503 밀려서 돌려보냄)를 센다.
+    셋 다 없으면 서버가 도중에 죽은 것이다. 재방문이 없는 이유가 품질 탓인지 가르려고
+    `fail` 을 2026-10-08 에 넣었다(데모데이 ② 피드백)."""
+    try:
+        response = run(*args)
+    except Exception as e:
+        stats.bump(request, f"fail:{getattr(e, 'status_code', 500)}")
+        raise
     stats.bump(request, "done")
     return response
 
@@ -236,7 +243,7 @@ _evt_all = []
 @app.post("/api/event")
 def event(body: dict, request: Request):
     """화면이 보내는 이벤트. 재검사 · 코호트 · 파일 선택창 셋이다. 종류 이름과
-    처음 온 주(날짜 하나)만 받고 파일명이나 도면 내용은 받지 않는다."""
+    처음 온 주 · 마지막으로 센 주(날짜 둘)만 받고 파일명이나 도면 내용은 받지 않는다."""
     kind = (body or {}).get("kind", "")
     if kind not in EVENT_KINDS:
         raise HTTPException(400, "셀 수 없는 이벤트입니다.")
@@ -246,10 +253,11 @@ def event(body: dict, request: Request):
         raise HTTPException(429, "짧은 시간에 너무 많이 왔습니다.",
                             headers={"Retry-After": str(EVENT_WINDOW)})
     if kind == "cohort":
-        # 처음 온 주. 화면이 보낸 값을 그대로 믿지 않고 날짜 모양만 받는다.
-        first = (body or {}).get("first", "")
-        return {"ok": True,
-                "first": stats.cohort(request, first if isinstance(first, str) else "")}
+        # 처음 온 주와 이 브라우저를 마지막으로 센 주. 화면이 보낸 값을 그대로 믿지 않는다.
+        first, sent = ((body or {}).get(k, "") for k in ("first", "sent"))
+        first, week = stats.cohort(request, first if isinstance(first, str) else "",
+                                   sent if isinstance(sent, str) else "")
+        return {"ok": True, "first": first, "week": week}
     stats.bump(request, kind)
     return {"ok": True}
 
@@ -539,7 +547,7 @@ def analyze_sample(body: dict, request: Request):
         raise HTTPException(400, "분석할 수 없는 형식입니다.")
     job = uuid.uuid4().hex[:12]
     stats.bump(request, "sample")
-    return _done(request, _run_sample(job, path, name, _enabled(body)))
+    return _done(request, _run_sample, job, path, name, _enabled(body))
 
 
 SAMPLE_RESULTS = {}         # (이름, 수정 시각, 켠 검사) -> 결과. 예제 파일은 안 바뀌니 결과도 같다
@@ -587,7 +595,7 @@ def analyze_path(body: dict, request: Request):
     job = uuid.uuid4().hex[:12]
     os.makedirs(os.path.join(UPLOADS, job), exist_ok=True)
     stats.bump(request, "check")
-    return _done(request, _run(job, path, os.path.basename(path), _enabled(body)))
+    return _done(request, _run, job, path, os.path.basename(path), _enabled(body))
 
 
 def _enabled(src):
@@ -608,6 +616,8 @@ def analyze(request: Request,
     ext = os.path.splitext(name)[1].lower()
     openable = _openable()
     if ext not in openable and ext != ".zip":
+        # 형식 때문에 검사까지 못 간 업로드. Inventor 원본을 들고 온 사람이 얼마나 되는지 본다
+        stats.bump(request, "reject:inventor" if ext in check.INVENTOR_EXT else "reject:format")
         if ext in check.INVENTOR_EXT:
             raise HTTPException(400, check.inventor_help(ext))
         extra = ""
@@ -634,7 +644,7 @@ def analyze(request: Request,
     if ext == ".zip":
         path, name = _unzip(path, workdir)
     stats.bump(request, "check")
-    return _done(request, _run(job, path, name, _enabled({"checks": checks})))
+    return _done(request, _run, job, path, name, _enabled({"checks": checks}))
 
 
 class _TooBig(Exception):

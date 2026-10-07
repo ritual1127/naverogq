@@ -550,28 +550,37 @@ def test_retention_counts_people_who_come_back_a_week_later():
         os.environ["CADLENS_STAT_SALT"] = "test-salt"
         stats = importlib.reload(_stats)
         try:
-            w1 = datetime.date(2026, 9, 14)           # 월요일
-            w2 = datetime.date(2026, 9, 21)           # 그다음 월요일
+            w1 = datetime.date(2026, 10, 12)          # 월요일 — 고친 뒤 처음 온전한 주
+            w2 = datetime.date(2026, 10, 19)          # 그다음 월요일
             # 첫 주에 둘이 처음 온다. 서버가 그 주 월요일을 돌려준다.
-            got = [stats.cohort(Req(ip), "", w1)
+            got = [stats.cohort(Req(ip), "", today=w1)[0]
                    for ip in ("203.0.113.1", "203.0.113.2")]
-            assert got == ["2026-09-14", "2026-09-14"], got
+            assert got == ["2026-10-12", "2026-10-12"], got
             # 쿠키를 지어내도 날짜 모양이 아니면 버리고 새로 온 사람으로 센다
-            assert stats.cohort(Req("203.0.113.3"), "drop table", w1) == "2026-09-14"
+            assert stats.cohort(Req("203.0.113.3"), "drop table", today=w1)[0] == "2026-10-12"
+            # 실습실처럼 IP 하나를 같이 쓰는 다른 브라우저도 따로 센다(전에는 IP 로 세서 하나로 합쳐졌다)
+            stats.cohort(Req("203.0.113.1"), "", today=w1)
 
-            stats.cohort(Req("203.0.113.1"), "2026-09-14", w2)   # 하나만 다시 온다
+            # 하나만 다시 온다. 그 주에 IP 를 바꿔 세 번 와도 한 번이다 — 전에는 IP 마다 따로
+            # 세서 처음 온 3명 중 5명이 돌아왔다고 나왔다(P26)
+            sent = ""
+            for ip in ("203.0.113.1", "198.51.100.9", "192.0.2.4"):
+                _, sent = stats.cohort(Req(ip), "2026-10-12", sent, today=w2)
+            assert sent == "2026-10-19"
             # 같은 주에 또 오는 것은 다시 온 것이 아니다 (세면 100% 가 된다)
-            stats.cohort(Req("203.0.113.2"), "2026-09-14", datetime.date(2026, 9, 16))
+            stats.cohort(Req("203.0.113.2"), "2026-10-12", today=datetime.date(2026, 10, 14))
+            # 고치기 전 기록(페이지를 열 때마다 셌다)의 `ret` 은 버리고 처음 온 수만 쓴다
+            stats.cohort(Req("203.0.113.7"), "", today=datetime.date(2026, 9, 29))
+            stats.cohort(Req("203.0.113.7"), "2026-09-28", today=datetime.date(2026, 10, 6))
 
             con = stats._connect()
             try:
                 out = stats.retention(con)
             finally:
                 con.close()
-            assert [r["cohort"] for r in out] == ["2026-09-14"], out
-            assert out[0]["size"] == 3, out
-            assert out[0]["weeks"] == [{"since": "2026-09-21", "back": 1,
-                                        "rate": 0.333}], out
+            assert [(r["cohort"], r["size"], r["weeks"]) for r in out] == [
+                ("2026-10-12", 4, [{"since": "2026-10-19", "back": 1, "rate": 0.25}]),
+                ("2026-09-28", 1, [])], out
         finally:
             for k, v in kept.items():
                 if v is None:

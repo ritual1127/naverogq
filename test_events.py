@@ -437,6 +437,7 @@ def test_cohort_event_returns_the_first_week_and_is_kept():
     assert r.status_code == 200, r.text
     first = r.json()["first"]
     assert len(first) == 10 and first[4] == "-"
+    assert r.json()["week"] == first              # 처음 온 주가 곧 이번 주
     again = client.post("/api/event", json={"kind": "cohort", "first": first})
     assert again.json()["first"] == first
     junk = client.post("/api/event", json={"kind": "cohort", "first": "'; drop"})
@@ -449,3 +450,30 @@ def test_file_picker_is_counted_as_its_own_funnel_step():
     before = client.get("/api/stats").json()["weeks"][0]["pickers"]
     assert client.post("/api/event", json={"kind": "pick"}).status_code == 200
     assert client.get("/api/stats").json()["weeks"][0]["pickers"] == before + 1
+
+
+def test_a_check_that_errors_is_counted_as_fail_not_done(monkeypatch):
+    """결과 대신 오류가 간 검사는 `done` 이 아니라 `fail` 로 센다. 재방문이 없는 이유가
+    품질 탓인지 가르는 수다(데모데이 ② 피드백)."""
+    def broken(*a, **k):
+        raise RuntimeError("읽을 수 없는 도면")
+
+    monkeypatch.setattr(main.check, "analyze", broken)
+    client.get("/")
+    before = client.get("/api/stats").json()["total"]
+    r = client.post("/api/analyze", files={"file": ("x.dxf", b"0\nEOF\n")})
+    assert r.status_code == 500, r.text
+    after = client.get("/api/stats").json()["total"]
+    assert after["fails"] == before["fails"] + 1
+    assert after["done"] == before["done"]
+
+
+def test_a_file_we_cannot_read_is_counted_as_reject():
+    """Inventor 원본처럼 검사까지 못 가는 업로드도 센다. 안 올린 사람과 못 올린 사람은 다르다."""
+    client.get("/")
+    before = client.get("/api/stats").json()["total"]
+    r = client.post("/api/analyze", files={"file": ("부품.ipt", b"x")})
+    assert r.status_code == 400
+    after = client.get("/api/stats").json()["total"]
+    assert after["rejects"] == before["rejects"] + 1
+    assert after["checks"] == before["checks"]

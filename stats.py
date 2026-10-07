@@ -125,21 +125,25 @@ def monday_of(day):
     return day - datetime.timedelta(days=day.weekday())
 
 
-def cohort(request, first, today=None):
-    """처음 온 주를 돌려준다. 그 주가 아닌 때 다시 오면 `ret:처음온주` 로 센다.
+def cohort(request, first, sent="", today=None):
+    """처음 온 주와 이번 주를 돌려준다. 그 주가 아닌 때 다시 오면 `ret:처음온주` 로 센다.
+
+    `sent` 는 이 브라우저를 마지막으로 센 주다. 화면이 받아 두었다가 다음에 들고 온다.
+    이번 주를 이미 셌으면 다시 세지 않는다 — 전에는 페이지를 열 때마다 셌고, 세는 단위가
+    IP 라 같은 브라우저가 IP 를 바꿔 오면 여러 명이 됐다(P26, 처음 온 3명 중 5명이 돌아옴).
 
     `first` 는 화면이 보낸 값이라 지어낼 수 있다. 날짜 모양이 아니면 버리고 이번 주로
     다시 잡는다. 지어낸 날짜를 넣으면 그 주 코호트에 한 명이 얹히는데, 방문 수를
-    지어내는 것과 같은 정도라 따로 막지 않는다."""
+    지어내는 것과 같은 정도라 따로 막지 않는다. `sent` 를 빼고 보내도 마찬가지다."""
     today = today or datetime.date.today()
     now = monday_of(today).isoformat()
     first = first if WEEK_RE.match(first or "") else ""
     if not first:
         bump(request, "new", today)
-        return now
-    if first != now:
+        return now, now
+    if first != now and sent != now:
         bump(request, f"ret:{first}", today)
-    return first
+    return first, now
 
 
 UPSERT = ("INSERT INTO hits(day, visitor, kind, n) VALUES(?,?,?,1) "
@@ -314,7 +318,9 @@ SUMMARY_SQL = PEOPLE + """SELECT
  (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='recheck'),
  (SELECT COALESCE(SUM(n),0) FROM people WHERE kind='done'),
  (SELECT COUNT(DISTINCT visitor) FROM people WHERE day>=?2 AND kind IN ('check','sample')),
- (SELECT COUNT(DISTINCT visitor) FROM people WHERE day>=?2 AND kind='done')"""
+ (SELECT COUNT(DISTINCT visitor) FROM people WHERE day>=?2 AND kind='done'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind LIKE 'fail:%'),
+ (SELECT COALESCE(SUM(n),0) FROM people WHERE kind LIKE 'reject:%')"""
 
 DAILY_SQL = PEOPLE + (
     "SELECT day, COUNT(DISTINCT CASE WHEN kind='visit' THEN visitor END) v, "
@@ -338,8 +344,13 @@ WEEKLY_AGAIN_SQL = PEOPLE + f"""SELECT wk, COUNT(*) AS r FROM (
  GROUP BY wk, visitor HAVING s >= 2) GROUP BY wk"""
 
 
-RETENTION_SQL = f"""SELECT kind, {MONDAY} AS wk, COUNT(DISTINCT visitor) AS n
- FROM hits WHERE kind = 'new' OR kind LIKE 'ret:%' GROUP BY kind, wk"""
+# 브라우저 하나가 한 주에 한 번만 보내므로 횟수(SUM n)가 곧 브라우저 수다. 방문자 값(IP)으로
+# 세면 IP 를 바꿔 온 브라우저가 여러 명이 된다(P26). `new` 는 처음부터 브라우저마다 한 번이라
+# 지난 기록도 그대로 쓰고, `ret` 은 고친 뒤 처음 온전한 주부터만 쓴다 — 그 전에는 페이지를
+# 열 때마다 셌다.
+RET_SINCE = "2026-10-12"
+RETENTION_SQL = f"""SELECT kind, {MONDAY} AS wk, SUM(n) AS n FROM hits
+ WHERE kind = 'new' OR (kind LIKE 'ret:%' AND day >= '{RET_SINCE}') GROUP BY kind, wk"""
 
 
 def _retention(rows, limit=6):
@@ -402,7 +413,7 @@ def _summary_d1(today, days):
 def _summary_from(row, daily, today, store):
     monday = today - datetime.timedelta(days=today.weekday())
     (tv, tc, wv, wc, wr, vis, chk, smp, nday, since,
-     wrc, rc, dn, wdo, wfin) = row
+     wrc, rc, dn, wdo, wfin, fl, rj) = row
     return {
         "available": True, "store": store,
         "today": {"visitors": tv or 0, "checks": tc or 0},
@@ -414,6 +425,8 @@ def _summary_from(row, daily, today, store):
                  "checkers": wdo or 0, "finishers": wfin or 0},
         "total": {"visits": vis or 0, "checks": chk or 0, "samples": smp or 0,
                   "rechecks": rc or 0, "done": dn or 0,
+                  # 검사까지 갔는데 결과 대신 오류가 간 횟수 · 형식 때문에 검사 전에 돌려보낸 횟수
+                  "fails": fl or 0, "rejects": rj or 0,
                   "days": nday or 0, "since": since or today.isoformat()},
         "daily": [{"day": d, "visitors": v or 0, "checks": c or 0} for d, v, c in daily],
     }
