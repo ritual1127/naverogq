@@ -24,7 +24,7 @@
 <link rel="icon" href="/static/favicon.ico" sizes="32x32">
 <link rel="icon" type="image/png" href="/static/favicon.png" sizes="180x180">
 <link rel="apple-touch-icon" href="/static/favicon.png">
-<link rel="stylesheet" href="/static/site.css?v=20260922">
+<link rel="stylesheet" href="/static/site.css?v=20261009">
 <link rel="preload" href="/static/fonts/NanumSquareRoundR.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/NanumSquareRoundEB.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -77,6 +77,7 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
         </div>
         <input id="file" type="file" hidden>
         <div class="err-box hide" id="errHome" role="alert"></div>
+        <div class="recent" id="recent" hidden aria-live="polite"></div>
         <div class="up-foot">
           <button class="ptoggle" id="ptoggle" type="button" aria-expanded="false" aria-controls="ppanel"><svg class="ico"><use href="#i-sliders"/></svg><span data-i18n="checks">검사 항목</span><b id="pcount"></b><svg class="ico chev"><use href="#i-chev"/></svg></button>
           <div class="fmt" id="formatrow"></div>
@@ -220,7 +221,7 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
     <p class="busy-note" data-i18n="loadingNote"></p>
   </div>
 </div>
-<script src="/static/common.js?v=20260922"></script>
-<script src="/static/home.js?v=20261008"></script>
+<script src="/static/common.js?v=20261009"></script>
+<script src="/static/home.js?v=20261009"></script>
 </body>
 </html>

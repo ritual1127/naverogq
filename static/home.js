@@ -16,7 +16,7 @@ function setTitle(file){document.title=file?`${file} · CADLens`:`CADLens | ${t(
 onLang.push(()=>{
   $('.hero-t').innerHTML=esc(t('heroTitle')).replace(/^(.+?[,，、.])\s*/,'$1<br>');  // break after the first clause
   $('#ctaBandT').textContent=t('guide')[0][0];
-  drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();
+  drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();drawRecent();
   if(!$('#guide').hidden)drawGuide();
   if(picking)$('#pickHint').textContent=t('pickHint');
   if(RAW)render(RAW,true);else setTitle();
@@ -135,7 +135,7 @@ document.addEventListener('keydown',e=>{if($('#guide').hidden)return;
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}});
 
 function showView(v){const res=v==='res';$('#home').hidden=res;$('#res').hidden=!res}
-function goHome(){showView('home');clearErr();setTitle();window.scrollTo(0,0)}
+function goHome(){showView('home');clearErr();setTitle();drawRecent();window.scrollTo(0,0)}
 $('#back').onclick=goHome;
 $$('[data-nav]').forEach(a=>a.onclick=e=>{if($('#res').hidden)return;e.preventDefault();goHome();const el=a.hash&&$(a.hash);if(el)el.scrollIntoView()});
 ['#brand','#brand2'].forEach(s=>$(s).onclick=e=>{e.preventDefault();if($('#res').hidden)window.scrollTo(0,0);else goHome()});
@@ -369,6 +369,18 @@ function histGet(file){return histAll()[file]||null}
 function histSave(snap){const all=histAll();all[snap.file]=snap;const keys=Object.keys(all);
   if(keys.length>HIST_MAX)keys.sort((a,b)=>all[a].ts-all[b].ts).slice(0,keys.length-HIST_MAX).forEach(k=>delete all[k]);
   store.set(HIST,JSON.stringify(all))}
+// 다시 들어온 사람에게 지난 검사를 첫 화면에서 보여 준다(W6 FIX 04 · 다시 올 이유). 서버로 보내는 것은 없다.
+// 실습실처럼 여럿이 쓰는 컴퓨터를 생각해 이 기기에서 지우는 버튼을 같이 둔다.
+function drawRecent(){const box=$('#recent');if(!box)return;
+  const all=Object.values(histAll()).filter(h=>h&&h.file).sort((a,b)=>b.ts-a.ts).slice(0,3);
+  if(!all.length){box.hidden=true;box.innerHTML='';return}
+  const pct=v=>v==null?'—':Math.round(v)+'%';
+  box.innerHTML=`<div class="recent-h"><b>${esc(t('recentTitle'))}</b><button class="recent-x" type="button" id="recentClear">${esc(t('recentClear'))}</button></div>`
+    +`<ul>${all.map(h=>`<li><span class="recent-f" title="${esc(h.file)}">${esc(h.file)}</span><span class="recent-s">${pct(h.percent)}${h.dq?` · <em>${esc(t('recentDq'))}</em>`:''}</span><span class="recent-w">${esc(ago(h.ts))}</span></li>`).join('')}</ul>`
+    +`<p class="recent-n">${esc(t('recentHint'))}</p>`;
+  box.hidden=false;
+  $('#recentClear').onclick=()=>{try{localStorage.removeItem(HIST)}catch(e){}CMP.clear();drawRecent()};
+}
 function snapshot(d){const sc=d.scorecard||{},codes={};(d.findings||[]).forEach(f=>{if(!codes[f.code])codes[f.code]=f.title});
   return {job:d.job,ts:Date.now(),file:d.file||'',score:sc.auto_score??null,max:sc.auto_max??null,percent:sc.percent??null,dq:!!sc.disqualified,codes}}
 function ago(ms){const m=Math.floor((Date.now()-ms)/60000);if(m<1)return t('justNow');if(m<60)return m+t('minAgo');if(m<1440)return Math.floor(m/60)+t('hourAgo');return Math.floor(m/1440)+t('dayAgo')}

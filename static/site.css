@@ -127,6 +127,16 @@ h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;lett
 .pbtns .btn{height:34px;padding:0 14px;font-size:13px}
 .err-box{display:flex;gap:10px;margin-top:12px;padding:13px 16px;border-radius:16px;background:var(--tint-red);color:var(--ink-red);font-size:14px;line-height:1.65;white-space:pre-wrap}
 .err-box .ico{margin-top:2px;color:var(--red)}
+.recent{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--panel2);font-size:14px;line-height:1.5}
+.recent-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.recent-x{border:0;background:none;color:var(--muted);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:4px 2px}
+.recent ul{list-style:none;margin:0;padding:0}
+.recent li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line2)}
+.recent-f{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.recent-s{font-variant-numeric:tabular-nums}
+.recent-s em{font-style:normal;color:var(--ink-red);font-weight:700}
+.recent-w{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.recent-n{margin:8px 0 0;color:var(--muted);font-size:12.5px}
 
 /* drawing illustration */
 .art-sheet{fill:var(--panel);stroke:var(--line2);stroke-width:1.5}
