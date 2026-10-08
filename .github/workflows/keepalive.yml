@@ -24,3 +24,7 @@ jobs:
             --retry 2 \
             --retry-delay 5 \
             https://naverogq.onrender.com/api/health > /dev/null
+      # 5분마다 깨우는 일은 Cloudflare Durable Object 알람(keepalive/)이 한다 — 이 예약 실행은 하루 몇 번만 돌아서,
+      # 돌 때마다 그 알람이 끊기지 않았는지 보고 끊겼으면 다시 건다(plan/문제점/P31)
+      - name: Re-arm Cloudflare keepalive alarm
+        run: curl --fail --silent --show-error --max-time 30 https://cadlens-keepalive.smilepea.workers.dev/

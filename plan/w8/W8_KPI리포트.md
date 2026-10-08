@@ -105,11 +105,12 @@ npx wrangler d1 execute cadlens-interview --remote --json --command "WITH bots A
 | 서버 | Render 무료 플랜 (싱가포르) | 0원 | [`render.yaml`](../../render.yaml) `plan: free` |
 | AI 채점 | Gemini → Cloudflare Workers AI → Mistral → Groq, 전부 무료 한도 | 0원 | README "AI 채점기를 두 곳으로 붙여 둔 이유" 표 |
 | 지표 저장 | Cloudflare D1 | 0원 | `render.yaml` `CADLENS_D1_STATS` |
-| 서버 깨우기 · 시험 | GitHub Actions (공개 저장소) | 0원 | `.github/workflows/` |
+| 서버 깨우기 | Cloudflare Workers · Durable Object 알람 (무료) | 0원 | [`keepalive/`](../../keepalive/) — 10-09 부터. 그 전 GitHub 예약 실행은 하루 3~6번만 돌았다([P31](../문제점/P31-서버깨우기.md)) |
+| 시험 | GitHub Actions (공개 저장소) | 0원 | `.github/workflows/` |
 
 같은 도면을 다시 검사하면 저장해 둔 AI 답을 써서 호출이 없다. **무료의 대가**도 있다 — 무료 서버는 CPU 가 작아
-도면을 읽고 그리는 데 로컬의 서너 배가 걸리고([P23](../문제점/P23-AI가느리다.md)), 접속이 없으면 잠들어 5분마다
-깨운다(한국 시간 0~3시는 안 깨움). 무료 한도를 넘었을 때의 유료 단가는 **아직 계산하지 않았다** — 10-12 까지
+도면을 읽고 그리는 데 로컬의 서너 배가 걸리고([P23](../문제점/P23-AI가느리다.md)), 접속이 없으면 15분 뒤 잠들어 10-09 부터
+Cloudflare 알람이 5분마다 깨운다(한국 시간 0~3시는 안 깨움). 무료 한도를 넘었을 때의 유료 단가는 **아직 계산하지 않았다** — 10-12 까지
 Render 와 Gemini 공식 가격표로 계산해 이 칸에 넣는다.
 
 **이어갈 사람** — \_\_\_\_ (팀 기입: 네 명의 학년과 졸업 시점, 대회 뒤 누가 서버와 저장소를 맡는지).

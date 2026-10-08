@@ -102,6 +102,7 @@ flowchart LR
 | 화면 글꼴 | 나눔스퀘어라운드 (서버에 직접 올림) | — | SIL OFL 1.1 |
 | 캐릭터 스티커 | OGQ마켓 API (대회 제공) · 「박하의 힐링타임」 | — | 대회 참여 목적으로만 사용, 저장소에 파일 없음 |
 | 배포 | Docker + Render.com | — | — |
+| 서버 깨우기 | Cloudflare Workers · Durable Object 알람 ([`keepalive/`](keepalive/)) | — | 5분마다 `/api/health`, 한국 시간 0~3시는 쉼 · 배포 `cd keepalive && npx wrangler deploy` |
 
 GPL과 AGPL을 어떻게 처리했는지는 [`NOTICE.md`](NOTICE.md)에 적어 뒀습니다.
 
