@@ -11,7 +11,7 @@ flowchart LR
     S -->|"DXF면 바로"| R
     R --> RULE["규칙 채점 60점<br/>(exam.py, AI 미사용)"]
     R --> IMG["도면 → PNG"]
-    IMG --> CACHE{"aicache에<br/>같은 그림 있나"}
+    IMG --> CACHE{"aicache에<br/>같은 도면 있나"}
     CACHE -->|"있음"| AIRES["AI 결과 재사용"]
     CACHE -->|"없음"| AI["AI 투상도 채점 30점<br/>Gemini → Workers AI → Mistral → Groq"]
     AI -->|"PNG 1장 + 요약만 전송"| GOOGLE[["Google Gemini 등<br/>(외부, 저희 통제 밖)"]]
@@ -29,7 +29,7 @@ flowchart LR
 | DXF 변환 | LibreDWG(`dwg2dxf`) 우선, 없으면 CloudConvert, 그다음 ODA File Converter. 셋 다 없으면 안내만 하고 중단 | 남기지 않음 |
 | 규칙 채점 60점 | `exam.py`. AI를 부르지 않는 순수 코드, 실격 판정 6가지도 여기서 | — |
 | AI 채점 30점 | 도면을 PNG 1장으로 바꿔 멀티모달 AI에게 채점위원 기준으로 물어봄. 원본 DWG/DXF는 안 보냄 | 아래 캐시만 |
-| `aicache/` (저장소에 포함, 심사에서 그대로 보임) | 같은 그림을 다시 채점하지 않으려고 PNG 해시 → AI 응답을 저장. 지금은 배포판에 **미리 채워 둔 예시가 없어 비어 있고**, 실행 중 쌓인 캐시는 로컬(`%LOCALAPPDATA%/cad-checker/aicache`)에 남아 저장소에는 안 올라감 | 해시값 · AI 응답 JSON. 도면 이미지 자체는 캐시에 안 남음 |
+| `aicache/` (저장소에 포함, 심사에서 그대로 보임) | 같은 도면을 다시 채점하지 않으려고 도면 파일 내용(줄바꿈은 LF 로 맞춤) · 모델 · 참고 정보의 해시 → AI 응답을 저장. 배포판에는 **예제 DXF 셋의 채점만 미리 넣어 둔다**(09-17 · 10-10 — [P32](../plan/문제점/P32-예제캐시줄바꿈.md)). 실행 중 쌓인 캐시는 로컬(`%LOCALAPPDATA%/cad-checker/aicache`)에 남아 저장소에는 안 올라감 | 해시값 · AI 응답 JSON. 도면 이미지 자체는 캐시에 안 남음 |
 | 임시 업로드 폴더 | 검사 한 번에만 씀. 최대 1시간, 최근 20건 넘으면 폴더째 삭제 | 최대 1시간 |
 
 ## 개인정보가 밖으로 나가는 지점은 하나뿐
