@@ -1525,6 +1525,25 @@ def test_ai_cache_hit_does_not_render_the_drawing(monkeypatch):
     assert out and out["score"] == 30
 
 
+def test_shipped_ai_cache_covers_every_dxf_sample(tmp_path):
+    """예제 DXF 의 AI 채점은 저장소 aicache/ 에 들어 있어야 한다. 이 PC 는 git 이 CRLF 로 푼 파일을,
+    공개 서버는 LF 로 푼 파일을 읽는다 — 줄바꿈이 열쇠에 들어가면 서버에서는 한 번도 안 맞는다(P32)."""
+    import ai_review
+    import dwg
+
+    samples = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
+    names = [n for n in sorted(os.listdir(samples)) if n.endswith(".dxf")]
+    model = ai_review.MODEL_OF[ai_review.PROVIDER_ORDER[0]]
+    for name in names:
+        path = os.path.join(samples, name)
+        lf = open(path, "rb").read().replace(b"\r\n", b"\n")
+        crlf = tmp_path / name
+        crlf.write_bytes(lf.replace(b"\n", b"\r\n"))
+        assert ai_review._drawing_blob(str(crlf)) == ai_review._drawing_blob(path) == lf, name
+        key = ai_review._cache_key(lf, model, ai_review.PROMPT + ai_review._context(dwg.analyze(path)))
+        assert os.path.isfile(os.path.join(ai_review.SHIPPED_CACHE, key)), f"{name} 의 AI 채점이 aicache/ 에 없다"
+
+
 def test_center_lines_are_judged_circle_by_circle():
     """전에는 도면에 중심선이 하나라도 있으면 통과였다. 큰 원에만 긋고 작은 구멍에
     빠뜨린 도면이 그래서 전부 통과했고 '수정 예시'도 아무것도 안 그렸다."""

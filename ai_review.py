@@ -626,10 +626,14 @@ def _drawing_blob(dxf_path):
 
     그림(PNG)으로 열쇠를 만들면 캐시가 한 번도 안 맞는다. 같은 도면을 두 번
     그려도 픽셀이 조금씩 달라져서(2,400×1,238 중 1,664픽셀) 해시가 매번 바뀌기
-    때문이다. 그래서 도면 파일 내용으로 연다 — 같은 파일이면 같은 열쇠다."""
+    때문이다. 그래서 도면 파일 내용으로 연다 — 같은 파일이면 같은 열쇠다.
+
+    줄바꿈은 LF 로 맞춘다. 같은 예제 파일도 Windows 에서는 git 이 CRLF 로, 공개 서버에서는
+    LF 로 풀어 바이트가 다르다. 그래서 저장소에 넣어 둔 예제 채점(aicache/)이 서버에서는
+    한 번도 안 맞았다(P32). AI 에게 보내는 그림은 줄바꿈과 상관없다."""
     try:
         with open(dxf_path, "rb") as fh:
-            return fh.read()
+            return fh.read().replace(b"\r\n", b"\n")
     except OSError:
         return None
 
