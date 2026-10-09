@@ -28,6 +28,9 @@ SAMPLES = os.path.join(HERE, "samples")
 MAX_BYTES = 200 * 1024 * 1024
 
 SAMPLE_NOTES = {
+    # 팀이 만든 도면(make_drawings.py · docs/demo/영상시연/1차/본체.dxf 와 같은 파일). 첫 화면 그림
+    # static/peek.webp 가 이 예제의 결과라 '예제로 먼저 보기'도 이것을 돌린다(home.js)
+    "sample_body.dxf": "동력전달장치 부품도 — 실격 사유, 빠진 치수 번호, 수정 예시가 다 나오는 예제",
     "sample_plate.dxf": "평판 부품도 — 투상도가 1개뿐이라 감점이 나옵니다",
     "sample_autocad.dxf": "AutoCAD 실도면 — 오작(실격) 판정이 나오는 예제",
     "sample_075em07z.dwg": "위 도면의 DWG 원본 — LibreDWG가 있어야 열립니다",

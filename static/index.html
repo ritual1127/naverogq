@@ -24,7 +24,7 @@
 <link rel="icon" href="/static/favicon.ico" sizes="32x32">
 <link rel="icon" type="image/png" href="/static/favicon.png" sizes="180x180">
 <link rel="apple-touch-icon" href="/static/favicon.png">
-<link rel="stylesheet" href="/static/site.css?v=20261009">
+<link rel="stylesheet" href="/static/site.css?v=20261010">
 <link rel="preload" href="/static/fonts/NanumSquareRoundR.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/NanumSquareRoundEB.woff2" as="font" type="font/woff2" crossorigin>
 <script>
@@ -47,6 +47,7 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
           <button class="btn btn-primary btn-lg" id="ctaUpload" type="button"><svg class="ico"><use href="#i-upload"/></svg><span data-i18n="ctaUpload">도면 올리기</span></button>
           <button class="btn btn-ghost btn-lg hide" id="ctaSample" type="button"><span data-i18n="ctaSample">예제로 먼저 보기</span><svg class="ico"><use href="#i-arrow"/></svg></button>
         </div>
+        <button class="peek hide" id="peek" type="button" data-n="sample_body.dxf" data-i18n-aria="peekAria"><img src="/static/peek.webp?v=20261010" width="960" height="320" alt=""><span class="peek-t"><b data-i18n="peekT">이렇게 나와요</b><span data-i18n="peekD">실격 사유 · 감점 자리 번호 · 수정 예시</span><svg class="ico"><use href="#i-arrow"/></svg></span></button>
         <ul class="trust">
           <li><svg class="ico"><use href="#i-user"/></svg><span data-i18n="trust1">회원가입 없음</span></li>
           <li><svg class="ico"><use href="#i-trash"/></svg><span data-i18n="trust2">도면은 1시간 안에 삭제</span></li>
@@ -221,7 +222,7 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
     <p class="busy-note" data-i18n="loadingNote"></p>
   </div>
 </div>
-<script src="/static/common.js?v=20261009"></script>
-<script src="/static/home.js?v=20261009"></script>
+<script src="/static/common.js?v=20261010"></script>
+<script src="/static/home.js?v=20261010"></script>
 </body>
 </html>

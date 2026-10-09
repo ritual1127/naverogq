@@ -68,7 +68,8 @@ function drawFaq(){const open=$$('#faqList details').map(d=>d.open);
   $('#faqList').innerHTML=t('faq').map(([q,a],i)=>`<details${open[i]?' open':''}><summary>${esc(q)}${ico('chev')}</summary><p>${esc(a)}</p></details>`).join('')}
 
 fetch('/api/samples').then(r=>r.json()).then(d=>{SAMPLES=(d&&d.samples)||[];drawSamples()}).catch(()=>{});
-function drawSamples(){const has=SAMPLES.length>0;$('#samples').classList.toggle('hide',!has);$('#ctaSample').classList.toggle('hide',!has);if(!has)return;
+function drawSamples(){const has=SAMPLES.length>0;$('#samples').classList.toggle('hide',!has);$('#ctaSample').classList.toggle('hide',!has);
+  $('#peek').classList.toggle('hide',!SAMPLES.some(s=>s.name===$('#peek').dataset.n));if(!has)return;
   const notes=lang==='ko'?{}:t('sampleNote');
   $('#sgrid').innerHTML=SAMPLES.map(s=>`<button class="scard" type="button" data-n="${esc(s.name)}"><span class="sext">${esc(s.ext.replace('.',''))}</span><b>${esc(s.name)}</b><p>${esc(notes[s.name]||s.note||'')}</p><span class="smeta"><span>${kb(s.size)}</span><span>${esc(t('sampleRun'))}${ico('arrow')}</span></span></button>`).join('');
   $$('#sgrid .scard').forEach(b=>b.onclick=()=>sendSample(b.dataset.n))}
@@ -100,9 +101,10 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});
 // A file dropped just outside the drop zone (or on the result page) would make the browser open it and leave the site.
 ['dragover','drop'].forEach(x=>addEventListener(x,e=>e.preventDefault()));
 // 예제는 한 번에 돌린다. 예전에는 눌러도 목록까지 굴러가기만 해서 한 번 더 눌러야 했다.
-// 내 도면이 손에 없는 사람은 여기서 결과 화면을 처음 본다. DWG 예제는 LibreDWG 가 있어야
-// 열려서 건너뛰고 DXF 를 고른다. 다른 예제는 아래 목록에 그대로 있다.
-$('#ctaSample').onclick=()=>{const s=SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
+// 내 도면이 손에 없는 사람은 여기서 결과 화면을 처음 본다. 첫 화면 그림(#peek)이 이 예제의 실제 결과를
+// 찍은 것이라 단추도 그림도 같은 예제를 돌린다 — 그림과 결과가 다르면 처음 온 사람이 속았다고 느낀다.
+// 그 예제가 없으면 DXF 를 고른다(DWG 는 LibreDWG 가 있어야 열린다). 다른 예제는 아래 목록에 그대로 있다.
+$('#ctaSample').onclick=$('#peek').onclick=()=>{const s=SAMPLES.find(x=>x.name===$('#peek').dataset.n)||SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
   if(s)sendSample(s.name);else $('#samples').scrollIntoView({block:'start'})};
 
 const ART={

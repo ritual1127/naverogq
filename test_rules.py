@@ -1533,6 +1533,7 @@ def test_shipped_ai_cache_covers_every_dxf_sample(tmp_path):
 
     samples = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
     names = [n for n in sorted(os.listdir(samples)) if n.endswith(".dxf")]
+    assert "sample_body.dxf" in names            # 첫 화면 그림(static/peek.webp)이 이 예제의 결과다
     model = ai_review.MODEL_OF[ai_review.PROVIDER_ORDER[0]]
     for name in names:
         path = os.path.join(samples, name)
