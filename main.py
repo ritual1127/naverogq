@@ -907,9 +907,10 @@ def _render(facts):
     if not dxf or not os.path.exists(dxf):
         return None, False, [], "이 형식은 2D 도면 미리보기를 만들지 않습니다.", None, None
     import dwg
+    import exam
     markers, index = [], []
     for sh in facts.get("sheets", []):
-        finding_code = "EX_DIM_MISSING" if sh.get("dims") else "EX_NO_DIMS"
+        finding_code = "EX_DIM_MISSING" if exam.has_dims(sh) else "EX_NO_DIMS"
         for c in sh.get("undimensioned", []):
             if c.get("dxf_x") is None:
                 continue

@@ -356,6 +356,13 @@ def dwg_to_dxf(dwg_path: str) -> str:
     return out[0]
 
 
+def _is_dim_text(value, layer):
+    v = value.replace(" ", "")
+    if not _DIM_TEXT_RE.fullmatch(v):
+        return False
+    return not v.replace(".", "", 1).isdigit() or bool(_DIM_LAYER_RE.search(layer or ""))
+
+
 def _walk(entities, depth=0, seen=frozenset()):
     for e in entities:
         if e.dxftype() == "INSERT":
@@ -411,6 +418,12 @@ _TITLE_TEXT_RE = re.compile(r"품\s*명|도\s*명|품\s*번|도\s*번|재\s*질|
                             r"수\s*량|작성자|설계자|검도|\bSCALE\b|\bMATERIAL\b|"
                             r"\bPART\s*N|\bDRAWN\b", re.I)
 MIN_TITLE_TEXT_HITS = 2
+# 치수가 DIMENSION 개체 없이 글자로 풀려 저장된 도면(P28 — Inventor 가 DWG 로 저장하면 치수가
+# 선과 `치수(ISO)` 레이어의 MTEXT 조각 `Ø42H8` · `+0.05` · `64` 로 남는다). 글자 하나가 통째로
+# 치수값 꼴이어야 센다. 숫자만 있는 글자는 치수 레이어에 있을 때만 — 표제란 품번 · 수량도 숫자다.
+_DIM_TEXT_RE = re.compile(r"(?:\d+-)?(?:Ø|⌀|%%[cC]|R|SR|M|C)?\d+(?:\.\d+)?(?:[A-Za-z]{1,2}\d{1,2})?"
+                          r"(?:±\d+(?:\.\d+)?)?|[+-]\d+(?:\.\d+)?")
+_DIM_LAYER_RE = re.compile(r"치수|dim|寸法|尺寸", re.I)
 _NOTE_KEYWORD_RE = re.compile(r"주서|일반\s*공차|2768|열처리|담금질|침탄|질화|도금|도장|"
                               r"모[떼따]기|라운드|필렛|거칠기|다듬질|HRC|주기", re.I)
 # "단면도 A-A (1:1)" 같은 뷰 이름표는 12자가 넘어도 주서가 아니다.
@@ -1341,6 +1354,7 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
     short_lines, long_lines = [], []
     gdt_styles = _gdt_styles(doc)
     gdt_glyphs, plain_texts = [], []
+    dim_texts = 0               # 치수처럼 생긴 글자 — 치수가 글자로 풀려 저장된 도면을 알아본다(P28)
 
     for lay in layouts:
         try:
@@ -1436,6 +1450,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
                     if not value or not value.strip():
                         continue
                     value = value.strip()
+                    if _is_dim_text(value, e.dxf.get("layer", "")):
+                        dim_texts += 1
                     if len(value) <= 12:
                         try:
                             ins = e.dxf.insert
@@ -1607,7 +1623,8 @@ def facts_from_dxf(path: str, source_name: str | None = None) -> dict[str, Any]:
              "line_widths": _line_widths(doc),
              "text_sizes": _text_sizes(doc, msp, K),
              "views_known": bool(view_names),
-             "dims": dims, "undimensioned": undimensioned, "hole_circles": hole_circles,
+             "dims": dims, "dim_texts": dim_texts,
+             "undimensioned": undimensioned, "hole_circles": hole_circles,
              "outline_circles": outline_circles, "shape_segs": shape_segs,
              "surface_symbols": surfaces, "geometric_tols": geo_tols,
              "counts": {"circles": len(circles), "title_blocks": len(titles),

@@ -283,10 +283,20 @@ def _fits(facts):
     return []
 
 
+MIN_DIM_TEXTS = 3
+
+
+def has_dims(sheet):
+    """치수가 있는 도면인가. DIMENSION 개체가 없어도 치수값 꼴 글자가 여럿이면 치수가 선과 글자로
+    풀려 저장된 것이다 — Inventor 가 DWG 로 저장한 도면에 '치수가 하나도 없음'(15점)을 냈다(P28).
+    판정 · 수정 예시의 전체 치수 · 도면 위 번호가 모두 이것 하나로 정한다."""
+    return bool(sheet.get("dims")) or sheet.get("dim_texts", 0) >= MIN_DIM_TEXTS
+
+
 def _dimensions(facts):
     sh = _sheet_of(facts)
-    dims, missing = sh.get("dims", []), sh.get("undimensioned", [])
-    if not dims:
+    missing = sh.get("undimensioned", [])
+    if not has_dims(sh):
         return [_f("EX_NO_DIMS", SEV_ERROR, "치수가 하나도 없음",
                    "도면에 치수가 전혀 기입되지 않았습니다. 치수 기입 15점을 "
                    "전부 잃습니다.",

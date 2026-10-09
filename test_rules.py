@@ -240,6 +240,48 @@ def test_marker_index_targets_the_actual_dimension_finding():
     index = main._render(facts)[2]
     assert index[0]["finding_code"] == "EX_DIM_MISSING"
 
+    # 치수가 글자로 풀려 저장된 도면(P28)도 치수가 있는 도면이다
+    facts["sheets"][0]["dims"] = []
+    facts["sheets"][0]["dim_texts"] = 7
+    index = main._render(facts)[2]
+    assert index[0]["finding_code"] == "EX_DIM_MISSING"
+
+
+def test_dimensions_saved_as_text_are_still_dimensions():
+    """Inventor 가 DWG 로 저장하면 치수가 DIMENSION 개체 없이 선과 글자(MTEXT)로 풀린다. 그 도면에
+    '치수가 하나도 없음'(15점)을 내고, 수정 예시는 치수가 있는 뷰에 전체 치수를 또 그렸다(P28).
+    치수가 정말 없는 도면은 표제란 품번 · 수량 같은 숫자가 있어도 그대로 잡혀야 한다."""
+    import check
+    import ezdxf
+    import main
+    import make_drawings
+
+    def run(path):
+        facts, findings, _ = check.analyze(path, use_ai=False, alongside=main._render)
+        plan = facts["alongside"][5] or {}
+        return {f["code"] for f in findings}, plan.get("overall_count", 0)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bare = make_drawings.build(0, defect="no_dims", out_dir=tmp)
+        doc = ezdxf.readfile(bare)
+        msp = doc.modelspace()
+        assert not list(msp.query("DIMENSION"))
+        for i, text in enumerate(("1", "2", "3", "4", "1", "1")):     # 표제란 품번 · 수량처럼 숫자만 있는 글자
+            msp.add_text(text, dxfattribs={"layer": "0", "insert": (300 + 8 * i, 30), "height": 3.5})
+        numbers = os.path.join(tmp, "numbers.dxf")
+        doc.saveas(numbers)
+        codes, overall = run(numbers)
+        assert "EX_NO_DIMS" in codes and overall > 0
+
+        # P28 원본에서 본 그대로 — 치수(ISO) 레이어의 MTEXT 조각
+        for i, text in enumerate(("64", "+0.05", "+0.02", "Ø42H8", "Ø52", "R", "13")):
+            msp.add_mtext(text, dxfattribs={"layer": "치수(ISO)", "insert": (40 + 6 * i, 120),
+                                            "char_height": 3.5})
+        exploded = os.path.join(tmp, "exploded.dxf")
+        doc.saveas(exploded)
+        codes, overall = run(exploded)
+        assert "EX_NO_DIMS" not in codes and overall == 0
+
 
 def test_surface_and_geometric_text_detection():
     import dwg

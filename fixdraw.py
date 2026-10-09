@@ -20,6 +20,8 @@
 import math
 import re
 
+import exam
+
 TEXT_MM = 3.5            # 도면에서 치수 문자 높이를 못 읽었을 때
 TEXT_RANGE_MM = (1.8, 12.0)
 LINE_MM = 0.25           # 가는 선
@@ -70,7 +72,7 @@ def plan(sheet, mm_per_unit, svg, tf, centers=True):
     hidden = sorted({_format_mm(g["diameter_mm"]) for g in groups if g.get("hidden_only")}, key=float)
     groups = [g for g in groups if not g.get("hidden_only")]
     placed, skipped = [], 0
-    no_dims = not (sheet.get("dims") or [])
+    no_dims = not exam.has_dims(sheet)
     ink = _Ink.of(svg, geo) if groups or no_dims else None
     if groups:
         placed, skipped = _callouts(groups, sheet, geo, ink, marks)
