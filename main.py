@@ -226,6 +226,50 @@ def _done(request, run, *args):
     return response
 
 
+# 텔레그램 알림 — 문의 · 오류 신고가 오거나 재검사한 사람이 생기면 운영자에게 한 줄.
+# 토큰과 받을 방 번호는 환경변수로만 받는다(저장소가 공개라). 둘 중 하나라도 없으면 안 보낸다.
+# 적은 글과 연락처는 넣지 않는다 — 정책에 '관리자 화면에서 팀만 본다'고 적었다(docs/policy.md).
+TELEGRAM_SEND = "https://api.telegram.org/bot{token}/sendMessage"
+TELL_MAX = 30                           # 한 시간에 — 누구나 부를 수 있는 자리에서 나가는 알림이라
+_told = []                              # 보낸 시각들
+_told_again = ["", set()]               # [오늘, 재검사로 이미 알린 방문자들] — 고쳐 올릴 때마다 울리지 않게
+
+
+def _tell(text):
+    token, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+    now = time.time()
+    _told[:] = [x for x in _told if now - x < 3600]
+    if not token or not chat or len(_told) >= TELL_MAX:
+        return
+    _told.append(now)
+    # 화면이 텔레그램 응답을 기다릴 이유가 없다. 못 보내도 문의 · 검사는 그대로 간다.
+    threading.Thread(target=_send_tell, args=(token, chat, text), daemon=True).start()
+
+
+def _send_tell(token, chat, text):
+    import requests
+    try:
+        r = requests.post(TELEGRAM_SEND.format(token=token),
+                          json={"chat_id": chat, "text": text,
+                                "link_preview_options": {"is_disabled": True}}, timeout=10)
+        if not r.ok:
+            print(f"[tell] 텔레그램 {r.status_code}: {r.text[:200]}", flush=True)
+    except Exception as e:                                    # noqa: BLE001
+        # 예외 문장에는 토큰이 든 주소가 같이 찍힐 수 있어 종류만 남긴다
+        print(f"[tell] 텔레그램 실패: {type(e).__name__}", flush=True)
+
+
+def _tell_again(request):
+    """재검사 = 같은 도면을 고쳐 다시 올려 '지난번과 비교'가 뜬 것. 한 사람은 하루 한 번만 알린다."""
+    day, who = time.strftime("%Y-%m-%d"), stats.visitor_id(stats.client_ip(request))
+    if _told_again[0] != day:
+        _told_again[:] = [day, set()]
+    if who in _told_again[1]:
+        return
+    _told_again[1].add(who)
+    _tell(f"🔁 CADLens — 재검사한 사람이 생겼어요\n같은 도면을 고쳐서 다시 올렸어요.\n{request.base_url}admin")
+
+
 EVENT_KINDS = {"recheck", "cohort", "pick"}
 
 # 이 자리는 파일도 AI 도 쓰지 않아서 서버에는 싸다. 그래도 막는 이유는 값 자체다 —
@@ -258,6 +302,8 @@ def event(body: dict, request: Request):
         first, week = stats.cohort(request, first if isinstance(first, str) else "",
                                    sent if isinstance(sent, str) else "")
         return {"ok": True, "first": first, "week": week}
+    if kind == "recheck" and not stats.is_bot(request):
+        _tell_again(request)
     stats.bump(request, kind)
     return {"ok": True}
 
@@ -413,6 +459,9 @@ def feedback(body: dict, request: Request):
     except Exception as e:                                    # noqa: BLE001
         print(f"[note] 저장 실패: {type(e).__name__}: {e}", flush=True)
         raise HTTPException(503, "지금은 보낼 수 없습니다. 잠시 뒤 다시 시도해 주세요.") from None
+    sent = [x for x, on in (("연락처 남김", contact), ("도면 같이 보냄", kept), ("고른 부분 그림", shot)) if on]
+    _tell(f"📮 CADLens — 새 {'문의' if kind == 'ask' else '오류 신고'}가 왔어요\n"
+          f"{' · '.join(sent) or '연락처 없음'}\n{request.base_url}admin")
     return {"ok": True, "drawing": bool(kept), "shot": bool(shot)}
 
 

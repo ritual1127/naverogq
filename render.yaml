@@ -34,3 +34,10 @@ services:
       # 대회 사무국이 준 OGQ 마켓 API 키. 결과 화면 캐릭터 스티커를 받는다. 없으면 스티커만 빠진다
       - key: OGQ_API_KEY
         sync: false
+      # 텔레그램 알림 — 문의 · 오류 신고가 오거나 재검사한 사람이 생기면 한 줄 보낸다.
+      # 토큰은 BotFather 가 준 값, 방 번호는 봇에게 말을 건 뒤 getUpdates 의 chat.id.
+      # 둘 중 하나라도 없으면 알림만 빠진다. 값은 Render 대시보드에서만 넣는다.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false

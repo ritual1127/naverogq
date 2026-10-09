@@ -12,3 +12,6 @@ import tempfile
 os.environ.setdefault("CADLENS_STAT_DB",
                       os.path.join(tempfile.mkdtemp(prefix="cadlens-test-"), "stats.db"))
 os.environ.setdefault("CADLENS_STAT_SALT", "test")
+# 시험이 진짜 텔레그램으로 알림을 보내지 않게
+for _k in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
+    os.environ.pop(_k, None)

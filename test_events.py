@@ -477,3 +477,34 @@ def test_a_file_we_cannot_read_is_counted_as_reject():
     after = client.get("/api/stats").json()["total"]
     assert after["rejects"] == before["rejects"] + 1
     assert after["checks"] == before["checks"]
+
+
+def test_telegram_gets_one_line_without_the_text(monkeypatch):
+    """문의가 오거나 재검사한 사람이 생기면 텔레그램으로 한 줄 간다. 적은 글과 연락처는 안 보낸다
+    (정책에 관리자 화면에서 팀만 본다고 적었다). 재검사는 한 사람이 하루 한 번, 로봇은 안 울린다."""
+    import time
+
+    told = []
+    monkeypatch.setattr(main, "_send_tell", lambda token, chat, text: told.append(text))
+    for name, empty in (("_told", []), ("_told_again", ["", set()]), ("_sent", {}),
+                        ("_sent_all", []), ("_evt", {}), ("_evt_all", [])):
+        monkeypatch.setattr(main, name, empty)
+    ask = {"kind": "ask", "text": "비밀 이야기 다섯 자 넘게", "contact": "010-1234-5678"}
+    assert client.post("/api/feedback", json=ask).status_code == 200      # 토큰이 없으면 안 보낸다
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "1")
+    assert client.post("/api/feedback", json=ask).status_code == 200
+    for _ in range(3):
+        assert client.post("/api/event", json={"kind": "recheck"}).status_code == 200
+    assert client.post("/api/event", json={"kind": "recheck"}, headers={
+        "x-forwarded-for": "9.9.9.9", "user-agent": "python-requests/2.31.0"}).status_code == 200
+    for _ in range(50):
+        if len(told) >= 2:
+            break
+        time.sleep(0.05)
+    time.sleep(0.2)                     # 더 오면 안 되는 것까지 본다
+    asks = [t for t in told if "새 문의" in t]
+    agains = [t for t in told if "재검사" in t]
+    assert len(told) == 2 and len(asks) == 1 and len(agains) == 1, told
+    assert "연락처 남김" in asks[0] and asks[0].endswith("/admin")
+    assert "비밀" not in asks[0] and "010" not in asks[0]
