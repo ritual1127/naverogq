@@ -289,7 +289,7 @@ export const TALK = {
     },
     // ------------------------------------------------------------ 9:00 팀 — 김승준
     {
-      // plan/w1/팀목표.md ③ 역할 분담 · plan/문제점/README.md (P01~P32, 10-10 — 해결 20 · 부분 해결 6 · 열림 6)
+      // plan/w1/팀목표.md ③ 역할 분담 · plan/문제점/README.md (P01~P32, 10-12 — 해결 20 · 부분 해결 7 · 열림 5)
       title: "팀 소개",
       view: { kind: "cards", kicker: "팀 소개",
               cards: [{ title: "박지완", body: "서버, 검사 규칙\nAI 채점, 배포" },
@@ -297,7 +297,7 @@ export const TALK = {
                       { title: "안대열", body: "실제 도면 수집\n정확도 측정" },
                       { title: "김승준", body: "영상, 발표\n주간 기록" }],
               chart: { type: "stack", label: "8주 동안 기록한 문제", unit: "건",
-                       parts: [{ label: "해결", value: 20, focus: true }, { label: "부분 해결", value: 6 }, { label: "열림", value: 6 }] },
+                       parts: [{ label: "해결", value: 20, focus: true }, { label: "부분 해결", value: 7 }, { label: "열림", value: 5 }] },
               note: "고친 것과 못 고친 것 모두 원인과 함께 GitHub에 공개했습니다" },
       source: "plan/문제점",
       lines: [
