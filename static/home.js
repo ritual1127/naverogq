@@ -9,7 +9,7 @@ function findingText(f){const ai=(f.i18n||{})[lang];if(ai&&(ai.title||ai.detail)
 
 const SEV={fail:'var(--red)',error:'var(--red)',warn:'var(--amber)',info:'var(--soft)'};
 const SEV_ICON={fail:'fail',error:'error',warn:'warn',info:'info'};
-let CHECKS=[],enabled=new Set(),HEALTH={},RES=null,RAW=null,sevFilter=null,STATS=null,SAMPLES=[],busyNow=false,busyTimer=0;
+let CHECKS=[],enabled=new Set(),HEALTH={},RES=null,RAW=null,sevFilter=null,STATS=null,SAMPLES=[],samplesIn=false,busyNow=false,busyTimer=0;
 const LS='cadcheck.enabled';const picked=()=>[...enabled];
 
 function setTitle(file){document.title=file?`${file} · CADLens`:`CADLens | ${t('brandSub')}`}
@@ -67,8 +67,9 @@ function drawStats(){const s=STATS;if(!s||!s.available)return;$('#statbox').clas
 function drawFaq(){const open=$$('#faqList details').map(d=>d.open);
   $('#faqList').innerHTML=t('faq').map(([q,a],i)=>`<details${open[i]?' open':''}><summary>${esc(q)}${ico('chev')}</summary><p>${esc(a)}</p></details>`).join('')}
 
-fetch('/api/samples').then(r=>r.json()).then(d=>{SAMPLES=(d&&d.samples)||[];drawSamples()}).catch(()=>{});
-function drawSamples(){const has=SAMPLES.length>0;$('#samples').classList.toggle('hide',!has);$('#ctaSample').classList.toggle('hide',!has);
+// 목록을 받기 전(처음 그리기)에는 단추와 그림을 그대로 둔다 — 받은 뒤에 숨겨야 첫 화면이 안 튄다(samplesIn)
+fetch('/api/samples').then(r=>r.json()).then(d=>{SAMPLES=(d&&d.samples)||[];samplesIn=true;drawSamples()}).catch(()=>{});
+function drawSamples(){if(!samplesIn)return;const has=SAMPLES.length>0;$('#samples').classList.toggle('hide',!has);$('#ctaSample').classList.toggle('hide',!has);
   $('#peek').classList.toggle('hide',!SAMPLES.some(s=>s.name===$('#peek').dataset.n));if(!has)return;
   const notes=lang==='ko'?{}:t('sampleNote');
   $('#sgrid').innerHTML=SAMPLES.map(s=>`<button class="scard" type="button" data-n="${esc(s.name)}"><span class="sext">${esc(s.ext.replace('.',''))}</span><b>${esc(s.name)}</b><p>${esc(notes[s.name]||s.note||'')}</p><span class="smeta"><span>${kb(s.size)}</span><span>${esc(t('sampleRun'))}${ico('arrow')}</span></span></button>`).join('');
@@ -104,8 +105,10 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});
 // 내 도면이 손에 없는 사람은 여기서 결과 화면을 처음 본다. 첫 화면 그림(#peek)이 이 예제의 실제 결과를
 // 찍은 것이라 단추도 그림도 같은 예제를 돌린다 — 그림과 결과가 다르면 처음 온 사람이 속았다고 느낀다.
 // 그 예제가 없으면 DXF 를 고른다(DWG 는 LibreDWG 가 있어야 열린다). 다른 예제는 아래 목록에 그대로 있다.
+// 단추와 그림은 처음부터 보인다. 예제 목록을 받은 뒤에 나타나면 그만큼 첫 화면이 밀렸다(컴퓨터 CLS 0.25).
+// 목록이 아직이면 그림의 예제를 그대로 보낸다 — 없는 예제면 서버가 알려 준다.
 $('#ctaSample').onclick=$('#peek').onclick=()=>{const s=SAMPLES.find(x=>x.name===$('#peek').dataset.n)||SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
-  if(s)sendSample(s.name);else $('#samples').scrollIntoView({block:'start'})};
+  sendSample(s?s.name:$('#peek').dataset.n)};
 
 const ART={
 upload:'<svg viewBox="0 0 240 132" aria-hidden="true"><path class="art-thin" d="M60 86v18a10 10 0 0 0 10 10h100a10 10 0 0 0 10-10V86"/><rect class="art-sheet" x="92" y="16" width="56" height="74" rx="8"/><path class="art-thin" d="M104 38h32M104 48h32M104 58h20"/><rect class="art-chip" x="100" y="68" width="40" height="15" rx="7.5"/><text class="art-chiptxt" x="120" y="75.5">DXF</text><path class="art-dim" d="M192 84V44M180 56l12-12 12 12"/></svg>',

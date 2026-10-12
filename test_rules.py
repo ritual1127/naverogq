@@ -259,7 +259,8 @@ def test_dimensions_saved_as_text_are_still_dimensions():
     def run(path):
         facts, findings, _ = check.analyze(path, use_ai=False, alongside=main._render)
         plan = facts["alongside"][5] or {}
-        return {f["code"] for f in findings}, plan.get("overall_count", 0)
+        info = main._stats(facts)           # 결과 화면 '파일 정보' — 치수 0 과 함께 글자로 본 치수 수
+        return {f["code"] for f in findings}, plan.get("overall_count", 0), info.get("dim_texts")
 
     with tempfile.TemporaryDirectory() as tmp:
         bare = make_drawings.build(0, defect="no_dims", out_dir=tmp)
@@ -270,8 +271,8 @@ def test_dimensions_saved_as_text_are_still_dimensions():
             msp.add_text(text, dxfattribs={"layer": "0", "insert": (300 + 8 * i, 30), "height": 3.5})
         numbers = os.path.join(tmp, "numbers.dxf")
         doc.saveas(numbers)
-        codes, overall = run(numbers)
-        assert "EX_NO_DIMS" in codes and overall > 0
+        codes, overall, texts = run(numbers)
+        assert "EX_NO_DIMS" in codes and overall > 0 and texts is None
 
         # P28 원본에서 본 그대로 — 치수(ISO) 레이어의 MTEXT 조각
         for i, text in enumerate(("64", "+0.05", "+0.02", "Ø42H8", "Ø52", "R", "13")):
@@ -279,8 +280,8 @@ def test_dimensions_saved_as_text_are_still_dimensions():
                                             "char_height": 3.5})
         exploded = os.path.join(tmp, "exploded.dxf")
         doc.saveas(exploded)
-        codes, overall = run(exploded)
-        assert "EX_NO_DIMS" not in codes and overall == 0
+        codes, overall, texts = run(exploded)
+        assert "EX_NO_DIMS" not in codes and overall == 0 and texts == 6     # `R` 혼자는 치수값이 아니다
 
 
 def test_surface_and_geometric_text_detection():

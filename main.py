@@ -956,6 +956,11 @@ def _stats(facts):
     if sheets:
         s["sheets"] = len(sheets)
         s["dims"] = sum(len(x.get("dims", [])) for x in sheets)
+        # Inventor DWG 처럼 치수가 글자로 풀려 저장된 도면은 DIMENSION 이 0개다(P28). 그때 '치수 0' 만
+        # 보이면 '치수가 하나도 없음'을 안 낸 판정과 엇갈려서, 치수로 본 글자 수를 같이 보여 준다.
+        import exam
+        if not s["dims"] and exam.has_dims(sheets[0]):
+            s["dim_texts"] = sheets[0].get("dim_texts", 0)
         s["undimensioned"] = sum(len(x.get("undimensioned", [])) for x in sheets)
         s["title_block"] = sheets[0].get("title_block") or sheets[0].get("border")
         s["views"] = sum(len(x.get("views", [])) for x in sheets)
