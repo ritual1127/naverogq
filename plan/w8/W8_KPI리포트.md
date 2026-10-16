@@ -126,7 +126,7 @@ npx wrangler d1 execute cadlens-interview --remote --json --command "WITH bots A
 | 항목 | 지금 쓰는 것 | 비용 | 근거 |
 |---|---|---|---|
 | 서버 | Render 무료 플랜 (싱가포르) | 0원 | [`render.yaml`](../../render.yaml) `plan: free` |
-| AI 채점 | Gemini → Cloudflare Workers AI → Mistral → Groq, 전부 무료 한도 | 0원 | README "AI 채점기를 두 곳으로 붙여 둔 이유" 표 |
+| AI 채점 | Gemini → Cloudflare Workers AI → Mistral → Groq, 전부 무료 한도 | 0원 | README "AI 채점기를 네 곳으로 붙여 둔 이유" 표 |
 | 지표 저장 | Cloudflare D1 | 0원 | `render.yaml` `CADLENS_D1_STATS` |
 | 서버 깨우기 | Cloudflare Workers · Durable Object 알람 (무료) | 0원 | [`keepalive/`](../../keepalive/) — 10-09 부터. 그 전 GitHub 예약 실행은 하루 3~6번만 돌았다([P31](../문제점/P31-서버깨우기.md)) |
 | 시험 | GitHub Actions (공개 저장소) | 0원 | `.github/workflows/` |
