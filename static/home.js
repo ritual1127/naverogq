@@ -62,7 +62,8 @@ function drawStats(){const s=STATS;if(!s||!s.available)return;$('#statbox').clas
   const fn=s.week.checkers==null?'':' · '+fmt(t('statFunnel'),{v:s.week.visitors,c:s.week.checkers,f:s.week.finishers});
   $('#statCheck').textContent=s.week.checks+c;$('#statCheckD').textContent=`${t('statToday')} ${s.today.checks}${c} · ${t('statAll')} ${s.total.checks+s.total.samples}${c}`+fn;
   $('#statAgain').textContent=s.week.recheckers+p;$('#statAgainD').textContent=(s.week.rechecks?`${t('statWeek')} ${s.week.rechecks}${c} · `:'')+t('statAgainD');
-  $('#statNote').textContent=fmt(t('statNote'),{since:s.total.since,days:s.total.days})}
+  // 공개 서버는 D1 에 쌓아 다시 시작해도 이어진다. 0 부터 다시 세는 것은 D1 없이 띄운 서버뿐이다(docs/policy.md).
+  $('#statNote').textContent=fmt(t('statNote'),{since:s.total.since,days:s.total.days})+(s.store==='d1'?'':t('statReset'))}
 
 function drawFaq(){const open=$$('#faqList details').map(d=>d.open);
   $('#faqList').innerHTML=t('faq').map(([q,a],i)=>`<details${open[i]?' open':''}><summary>${esc(q)}${ico('chev')}</summary><p>${esc(a)}</p></details>`).join('')}
