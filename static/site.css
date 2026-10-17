@@ -865,3 +865,16 @@ button,a,label,summary,.drop{touch-action:manipulation}
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 ::view-transition-new(root){animation:vtIn .6s cubic-bezier(.4,0,.2,1)}
 @keyframes vtIn{from{clip-path:circle(0 at var(--vx,50%) var(--vy,0))}to{clip-path:circle(var(--vr,150vmax) at var(--vx,50%) var(--vy,0))}}
+
+/* 결과 화면이 처음 뜰 때 한 번(#res.enter, home.js) — 차례로 올라오고, 실격은 도장처럼 찍힌다 */
+.dq-big{display:inline-block}
+#res.enter .viewer,#res.enter #score>.card,#res.enter #cmp>*,#res.enter .tabs{animation:fadeUp .6s cubic-bezier(.16,1,.3,1) backwards}
+#res.enter .viewer{animation-delay:.06s}
+#res.enter #score>.card{animation-delay:.12s}
+#res.enter #cmp>*{animation-delay:.2s}
+#res.enter .tabs{animation-delay:.26s}
+#res.enter .finding{animation:fadeUp .5s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--k,0)*50ms + .32s)}
+#res.enter #score>.card.dq{animation:fadeUp .6s cubic-bezier(.16,1,.3,1) .12s backwards,thud .35s ease 1s}
+#res.enter .dq-big{animation:stamp .5s cubic-bezier(.3,1.4,.5,1) .5s backwards}
+@keyframes stamp{from{opacity:0;transform:scale(2.6) rotate(-12deg)}}
+@keyframes thud{30%{transform:translate(-3px,2px)}65%{transform:translate(2px,-1px)}}

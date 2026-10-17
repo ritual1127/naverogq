@@ -166,12 +166,15 @@ $$('[data-nav]').forEach(a=>a.onclick=e=>{if($('#res').hidden)return;e.preventDe
 // One pass, no wrappers: keep the raw server payload, translate a copy of it,
 // draw the result, then draw the comparison against the previous run.
 function localize(d){const findings=(d.findings||[]).map(f=>({...f,...findingText(f),item:f.item?itemLabel(f.item):f.item}));const scorecard={...(d.scorecard||{})};scorecard.items=(scorecard.items||[]).map(it=>({...it,label:(CHECK_LABELS[lang]||{})[it.code]||it.label}));if(lang!=='ko'){scorecard.disqualifiers=findings.filter(f=>f.severity==='fail').map(f=>f.title);if(scorecard.ai_verdict)scorecard.ai_verdict=(scorecard.ai_verdict_i18n||{})[lang]||{en:'AI review is available for human confirmation.',ja:'AI レビューは人による確認用に表示されています。',zh:'AI 检查结果仅供人工确认。'}[lang]}d={...d,findings,scorecard};return{...d,svg_note:lang==='ko'?d.svg_note:(d.svg_note?t('previewNone'):'')}}
+// 새 결과가 뜰 때만 차례로 올라오는 움직임을 켠다(site.css #res.enter). 언어를 바꾸거나 AI 답이 늦게 와서 다시 그릴 때는 안 돈다
+let enterT=0;
+function enter(){const r=$('#res');r.classList.remove('enter');void r.offsetWidth;r.classList.add('enter');clearTimeout(enterT);enterT=setTimeout(()=>r.classList.remove('enter'),2200)}
 function render(raw,relang){
   if(!RAW||RAW.job!==raw.job){sevFilter=null;setTab('find');$('#finds').innerHTML=''}   // a new drawing clears the filter and tab
   RAW=raw;
   const diff=compareFor(raw);
   const d=RES=localize(raw);
-  if(!relang){showView('res');clearErr();window.scrollTo(0,0)}
+  if(!relang){showView('res');clearErr();window.scrollTo(0,0);enter()}
   setTitle(d.file);
   $('#rfile').textContent=d.file||'';
   const meta=[t('kind')[d.kind]||d.kind];if(d.standard)meta.push(d.standard);if(d.first_angle!==null&&d.first_angle!==undefined)meta.push(t(d.first_angle?'angle1':'angle3'));meta.push('Job '+d.job);
@@ -219,7 +222,7 @@ function drawScore(sc,sum){
     +`<div class="gauge ${ok?'pass':'short'}" role="img" aria-label="${pct}%"><svg viewBox="0 0 116 116"><circle class="trk" cx="58" cy="58" r="48"/><circle class="val" cx="58" cy="58" r="48" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C*(1-Math.min(100,Math.max(0,pct))/100)}"/></svg><b>${pct}%</b></div>`
     +`<div><span class="verdict ${ok?'good':'warn'}">${ico(ok?'check':'warn')}${esc(t(ok?'vdPass':'vdShort'))}</span><p class="score-sub">${esc(t('autoScore'))} <b>${sc.auto_score} / ${sc.auto_max}</b></p>${note}</div>${stk(ok?'pass':'short','pop')}</div>`
     +`<div class="counts">${['error','warn','info'].map(k=>`<div class="count" style="color:${SEV[k]}">${ico(SEV_ICON[k])}<span>${esc(t(k))}</span><b style="color:var(--text)">${sum[k]||0}</b></div>`).join('')}</div></div>`;
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=$('#score .val');if(v)v.style.strokeDashoffset=v.dataset.off}));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const v=$('#score .val');if(v)v.style.strokeDashoffset=v.dataset.off;if($('#res.enter'))countUp($('#score .gauge b'),pct,'%')}));
 }
 function drawItems(sc){
   $('#items').innerHTML=(sc.items||[]).map(it=>{const rev=it.mode==='review',ai=it.mode==='ai';
@@ -251,7 +254,7 @@ function drawFindings(d){
     if(f.item)tags.push(`<span>${esc(f.item)}</span>`);
     if(f.deduct)tags.push(`<span class="tag ded">${f.deduct}${esc(t('deduct'))}</span>`);
     const w=f.where||{};const where=['sheet','view','sketch','feature'].filter(k=>w[k]).map(k=>esc(w[k])).join(' · ');
-    return `<div class="finding" data-i="${i}"><button class="fhead" type="button" aria-expanded="false" aria-controls="fb-${i}"><span class="sev ${sev}">${ico(SEV_ICON[sev])}</span><span class="fmain"><span class="ftitle">${esc(f.title)}</span><span class="fmeta">${tags.join('')}</span></span>${ico('chev','chev')}</button>`
+    return `<div class="finding" data-i="${i}" style="--k:${Math.min(i,12)}"><button class="fhead" type="button" aria-expanded="false" aria-controls="fb-${i}"><span class="sev ${sev}">${ico(SEV_ICON[sev])}</span><span class="fmain"><span class="ftitle">${esc(f.title)}</span><span class="fmeta">${tags.join('')}</span></span>${ico('chev','chev')}</button>`
       +(markers.length?`<div class="markers">${markers.map(m=>`<button class="mchip" type="button" data-n="${m.n}" aria-label="${esc(fmt(t('markerGo'),{n:m.n}))}"><b>${m.n}</b>Ø${Number(m.diameter_mm).toFixed(1)} · ${m.count||1}${esc(t('places'))}</button>`).join('')}</div>`:'')
       +`<div class="fbody" id="fb-${i}" hidden>${f.detail?`<p>${esc(f.detail)}</p>`:''}${f.fix?`<div class="fix"><b>${ico('check')}${esc(t('fixLabel'))}</b>${esc(f.fix)}</div>`:''}${asksHtml(f)}${where?`<p class="fwhere">${esc(t('where'))} · ${where}</p>`:''}<button class="frep" type="button" data-rep="1">${ico('error')}${esc(t('noteReport'))}</button></div></div>`}).join('')
     ||`<div class="empty">${esc(t('emptyFindings'))}</div>`;
