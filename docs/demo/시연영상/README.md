@@ -103,6 +103,9 @@ python stills.py            # 슬라이드 사진 — presenter/img/result.png �
 
 ## 첫 화면 그림 (`peek.js`) — 2026-10-10
 
+> **2026-10-18 부터 첫 화면은 이 그림을 쓰지 않는다.** 같은 예제 결과를 벡터로 옮겨 그린 카드다(`static/index.html` `#peek` ·
+> `home.js` `drawPeek`). `static/peek.webp` 와 아래 명령은 남아 있지만 화면에는 안 나온다.
+
 첫 화면 단추 아래 '이렇게 나와요' 그림(`static/peek.webp`, 960×320 · 약 21KB)을 실제 결과 화면에서 만든다.
 도면은 예제 `samples/sample_body.dxf` — W4 영상의 `../영상시연/1차/본체.dxf` 와 같은 파일(팀이 만든 도면)이고,
 첫 화면 그림을 누르거나 `예제로 먼저 보기`를 누르면 이 예제를 검사한다.
