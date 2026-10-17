@@ -482,6 +482,11 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .row-head{flex-direction:column;align-items:flex-start}
 .rbar .btn{width:40px;padding:0}
 .rbar .btn .lbl{display:none}
+/* 폰에서는 미리보기 제목이 두 줄로 꺾이고(図面プレ/ビュー) 단추가 눌려 찌그러졌다 — 제목만 줄이고 배율 숫자는 뺀다 */
+.vbar{gap:6px;padding:8px 8px 8px 16px}
+.vbar h2{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vbar .fix-btn,.vbar .vtools{flex:none}
+.zoom{display:none}
 .card{padding:20px}
 .score-top{gap:16px}
 .gauge{width:96px;height:96px}
