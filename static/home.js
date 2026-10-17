@@ -42,8 +42,8 @@ fetch('/api/health').then(r=>r.json()).then(h=>{HEALTH=h;CHECKS=h.checks||[];let
 
 function drawRubric(){const names=t('rub'),tone=[0,100,84,70,58,48,38,30];
   const col=i=>i?`var(--cyan);opacity:${tone[i]/100}`:'var(--violet)';
-  $('#rvis').innerHTML=RUBRIC_CODES.map((c,i)=>`<i style="flex:${RUBRIC_MAX[i]};background:${col(i)}"></i>`).join('');
-  $('#rubric').innerHTML=RUBRIC_CODES.map((c,i)=>`<li><span class="sw" style="background:${col(i)}"></span><span class="nm">${esc(names[i])}</span><span class="mode${i?'':' ai'}">${i?esc(t('modeRule')):'AI'}</span><span class="pt">${RUBRIC_MAX[i]}</span></li>`).join('');
+  $('#rvis').innerHTML=RUBRIC_CODES.map((c,i)=>`<i style="flex:${RUBRIC_MAX[i]};--j:${i};background:${col(i)}"></i>`).join('');
+  $('#rubric').innerHTML=RUBRIC_CODES.map((c,i)=>`<li style="--j:${i}"><span class="sw" style="background:${col(i)}"></span><span class="nm">${esc(names[i])}</span><span class="mode${i?'':' ai'}">${i?esc(t('modeRule')):'AI'}</span><span class="pt">${RUBRIC_MAX[i]}</span></li>`).join('');
   const dq=CHECKS.filter(c=>GROUP_BY_CHECK[c.id]==='dq');$('#dqsec').classList.toggle('hide',!dq.length);
   $('#dqlist').innerHTML=dq.map(c=>`<li>${esc(translatedCheck(c))}</li>`).join('')}
 
@@ -59,12 +59,16 @@ $('#reportBtn').onclick=()=>openNote('report',RAW&&RAW.job,spotList());
 $('#ptoggle').onclick=()=>{const p=$('#ppanel');p.hidden=!p.hidden;$('#ptoggle').setAttribute('aria-expanded',String(!p.hidden))};
 
 function loadStats(){fetch('/api/stats').then(r=>r.json()).then(s=>{STATS=s;drawStats()}).catch(()=>{})}
-function drawStats(){const s=STATS;if(!s||!s.available)return;$('#statbox').classList.remove('hide');const p=t('statPeople'),c=t('statTimes');
-  $('#statVisit').textContent=s.week.visitors+p;$('#statVisitD').textContent=`${t('statToday')} ${s.today.visitors}${p} · ${t('statAll')} ${s.total.visits}${c}`;
+// 사용 현황 숫자는 칸이 처음 보일 때 한 번 0 부터 센다(common.js countUp)
+if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){io.disconnect();drawStats(true)}},{threshold:.4});io.observe($('#statbox'))}
+function drawStats(count){const s=STATS;if(!s||!s.available)return;$('#statbox').classList.remove('hide');const p=t('statPeople'),c=t('statTimes');
+  if(count){countUp($('#statVisit'),s.week.visitors,p);countUp($('#statCheck'),s.week.checks,c);countUp($('#statAgain'),s.week.recheckers,p)}
+  else{$('#statVisit').textContent=s.week.visitors+p;$('#statCheck').textContent=s.week.checks+c;$('#statAgain').textContent=s.week.recheckers+p}
+  $('#statVisitD').textContent=`${t('statToday')} ${s.today.visitors}${p} · ${t('statAll')} ${s.total.visits}${c}`;
   // 횟수만 보여 주면 한 사람이 여러 번 올린 것과 여러 사람이 온 것을 구별할 수 없다.
   const fn=s.week.checkers==null?'':' · '+fmt(t('statFunnel'),{v:s.week.visitors,c:s.week.checkers,f:s.week.finishers});
-  $('#statCheck').textContent=s.week.checks+c;$('#statCheckD').textContent=`${t('statToday')} ${s.today.checks}${c} · ${t('statAll')} ${s.total.checks+s.total.samples}${c}`+fn;
-  $('#statAgain').textContent=s.week.recheckers+p;$('#statAgainD').textContent=(s.week.rechecks?`${t('statWeek')} ${s.week.rechecks}${c} · `:'')+t('statAgainD');
+  $('#statCheckD').textContent=`${t('statToday')} ${s.today.checks}${c} · ${t('statAll')} ${s.total.checks+s.total.samples}${c}`+fn;
+  $('#statAgainD').textContent=(s.week.rechecks?`${t('statWeek')} ${s.week.rechecks}${c} · `:'')+t('statAgainD');
   // 공개 서버는 D1 에 쌓아 다시 시작해도 이어진다. 0 부터 다시 세는 것은 D1 없이 띄운 서버뿐이다(docs/policy.md).
   $('#statNote').textContent=fmt(t('statNote'),{since:s.total.since,days:s.total.days})+(s.store==='d1'?'':t('statReset'))}
 
@@ -123,11 +127,12 @@ if(!REDUCE&&matchMedia('(hover: hover) and (pointer: fine)').matches){
     set(c,'--mx',(e.clientX-r.left)+'px');set(c,'--my',(e.clientY-r.top)+'px')});
 }
 
+// 사용법 그림. 카드가 보이면 그 단계를 한 번 해 보인다(site.css .step.in .a-*). 안내 창에서는 멈춘 그림 그대로다
 const ART={
-upload:'<svg viewBox="0 0 240 132" aria-hidden="true"><path class="art-thin" d="M60 86v18a10 10 0 0 0 10 10h100a10 10 0 0 0 10-10V86"/><rect class="art-sheet" x="92" y="16" width="56" height="74" rx="8"/><path class="art-thin" d="M104 38h32M104 48h32M104 58h20"/><rect class="art-chip" x="100" y="68" width="40" height="15" rx="7.5"/><text class="art-chiptxt" x="120" y="75.5">DXF</text><path class="art-dim" d="M192 84V44M180 56l12-12 12 12"/></svg>',
-check:'<svg viewBox="0 0 240 132" aria-hidden="true"><rect class="art-sheet" x="48" y="12" width="144" height="108" rx="14"/><circle class="art-ok" cx="72" cy="36" r="8"/><path class="art-tick" d="M68 36l3 3 5-6"/><path class="art-thin" d="M90 36h60"/><circle class="art-ok" cx="72" cy="59" r="8"/><path class="art-tick" d="M68 59l3 3 5-6"/><path class="art-thin" d="M90 59h78"/><circle class="art-badge" cx="72" cy="82" r="8"/><path class="art-tick" d="M69 79l6 6M75 79l-6 6"/><path class="art-thin" d="M90 82h50"/><circle class="art-ok" cx="72" cy="105" r="8"/><path class="art-tick" d="M68 105l3 3 5-6"/><path class="art-thin" d="M90 105h66"/></svg>',
-marker:'<svg viewBox="0 0 240 132" aria-hidden="true"><rect class="art-sheet" x="30" y="12" width="180" height="108" rx="12"/><rect class="art-line" x="54" y="38" width="100" height="62" rx="6"/><circle class="art-line" cx="88" cy="69" r="12"/><path class="art-center" d="M70 69h36M88 51v36"/><circle class="art-ring" cx="88" cy="69" r="19"/><path class="art-lead" d="M103 57l50-20"/><circle class="art-badge" cx="164" cy="32" r="12"/><text class="art-num" x="164" y="32">1</text><path class="art-cursor" d="M170 40l13 30 5-11 11-5z"/></svg>',
-compare:'<svg viewBox="0 0 240 132" aria-hidden="true"><rect class="art-sheet" x="18" y="24" width="86" height="86" rx="16"/><text class="art-big" x="61" y="60">62%</text><rect class="art-bad" x="39" y="80" width="44" height="10" rx="5"/><path class="art-dim" d="M114 67h18M124 59l8 8-8 8"/><rect class="art-sheet ok" x="142" y="24" width="86" height="86" rx="16"/><text class="art-big ok" x="185" y="60">88%</text><rect class="art-good" x="163" y="80" width="44" height="10" rx="5"/><circle class="art-ok" cx="224" cy="28" r="10"/><path class="art-tick" d="M219 28l3.5 3.5 6-7"/></svg>'};
+upload:'<svg viewBox="0 0 240 132" aria-hidden="true"><path class="art-thin" d="M60 86v18a10 10 0 0 0 10 10h100a10 10 0 0 0 10-10V86"/><g class="a-file"><rect class="art-sheet" x="92" y="16" width="56" height="74" rx="8"/><path class="art-thin" d="M104 38h32M104 48h32M104 58h20"/><rect class="art-chip" x="100" y="68" width="40" height="15" rx="7.5"/><text class="art-chiptxt" x="120" y="75.5">DXF</text></g><path class="art-dim a-up" d="M192 84V44M180 56l12-12 12 12"/></svg>',
+check:'<svg viewBox="0 0 240 132" aria-hidden="true"><rect class="art-sheet" x="48" y="12" width="144" height="108" rx="14"/><g class="a-row" style="--r:0"><circle class="art-ok" cx="72" cy="36" r="8"/><path class="art-tick" d="M68 36l3 3 5-6"/><path class="art-thin" d="M90 36h60"/></g><g class="a-row" style="--r:1"><circle class="art-ok" cx="72" cy="59" r="8"/><path class="art-tick" d="M68 59l3 3 5-6"/><path class="art-thin" d="M90 59h78"/></g><g class="a-bad"><circle class="art-badge" cx="72" cy="82" r="8"/><path class="art-tick" d="M69 79l6 6M75 79l-6 6"/><path class="art-thin" d="M90 82h50"/></g><g class="a-row" style="--r:3"><circle class="art-ok" cx="72" cy="105" r="8"/><path class="art-tick" d="M68 105l3 3 5-6"/><path class="art-thin" d="M90 105h66"/></g></svg>',
+marker:'<svg viewBox="0 0 240 132" aria-hidden="true"><rect class="art-sheet" x="30" y="12" width="180" height="108" rx="12"/><rect class="art-line" x="54" y="38" width="100" height="62" rx="6"/><circle class="art-line" cx="88" cy="69" r="12"/><path class="art-center" d="M70 69h36M88 51v36"/><circle class="art-ring a-ring" cx="88" cy="69" r="19" pathLength="1"/><path class="art-lead a-lead" d="M103 57l50-20" pathLength="1"/><g class="a-pin"><circle class="art-badge" cx="164" cy="32" r="12"/><text class="art-num" x="164" y="32">1</text></g><path class="art-cursor a-cur" d="M170 40l13 30 5-11 11-5z"/></svg>',
+compare:'<svg viewBox="0 0 240 132" aria-hidden="true"><g class="a-l"><rect class="art-sheet" x="18" y="24" width="86" height="86" rx="16"/><text class="art-big" x="61" y="60">62%</text><rect class="art-bad" x="39" y="80" width="44" height="10" rx="5"/></g><path class="art-dim a-ar" d="M114 67h18M124 59l8 8-8 8"/><g class="a-r"><rect class="art-sheet ok" x="142" y="24" width="86" height="86" rx="16"/><text class="art-big ok" x="185" y="60">88%</text><rect class="art-good" x="163" y="80" width="44" height="10" rx="5"/></g><g class="a-ok"><circle class="art-ok" cx="224" cy="28" r="10"/><path class="art-tick" d="M219 28l3.5 3.5 6-7"/></g></svg>'};
 $$('[data-art]').forEach(el=>el.innerHTML=ART[el.dataset.art]);
 
 let gi=0,gReturn=null;

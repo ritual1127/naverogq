@@ -147,7 +147,12 @@ function chrome(){
   document.addEventListener('click',e=>{if(!e.target.closest('.nav'))setMenu(false)});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&links.classList.contains('open')){setMenu(false);menu.focus()}});
   document.addEventListener('click',e=>{const b=e.target.closest('button[data-lang]');if(!b||b.dataset.lang===lang)return;lang=b.dataset.lang;store.set('cadcheck.lang',lang);applyLang()});
-  $('#theme').onclick=()=>{const th=document.documentElement.dataset.theme==='dark'?'light':'dark';store.set(THEME_KEY,th);applyTheme(th)};
+  // 바뀐 화면이 누른 단추에서 원으로 퍼진다(site.css ::view-transition). 안 되는 브라우저 · 움직임 줄이기 설정에서는 바로 바꾼다
+  $('#theme').onclick=e=>{const th=document.documentElement.dataset.theme==='dark'?'light':'dark';store.set(THEME_KEY,th);
+    if(!document.startViewTransition||REDUCE){applyTheme(th);return}
+    const r=e.currentTarget.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,s=document.documentElement.style;
+    s.setProperty('--vx',x+'px');s.setProperty('--vy',y+'px');s.setProperty('--vr',Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y))+'px');
+    document.startViewTransition(()=>applyTheme(th))};
 }
 
 function applyLang(){
@@ -167,14 +172,20 @@ function applyTheme(th){  // not `t` — that name is the translation lookup
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',e=>{if(!store.get(THEME_KEY))applyTheme(e.matches?'dark':'light')});
 
-// Sections fade in once as they scroll into view.
+// Sections fade in once as they scroll into view. Cards side by side come in one after another (--i).
 function reveal(){
   if(!('IntersectionObserver' in window)){$$('.reveal').forEach(el=>el.classList.add('in'));return}
   const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{rootMargin:'0px 0px -6% 0px'});
-  $$('.reveal:not(.in)').forEach(el=>io.observe(el));
+  $$('.reveal:not(.in)').forEach(el=>{el.style.setProperty('--i',[...el.parentElement.children].filter(c=>c.classList.contains('reveal')).indexOf(el));io.observe(el)});
 }
 
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+// 숫자를 0 부터 세어 올린다. 움직임 줄이기 설정이면 바로 쓴다
+function countUp(el,to,suf){const n=Math.max(0,Math.round(+to||0));if(!el)return;const id=el.dataset.cu=(+el.dataset.cu||0)+1;
+  if(!n||REDUCE){el.textContent=n+suf;return}
+  const t0=performance.now(),d=Math.min(1400,600+n*30);
+  const step=now=>{if(+el.dataset.cu!==id)return;const p=Math.min(1,(now-t0)/d);el.textContent=Math.round(n*(1-Math.pow(1-p,3)))+suf;if(p<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step)}
 
 // 첫 화면 · 안내 페이지 머리의 CAD 십자선(site.css .xh). 마우스로 볼 때만 — 손가락 · 움직임 줄이기 설정에서는 켜지 않는다
 function crosshair(){
