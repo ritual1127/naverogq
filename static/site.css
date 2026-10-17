@@ -878,3 +878,6 @@ button,a,label,summary,.drop{touch-action:manipulation}
 #res.enter .dq-big{animation:stamp .5s cubic-bezier(.3,1.4,.5,1) .5s backwards}
 @keyframes stamp{from{opacity:0;transform:scale(2.6) rotate(-12deg)}}
 @keyframes thud{30%{transform:translate(-3px,2px)}65%{transform:translate(2px,-1px)}}
+
+/* 폰에서 아래 띠 단추 글이 길면(영어 · 일본어 정확도 페이지) 한 줄로 버텨 페이지가 옆으로 밀렸다 — 줄을 바꾼다 */
+@media (max-width:640px){.cta-band .btn{max-width:100%;height:auto;min-height:54px;padding-block:12px;white-space:normal;text-align:center;line-height:1.4}}
