@@ -19,7 +19,7 @@ onLang.push(()=>{
   const ht=$('.hero-t'),title=t('heroTitle'),m=title.match(/^(.+?[,，、.])\s*(.+)$/);
   if(ht.dataset.t!==title){ht.dataset.t=title;ht.innerHTML=(m?[m[1],m[2]]:[title]).map((s,i)=>`<span class="ln" style="--i:${i}"><span>${esc(s)}</span></span>`).join('')}
   $('#ctaBandT').textContent=t('guide')[0][0];
-  drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();drawRecent();drawPeek();
+  drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();drawRecent();
   if(!$('#guide').hidden)drawGuide();
   if(picking)$('#pickHint').textContent=t('pickHint');
   if(RAW)render(RAW,true);else setTitle();
@@ -75,10 +75,10 @@ function drawStats(count){const s=STATS;if(!s||!s.available)return;$('#statbox')
 function drawFaq(){const open=$$('#faqList details').map(d=>d.open);
   $('#faqList').innerHTML=t('faq').map(([q,a],i)=>`<details${open[i]?' open':''}><summary>${esc(q)}${ico('chev')}</summary><p>${esc(a)}</p></details>`).join('')}
 
-// 목록을 받기 전(처음 그리기)에는 단추와 그림을 그대로 둔다 — 받은 뒤에 숨겨야 첫 화면이 안 튄다(samplesIn)
+// 목록을 받기 전(처음 그리기)에는 단추를 그대로 둔다 — 받은 뒤에 숨겨야 첫 화면이 안 튄다(samplesIn)
 fetch('/api/samples').then(r=>r.json()).then(d=>{SAMPLES=(d&&d.samples)||[];samplesIn=true;drawSamples()}).catch(()=>{});
 function drawSamples(){if(!samplesIn)return;const has=SAMPLES.length>0;$('#samples').classList.toggle('hide',!has);$('#ctaSample').classList.toggle('hide',!has);
-  $('#peek').classList.toggle('hide',!SAMPLES.some(s=>s.name===$('#peek').dataset.n));if(!has)return;
+  if(!has)return;
   const notes=lang==='ko'?{}:t('sampleNote');
   $('#sgrid').innerHTML=SAMPLES.map(s=>`<button class="scard" type="button" data-n="${esc(s.name)}"><span class="sext">${esc(s.ext.replace('.',''))}</span><b>${esc(s.name)}</b><p>${esc(notes[s.name]||s.note||'')}</p><span class="smeta"><span>${kb(s.size)}</span><span>${esc(t('sampleRun'))}${ico('arrow')}</span></span></button>`).join('');
   $$('#sgrid .scard').forEach(b=>b.onclick=()=>sendSample(b.dataset.n))}
@@ -110,21 +110,13 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});
 // A file dropped just outside the drop zone (or on the result page) would make the browser open it and leave the site.
 ['dragover','drop'].forEach(x=>addEventListener(x,e=>e.preventDefault()));
 // 예제는 한 번에 돌린다. 예전에는 눌러도 목록까지 굴러가기만 해서 한 번 더 눌러야 했다.
-// 내 도면이 손에 없는 사람은 여기서 결과 화면을 처음 본다. 첫 화면 그림(#peek)이 이 예제의 실제 결과를
-// 찍은 것이라 단추도 그림도 같은 예제를 돌린다 — 그림과 결과가 다르면 처음 온 사람이 속았다고 느낀다.
-// 그 예제가 없으면 DXF 를 고른다(DWG 는 LibreDWG 가 있어야 열린다). 다른 예제는 아래 목록에 그대로 있다.
-// 단추와 그림은 처음부터 보인다. 예제 목록을 받은 뒤에 나타나면 그만큼 첫 화면이 밀렸다(컴퓨터 CLS 0.25).
-// 목록이 아직이면 그림의 예제를 그대로 보낸다 — 없는 예제면 서버가 알려 준다.
-$('#ctaSample').onclick=$('#peek').onclick=()=>{const s=SAMPLES.find(x=>x.name===$('#peek').dataset.n)||SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
-  sendSample(s?s.name:$('#peek').dataset.n)};
-// 첫 화면 결과 예시(#peek) — 예제 sample_body.dxf 의 실제 결과다: 실격 1건 · 1번 자리(Ø20.5 지름 치수 누락, 2점) · 초록 수정
-// 예시 1곳. 글은 결과 화면과 같은 번역(findingText)을 쓴다. 예제 결과가 바뀌면 test_home_peek_matches_the_sample_result 가 깨진다
-function drawPeek(){const k=t('peekD').split(' · '),title=(code,ko)=>findingText({code,title:ko,detail:'',fix:''}).title;
-  $$('#peek .pk-k').forEach((el,i)=>el.textContent=k[i]||'');
-  $('#pkDq').textContent=title('DQ_NO_SURFACE_SYMBOL','오작: 표면거칠기 기호 없음');
-  $('#pkMk').textContent=title('EX_DIM_MISSING','치수 누락 의심 1곳');
-  $('#pkDed').textContent=2+t('deduct');
-  $('#pkFix').textContent=fmt(t('fixDims'),{n:1})}
+// 내 도면이 손에 없는 사람은 여기서 결과 화면을 처음 본다. 실격 · 번호 · 초록 수정 예시가 다 나오는 예제를 돌린다
+// (10-18 아침까지 첫 화면의 '이렇게 나와요'가 이 예제의 결과였다). 그 예제가 없으면 DXF 를 고른다(DWG 는 LibreDWG 가
+// 있어야 열린다). 다른 예제는 아래 목록에 그대로 있다. 단추는 처음부터 보인다 — 예제 목록을 받은 뒤에 나타나면 그만큼
+// 첫 화면이 밀렸다(컴퓨터 CLS 0.25). 목록이 아직이면 그 예제를 그대로 보낸다 — 없는 예제면 서버가 알려 준다.
+const FIRST_SAMPLE='sample_body.dxf';
+$('#ctaSample').onclick=()=>{const s=SAMPLES.find(x=>x.name===FIRST_SAMPLE)||SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
+  sendSample(s?s.name:FIRST_SAMPLE)};
 
 // 사용법 그림. 카드가 보이면 그 단계를 한 번 해 보인다(site.css .step.in .a-*). 안내 창에서는 멈춘 그림 그대로다
 const ART={

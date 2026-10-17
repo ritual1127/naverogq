@@ -1597,7 +1597,7 @@ def test_shipped_ai_cache_covers_every_dxf_sample(tmp_path):
 
     samples = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
     names = [n for n in sorted(os.listdir(samples)) if n.endswith(".dxf")]
-    assert "sample_body.dxf" in names            # 첫 화면 '이렇게 나와요'(index.html #peek)가 이 예제의 결과다
+    assert "sample_body.dxf" in names            # 첫 화면 '예제로 먼저 보기'가 이 예제를 돌린다(home.js FIRST_SAMPLE)
     model = ai_review.MODEL_OF[ai_review.PROVIDER_ORDER[0]]
     for name in names:
         path = os.path.join(samples, name)
@@ -1607,25 +1607,6 @@ def test_shipped_ai_cache_covers_every_dxf_sample(tmp_path):
         assert ai_review._drawing_blob(str(crlf)) == ai_review._drawing_blob(path) == lf, name
         key = ai_review._cache_key(lf, model, ai_review.PROMPT + ai_review._context(dwg.analyze(path)))
         assert os.path.isfile(os.path.join(ai_review.SHIPPED_CACHE, key)), f"{name} 의 AI 채점이 aicache/ 에 없다"
-
-
-def test_home_peek_matches_the_sample_result():
-    """첫 화면 '이렇게 나와요'(static/index.html #peek)는 예제 sample_body.dxf 의 결과를 옮겨 그린 것이다 —
-    실격(표면거칠기 기호 없음) · 1번 자리 Ø20.5(지름 치수 누락, 2점) · 초록 수정 예시 1곳. 예제나 검사가 바뀌어
-    결과가 달라지면 그림이 거짓이 된다. 그림과 결과가 다르면 처음 온 사람이 속았다고 느낀다(home.js)."""
-    import check
-    import main
-
-    here = os.path.dirname(os.path.abspath(__file__))
-    facts, findings, _ = check.analyze(os.path.join(here, "samples", "sample_body.dxf"),
-                                       use_ai=False, alongside=main._render)
-    by = {f["code"]: f for f in findings}
-    assert by["DQ_NO_SURFACE_SYMBOL"]["severity"] == "fail"
-    assert by["EX_DIM_MISSING"]["deduct"] == 2
-    assert [(m["n"], m["diameter_mm"]) for m in facts["alongside"][2]] == [(1, 20.5)]
-    assert main._fix_layer(facts["alongside"][5], findings)["dims"] == 1
-    page = open(os.path.join(here, "static", "index.html"), encoding="utf-8").read()
-    assert 'data-n="sample_body.dxf"' in page and ">Ø20.5</text>" in page
 
 
 def test_center_lines_are_judged_circle_by_circle():
