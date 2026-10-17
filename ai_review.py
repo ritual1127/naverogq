@@ -127,8 +127,7 @@ def render_png(dxf_path):
     AI 에게 간 그림은 도면 넓이의 29~51% 뿐이었고, 잘려 나간 쪽에 표제란과
     투상도가 들어 있었다. 투상도 30점을 그 조각으로 채점하고 있었던 것이다.
     그래서 페이지는 도면 전체로 두고, 픽셀이 넘치면 DPI 를 낮춘다."""
-    from ezdxf import bbox
-    from ezdxf.addons.drawing import Frontend, RenderContext
+    from ezdxf.addons.drawing import Frontend
     from ezdxf.addons.drawing import layout as dlayout
     from ezdxf.addons.drawing import pymupdf as dpymupdf
 
@@ -138,7 +137,7 @@ def render_png(dxf_path):
     msp = doc.modelspace()
     mm_per_unit, _ = dwg.detect_mm_per_unit(doc, msp)
     backend = dpymupdf.PyMuPdfBackend()
-    Frontend(RenderContext(doc), backend).draw_layout(msp, finalize=True)
+    Frontend(dwg.render_context(doc), backend).draw_layout(msp, finalize=True)
     page = dlayout.Page(0, 0, dlayout.Units.mm,
                         dlayout.Margins.all(RENDER_MARGIN_MM))
     settings = dlayout.Settings(fit_page=False, scale=mm_per_unit)

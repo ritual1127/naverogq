@@ -39,7 +39,7 @@ COPY --chown=app samples/ ./samples/
 # 예제 도면의 AI 채점 결과. 서버가 다시 떠도 예제는 Gemini 를 부르지 않는다
 COPY --chown=app aicache/ ./aicache/
 
-RUN python -c "import os, tempfile; import dwg; src='samples/sample_075em07z.dwg'; out=os.path.join(tempfile.mkdtemp(), 'sample.dxf'); assert dwg.dwg_via_libredwg(src, out), 'LibreDWG could not convert the bundled DWG sample'; svg, _, _ = dwg.render_svg(out); assert len(svg) > 1000, 'DWG preview SVG is empty'; print('DWG conversion and preview smoke test passed')"
+RUN python -c "import os, tempfile; import dwg; src='samples/sample_075em07z.dwg'; out=os.path.join(tempfile.mkdtemp(), 'sample.dxf'); assert dwg.dwg_via_libredwg(src, out), 'LibreDWG could not convert the bundled DWG sample'; svg, _, _ = dwg.render_svg(out); assert len(svg) > 1000, 'DWG preview SVG is empty'; assert dwg._hangul_face(), 'no Hangul font for previews'; print('DWG conversion and preview smoke test passed')"
 
 EXPOSE 7860
 

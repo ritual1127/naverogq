@@ -90,6 +90,27 @@ def test_preview_draws_the_drawing_white_and_the_markers_red():
     assert widths and max(widths) < 5000, widths
 
 
+def test_preview_draws_korean_text_with_a_hangul_font():
+    """도면 글꼴(txt)을 못 찾거나 한글 없는 글꼴로 찾으면 미리보기의 한글이 □ 로 나왔다(P37).
+
+    그릴 때만 한글 글꼴로 바꾸고, 한글이 있는 글꼴과 도면 자체는 그대로 둔다."""
+    import ezdxf
+    import pytest
+
+    import dwg
+
+    sub = dwg._hangul_face()
+    if sub is None:
+        pytest.skip("이 컴퓨터에 한글 글꼴(나눔고딕 · 맑은 고딕)이 없다 — 서버 이미지는 Dockerfile 이 확인한다")
+    doc = ezdxf.new("R2013")
+    doc.styles.get("Standard").dxf.font = "txt"
+    doc.styles.add("KOREAN", font=sub.filename)
+    ctx = dwg.render_context(doc)
+    assert ctx.fonts["standard"] == sub
+    assert ctx.fonts["korean"].filename == sub.filename
+    assert doc.styles.get("Standard").dxf.font == "txt"
+
+
 class _BB:
     """Minimal stand-in for ezdxf's BoundingBox."""
 

@@ -1,4 +1,5 @@
 import collections
+import functools
 import glob
 import math
 import os
@@ -19,6 +20,7 @@ from ezdxf.addons.drawing import layout as dlayout
 from ezdxf.addons.drawing import svg as dsvg
 from ezdxf.addons.drawing.config import Configuration, LineweightPolicy
 from ezdxf.addons.drawing.recorder import Override, Recorder
+from ezdxf.fonts import fonts
 
 MARGIN_MM = 5.0
 CENTER_TOL = 0.5
@@ -1929,6 +1931,43 @@ class Recording:
         return self.player.copy()
 
 
+# 공개 서버(Docker)에는 fonts-nanum, Windows 에는 맑은 고딕이 있다.
+HANGUL_FONTS = ("NanumGothic.ttf", "malgun.ttf")
+
+
+@functools.lru_cache(maxsize=None)
+def _has_hangul(filename):
+    try:
+        return 0xAC00 in fonts.font_manager.get_ttf_font(filename).getBestCmap()
+    except Exception:                                         # noqa: BLE001
+        return False
+
+
+@functools.lru_cache(maxsize=1)
+def _hangul_face():
+    for name in HANGUL_FONTS:
+        face = fonts.find_font_face(name)
+        if face.filename.lower() == name.lower() and _has_hangul(face.filename):
+            return face
+    return None
+
+
+def render_context(doc):
+    """그림으로 그릴 때 쓰는 RenderContext. 한글 글자가 없는 글꼴은 한글 글꼴로 바꿔 든다.
+
+    도면 글꼴(txt · romans.shx · 굴림 …)을 서버가 못 찾으면 ezdxf 는 한글이 없는 DejaVuSans 로
+    대신 그려서, 미리보기의 표제란 · 주서 · 뷰 이름이 전부 □ 로 나왔다(P37). 도면 자체는 그대로
+    두고 그리는 글꼴만 바꾼다 — 검사는 도면을 읽으므로 영향이 없다.
+    ponytail: 문자 스타일 표만 본다. 표에 없는 스타일 · MTEXT 안의 \\f 글꼴은 그대로 대신 글꼴로 간다."""
+    ctx = RenderContext(doc)
+    sub = _hangul_face()
+    if sub is not None:
+        for name, face in ctx.fonts.items():
+            if not _has_hangul(face.filename):
+                ctx.fonts[name] = sub
+    return ctx
+
+
 def record(facts):
     """검사 중인 도면을 한 번 훑어 그림으로 기록한다.
 
@@ -1939,7 +1978,7 @@ def record(facts):
         doc = readfile(facts["dxf"])
     space, is_model = drawable_space(doc)
     rec = Recorder()
-    Frontend(RenderContext(doc), rec).draw_layout(
+    Frontend(render_context(doc), rec).draw_layout(
         space, finalize=True, filter_func=lambda entity: entity.dxftype() != "POINT")
     mm_per_unit, _ = detect_mm_per_unit(doc, doc.modelspace())
     try:
