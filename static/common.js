@@ -174,4 +174,18 @@ function reveal(){
   $$('.reveal:not(.in)').forEach(el=>io.observe(el));
 }
 
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 첫 화면 · 안내 페이지 머리의 CAD 십자선(site.css .xh). 마우스로 볼 때만 — 손가락 · 움직임 줄이기 설정에서는 켜지 않는다
+function crosshair(){
+  if(REDUCE||!matchMedia('(hover: hover) and (pointer: fine)').matches)return;
+  $$('.fx').forEach(fx=>{const host=fx.parentElement;let raf=0,x=0,y=0,h=0;
+    fx.insertAdjacentHTML('beforeend','<div class="xh"><i class="h"></i><i class="v"></i><b></b><span></span></div>');
+    const xy=fx.querySelector('.xh span');
+    host.addEventListener('pointermove',e=>{const r=fx.getBoundingClientRect();x=e.clientX-r.left;y=e.clientY-r.top;h=r.height;
+      if(!raf)raf=requestAnimationFrame(()=>{raf=0;fx.style.setProperty('--cx',x+'px');fx.style.setProperty('--cy',y+'px');xy.textContent=`${x.toFixed(1)}, ${(h-y).toFixed(1)}`;fx.classList.add('on')})});
+    host.addEventListener('pointerleave',()=>fx.classList.remove('on'))});
+}
+
 chrome();
+crosshair();

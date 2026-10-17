@@ -14,7 +14,10 @@ const LS='cadcheck.enabled';const picked=()=>[...enabled];
 
 function setTitle(file){document.title=file?`${file} · CADLens`:`CADLens | ${t('brandSub')}`}
 onLang.push(()=>{
-  $('.hero-t').innerHTML=esc(t('heroTitle')).replace(/^(.+?[,，、.])\s*/,'$1<br>');  // break after the first clause
+  // Break after the first clause; each line rises in (site.css .hero-t .ln). The h1 has no data-i18n so applyLang does not
+  // flatten it, and the same text is left alone — redrawing would restart the motion when /api/health answers.
+  const ht=$('.hero-t'),title=t('heroTitle'),m=title.match(/^(.+?[,，、.])\s*(.+)$/);
+  if(ht.dataset.t!==title){ht.dataset.t=title;ht.innerHTML=(m?[m[1],m[2]]:[title]).map((s,i)=>`<span class="ln" style="--i:${i}"><span>${esc(s)}</span></span>`).join('')}
   $('#ctaBandT').textContent=t('guide')[0][0];
   drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();drawRecent();
   if(!$('#guide').hidden)drawGuide();
@@ -110,6 +113,15 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});
 // 목록이 아직이면 그림의 예제를 그대로 보낸다 — 없는 예제면 서버가 알려 준다.
 $('#ctaSample').onclick=$('#peek').onclick=()=>{const s=SAMPLES.find(x=>x.name===$('#peek').dataset.n)||SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
   sendSample(s?s.name:$('#peek').dataset.n)};
+// 마우스로 볼 때 — 결과 그림은 마우스 쪽으로 살짝 기울고, 예제 카드는 마우스 자리가 밝아진다(site.css). 손가락 · 움직임 줄이기 설정에서는 안 한다
+if(!REDUCE&&matchMedia('(hover: hover) and (pointer: fine)').matches){
+  const pk=$('#peek'),set=(el,k,v)=>el.style.setProperty(k,v);
+  pk.addEventListener('pointermove',e=>{const r=pk.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
+    set(pk,'--rx',((.5-y)*8).toFixed(2)+'deg');set(pk,'--ry',((x-.5)*10).toFixed(2)+'deg');set(pk,'--gx',(x*100).toFixed(1)+'%');set(pk,'--gy',(y*100).toFixed(1)+'%')});
+  pk.addEventListener('pointerleave',()=>{set(pk,'--rx','0deg');set(pk,'--ry','0deg')});
+  $('#sgrid').addEventListener('pointermove',e=>{const c=e.target.closest('.scard');if(!c)return;const r=c.getBoundingClientRect();
+    set(c,'--mx',(e.clientX-r.left)+'px');set(c,'--my',(e.clientY-r.top)+'px')});
+}
 
 const ART={
 upload:'<svg viewBox="0 0 240 132" aria-hidden="true"><path class="art-thin" d="M60 86v18a10 10 0 0 0 10 10h100a10 10 0 0 0 10-10V86"/><rect class="art-sheet" x="92" y="16" width="56" height="74" rx="8"/><path class="art-thin" d="M104 38h32M104 48h32M104 58h20"/><rect class="art-chip" x="100" y="68" width="40" height="15" rx="7.5"/><text class="art-chiptxt" x="120" y="75.5">DXF</text><path class="art-dim" d="M192 84V44M180 56l12-12 12 12"/></svg>',
@@ -141,7 +153,7 @@ document.addEventListener('keydown',e=>{if($('#guide').hidden)return;
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}});
 
 function showView(v){const res=v==='res';$('#home').hidden=res;$('#res').hidden=!res}
-function goHome(){showView('home');clearErr();setTitle();drawRecent();window.scrollTo(0,0)}
+function goHome(){$('#home').classList.add('played');showView('home');clearErr();setTitle();drawRecent();window.scrollTo(0,0)}   // played: 첫 화면 등장 움직임은 처음 한 번만
 $('#back').onclick=goHome;
 $$('[data-nav]').forEach(a=>a.onclick=e=>{if($('#res').hidden)return;e.preventDefault();goHome();const el=a.hash&&$(a.hash);if(el)el.scrollIntoView()});
 ['#brand','#brand2'].forEach(s=>$(s).onclick=e=>{e.preventDefault();if($('#res').hidden)window.scrollTo(0,0);else goHome()});
