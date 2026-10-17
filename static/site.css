@@ -20,18 +20,18 @@
 --shadow-lg:0 2px 6px rgba(16,24,40,.04),0 28px 60px -24px rgba(16,40,80,.30);
 --glow:rgba(0,149,255,.12)}
 :root[data-theme="dark"]{color-scheme:dark;
---bg:#0c1119;--bg-soft:#0f1520;--panel:#141b25;--panel2:#1b2331;--line:#26303f;--line2:#3a4759;--text:#e9eff7;--muted:#a7b4c6;--soft:#8593a8;
+--bg:#0a0f17;--bg-soft:#101a28;--panel:#141d2b;--panel2:#1b2637;--line:#263246;--line2:#3a4a61;--text:#eef3f9;--muted:#bac6d6;--soft:#97a5b9;
 --cyan:#3aa9ff;--cyan-ink:#7fc8ff;--mint:#2ed9a0;--red:#ff6f61;--amber:#f5b942;--green:#2ed9a0;--violet:#a78bfa;
 --btn:#3aa9ff;--btn-hover:#6cc0ff;--on-btn:#04111e;
 --tint-blue-0:rgba(58,169,255,.05);--tint-blue:rgba(58,169,255,.13);--edge-blue:rgba(58,169,255,.30);--edge-blue-2:rgba(58,169,255,.48);
 --tint-red:rgba(255,111,97,.11);--tint-red-2:rgba(255,111,97,.18);--edge-red:rgba(255,111,97,.36);--ink-red:#ffb3a8;
 --tint-good:rgba(46,217,160,.12);--edge-good:rgba(46,217,160,.34);--ink-good:#7ff0c8;
 --tint-amber:rgba(245,185,66,.13);--edge-amber:rgba(245,185,66,.32);--ink-amber:#fbd071;--tint-violet:rgba(167,139,250,.14);
---head-bg:#070b12;--head-fg:#e7eef7;--head-sub:#8fa0b6;--head-line:rgba(255,255,255,.08);--head-btn:rgba(255,255,255,.07);--head-btn-on:rgba(255,255,255,.15);--head-edge:rgba(255,255,255,.15);
---bar-bg:rgba(12,17,25,.86);--stage:#111823;--art:#9fb0c6;--art-soft:#4f5d72;
---shadow:0 0 0 1px rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.4),0 12px 32px -16px rgba(0,0,0,.7);--grid:rgba(127,200,255,.05);
---shadow-lg:0 2px 6px rgba(0,0,0,.4),0 30px 70px -26px rgba(0,0,0,.85);
---glow:rgba(58,169,255,.14)}
+--head-bg:#070b12;--head-fg:#e7eef7;--head-sub:#9eaec2;--head-line:rgba(255,255,255,.08);--head-btn:rgba(255,255,255,.07);--head-btn-on:rgba(255,255,255,.15);--head-edge:rgba(255,255,255,.15);
+--bar-bg:rgba(10,15,23,.86);--stage:#111823;--art:#a9b9ce;--art-soft:#5d6d84;
+--shadow:0 0 0 1px rgba(150,190,240,.10),inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.45),0 16px 36px -18px rgba(0,0,0,.8);--grid:rgba(127,200,255,.05);
+--shadow-lg:0 0 0 1px rgba(150,190,240,.13),inset 0 1px 0 rgba(255,255,255,.06),0 2px 6px rgba(0,0,0,.45),0 34px 80px -28px rgba(0,0,0,.9);
+--glow:rgba(58,169,255,.16)}
 html:lang(ja){--font:"NSR Latin","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif}
 html:lang(zh){--font:"NSR Latin","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
 
@@ -704,3 +704,20 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 /* 폰에서 두 번 탭할 때의 지연과 탭마다 번쩍이는 회색 사각형을 없앤다 */
 html{-webkit-tap-highlight-color:transparent}
 button,a,label,summary,.drop{touch-action:manipulation}
+
+/* ── 2026-10-18 ① 어두운 화면에서도 덩어리가 한눈에 ── */
+:root{--sheen:none;--band-edge:rgba(16,40,80,.06)}
+:root[data-theme="dark"]{--sheen:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0) 140px);--band-edge:rgba(150,190,240,.09)}
+
+/* 어두운 화면 — 같은 남색이 이어져 카드 · 구역이 한 덩어리로 보였다. 띠마다 경계선, 카드마다 테두리와 윗면 빛 한 줄 */
+.sec-alt{box-shadow:inset 0 1px 0 var(--band-edge),inset 0 -1px 0 var(--band-edge)}
+.pain,.step,.fact,.stats,.rcard,.faq details,.card:not(.dq),.finding,.item,.basic,.rgroup,.num,.def,.card-text,.weak div,.timeline li,.src,.viewer,.info-grid div,.up,.peek{background-image:var(--sheen)}
+:root[data-theme="dark"] .mode.ai{color:#c4b5fd}   /* 윗면 빛 위에서 4.45:1 이던 작은 AI 표시 */
+/* 설명 글 — 작은 회색 글이 많아 안 읽혔다 */
+.pain p{font-size:15.5px;line-height:1.75}
+.step p,.fact p,.def p,.weak p,.timeline p,.basic li,.plain li{font-size:15px}
+.scard p,.crow p{font-size:14.5px}
+.stat p{font-size:14px}
+.faq details p{font-size:16px}
+.card-text p{font-size:15.5px}
+.legal-grid p{font-size:13.5px}
