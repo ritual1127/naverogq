@@ -166,7 +166,7 @@ h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;lett
 .art-bad{fill:var(--tint-red-2)}
 .art-good{fill:var(--tint-good)}
 .art-cursor{fill:var(--panel);stroke:var(--text);stroke-width:1.6;stroke-linejoin:round}
-/* 올리기 카드의 도면 — 그려지고, 빛이 한 번 훑고, 빛이 지나간 자리에 빨간 펜이 문제를 짚는다(5초마다). 안내 창 첫 장도 이 그림이다 */
+/* 올리기 카드의 도면 — 그려지고, 빛이 한 번 훑고, 빛이 지나간 자리에 빨간 펜이 문제를 짚는다. 한 번만 하고 멈춘다(계속 돌면 산만했다). 안내 창 첫 장도 이 그림이다 */
 .drop-art .art-sheet{animation:fadeIn .5s ease .25s backwards}
 .drop-art [pathLength]{stroke-dasharray:1;animation:draw 1.2s cubic-bezier(.65,0,.35,1) .4s backwards}
 .drop-art .art-line[pathLength]{animation-delay:.75s}
@@ -175,11 +175,12 @@ h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;lett
 .art-scan rect{fill:var(--cyan)}
 .art-scan .g1{opacity:.12}
 .art-scan .g2{opacity:.06}
-.drop-art .art-scan{opacity:0;animation:scan 5s linear 2.1s infinite}
-@keyframes scan{0%{transform:translateX(6px);opacity:0}3%{opacity:1}30%{transform:translateX(332px);opacity:1}34%,100%{transform:translateX(332px);opacity:0}}
-.mk{transform-box:fill-box;transform-origin:center;animation:mk 5s cubic-bezier(.2,.8,.2,1) 2.1s infinite backwards}
-.mk2{animation-delay:2.4s}
-@keyframes mk{0%,7%{opacity:0;transform:scale(.4)}13%,86%{opacity:1;transform:scale(1)}94%,100%{opacity:0;transform:scale(.92)}}
+.drop-art .art-scan{opacity:0;animation:scan 1.5s linear 2.1s}
+@keyframes scan{0%{transform:translateX(6px);opacity:0}10%,90%{opacity:1}100%{transform:translateX(332px);opacity:0}}
+.mk{transform-box:fill-box;transform-origin:center;animation:mk .45s cubic-bezier(.2,.8,.2,1) 2.45s backwards}
+.mk2{animation-delay:2.75s}
+@keyframes mk{from{opacity:0;transform:scale(.4)}}
+#home.played .drop-art *{animation:none}   /* 결과에서 돌아오면 다 그려진 그림 그대로 */
 @keyframes draw{from{stroke-dashoffset:1}}
 @keyframes fadeIn{from{opacity:0}}
 
@@ -736,26 +737,13 @@ button,a,label,summary,.drop{touch-action:manipulation}
 .card-text p{font-size:15.5px}
 .legal-grid p{font-size:13.5px}
 
-/* ── 2026-10-18 ② 첫 화면 — "도면이 그려지고, 빛이 훑고, 빨간 펜이 짚는다"를 움직임으로 ── */
-:root{--grid2:rgba(10,95,194,.10);--aur1:rgba(0,149,255,.20);--aur2:rgba(100,64,223,.10);--aur3:rgba(14,159,110,.08);--xh:rgba(10,95,194,.30)}
-:root[data-theme="dark"]{--grid2:rgba(127,200,255,.10);--aur1:rgba(58,169,255,.32);--aur2:rgba(167,139,250,.21);--aur3:rgba(46,217,160,.13);--xh:rgba(127,200,255,.34)}
+/* ── 2026-10-18 ② 첫 화면 — "도면이 그려지고, 빛이 훑고, 빨간 펜이 짚는다"를 한 번 ── */
+:root{--grid2:rgba(10,95,194,.10)}
+:root[data-theme="dark"]{--grid2:rgba(127,200,255,.10)}
 
-/* 머리 배경 — 제도 모눈(굵은 선 · 가는 선) 위로 천천히 흐르는 빛 */
+/* 머리 배경 — 제도 모눈(굵은 선 · 가는 선)만. 흐르던 빛 · 마우스 십자선 · 깜빡이던 점은 10-18 아침에 뺐다 */
 .fx{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent)}
 .fx::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:96px 96px,96px 96px,16px 16px,16px 16px;-webkit-mask-image:radial-gradient(1100px 620px at 72% 16%,#000 22%,transparent 76%);mask-image:radial-gradient(1100px 620px at 72% 16%,#000 22%,transparent 76%)}
-.fx::after{content:"";position:absolute;inset:-30% -12%;background:radial-gradient(34% 36% at 74% 32%,var(--aur1),transparent 70%),radial-gradient(28% 32% at 54% 74%,var(--aur2),transparent 70%),radial-gradient(24% 28% at 94% 82%,var(--aur3),transparent 70%),radial-gradient(30% 26% at 8% 6%,var(--aur1),transparent 70%);animation:aurora 24s ease-in-out infinite alternate}
-@keyframes aurora{50%{transform:translate3d(-4%,3%,0) rotate(6deg) scale(1.08)}100%{transform:translate3d(3%,-2%,0) rotate(-4deg) scale(1.03)}}
-/* CAD 십자선 — 마우스로 볼 때만(common.js crosshair). Y 는 CAD 처럼 아래에서 위로 센다 */
-.xh{position:absolute;inset:0;opacity:0;transition:opacity .35s}
-.fx.on .xh{opacity:1}
-.xh i{position:absolute;left:0;top:0}
-.xh .h{right:0;height:1px;background:linear-gradient(90deg,transparent,var(--xh) 18%,var(--xh) 82%,transparent);transform:translateY(var(--cy,0))}
-.xh .v{bottom:0;width:1px;background:linear-gradient(transparent,var(--xh) 18%,var(--xh) 82%,transparent);transform:translateX(var(--cx,0))}
-.xh b{position:absolute;left:-6px;top:-6px;width:13px;height:13px;border:1.5px solid var(--cyan);transform:translate(var(--cx,0),var(--cy,0))}
-.xh span{position:absolute;left:0;top:0;padding:3px 8px;border-radius:7px;background:var(--panel);box-shadow:var(--shadow);font-size:11.5px;font-weight:800;color:var(--cyan-ink);font-variant-numeric:tabular-nums;white-space:nowrap;transform:translate(calc(var(--cx,0) + 16px),calc(var(--cy,0) + 14px))}
-.kicker{position:relative}
-.kicker::after{content:"";position:absolute;left:0;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:var(--cyan);animation:ping 2.6s cubic-bezier(0,0,.2,1) infinite;pointer-events:none}
-@keyframes ping{70%,100%{transform:scale(3.2);opacity:0}}
 
 /* 첫 화면에 들어올 때 한 번 — 제목 줄이 아래에서 올라오고 나머지가 차례로. 결과에서 돌아오면 다시 안 돈다(#home.played) */
 .hero-t .ln{display:block;overflow:hidden;padding-bottom:.08em;margin-bottom:-.08em}
@@ -775,16 +763,6 @@ button,a,label,summary,.drop{touch-action:manipulation}
 #home.played .hero-copy>*,#home.played .hero-t .ln>span,#home.played .up{animation:none}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}}
 @keyframes cardIn{from{opacity:0;transform:translateY(32px) scale(.96)}}
-
-/* 올리기 카드 테두리를 도는 빛 — 검사기가 훑는 느낌 */
-@property --ang{syntax:"<angle>";inherits:false;initial-value:0deg}
-.up::before,.up::after{content:"";position:absolute;pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;animation:orbit 6s linear infinite}
-.up::before{inset:0;z-index:1;border-radius:inherit;padding:2px;background:conic-gradient(from var(--ang),var(--edge-blue) 0 58%,var(--cyan) 82%,var(--cyan-ink) 89%,var(--violet) 94%,var(--edge-blue) 98%)}
-/* 바깥으로 번지는 빛은 마우스 쓰는 큰 화면에서만 — 흐림 효과가 휴대폰에는 무겁다 */
-.up::after{display:none}
-@media (hover:hover) and (pointer:fine){.up::after{display:block;inset:-16px;border-radius:46px;padding:16px;background:conic-gradient(from var(--ang),transparent 0 60%,var(--cyan) 84%,var(--violet) 93%,transparent 98%);filter:blur(12px);opacity:.55}
-:root:not([data-theme="dark"]) .up::after{opacity:.32}}
-@keyframes orbit{to{--ang:360deg}}
 
 /* 단추 — 지나가는 빛, 화살표는 가는 쪽으로 */
 .btn-primary{position:relative;overflow:hidden;isolation:isolate}
