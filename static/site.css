@@ -321,7 +321,7 @@ h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;lett
 .foot-bottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;margin-top:28px;font-size:13px}
 
 /* 한 줄에 같이 들어오는 카드는 앞 카드보다 조금씩 늦게(--i 는 common.js reveal 이 넣는다) */
-.js .reveal{opacity:0;transform:translateY(26px) scale(.985);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);transition-delay:calc(var(--i,0)*90ms)}
+.js .reveal{opacity:0;transform:translateY(16px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);transition-delay:calc(var(--i,0)*70ms)}
 .js .reveal.in{opacity:1;transform:none}
 
 html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
@@ -708,23 +708,13 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .fixnote .cant{color:var(--muted)}
 @media (max-width:640px){.fix-btn span{display:none}.fix-btn{width:36px;padding:0;justify-content:center}}
 
-/* light mode: less empty — blueprint grid behind the hero, tinted cards, varied accents */
+/* 카드 색 — 자리마다 색을 바꾸던 것(파랑 · 주황 · 보라 · 초록)은 뜻이 없어 10-18 에 한 색으로 모았다.
+   검사 근거의 정확도(초록) · 채점 방식(보라 = AI)만 뜻이 있어 남긴다 */
 .page-hero{position:relative}
 .hero-in,.page-hero>.wrap{position:relative}
 .sec-alt{background:linear-gradient(180deg,var(--bg-soft),var(--bg) 140%)}
-.pain:nth-child(2) .pain-n{background:var(--tint-amber);color:var(--ink-amber)}
-.pain:nth-child(3) .pain-n{background:var(--tint-violet);color:var(--violet)}
-.step:nth-child(1) .step-art{background:var(--tint-blue)}
-.step:nth-child(2) .step-art{background:var(--tint-good)}
-.step:nth-child(3) .step-art{background:var(--tint-red)}
-.step:nth-child(4) .step-art{background:var(--tint-violet)}
-.step:nth-child(2) .step-n{color:var(--ink-good)}
-.step:nth-child(3) .step-n{color:var(--ink-red)}
-.step:nth-child(4) .step-n{color:var(--violet)}
 .fact:nth-child(2) .k{color:var(--ink-good)}
 .fact:nth-child(3) .k{color:var(--violet)}
-.scard:nth-child(2) .sext{background:var(--tint-good);color:var(--ink-good)}
-.scard:nth-child(3) .sext{background:var(--tint-violet);color:var(--violet)}
 
 /* 오류 신고 · 문의 */
 .nlead{margin:6px 0 14px;font-size:14px;line-height:1.7;color:var(--muted)}
@@ -807,42 +797,28 @@ button,a,label,summary,.drop{touch-action:manipulation}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}}
 @keyframes cardIn{from{opacity:0;transform:translateY(32px) scale(.96)}}
 
-/* 단추 — 지나가는 빛, 화살표는 가는 쪽으로 */
-.btn-primary{position:relative;overflow:hidden;isolation:isolate}
-.btn-primary::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-130%);pointer-events:none}
-.btn-primary:hover::after{transform:translateX(130%);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
-.hero-cta .btn-primary::after{animation:sheen 1.3s cubic-bezier(.4,0,.2,1) 1.6s 2}
-#home.played .hero-cta .btn-primary::after{animation:none}
-@keyframes sheen{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
+/* 단추 — 화살표는 가는 쪽으로 */
 .btn .ico,.more .ico,.smeta .ico{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
 #ctaSample:hover .ico,.more:hover .ico,.scard:hover .smeta .ico{transform:translateX(4px)}
-
-/* 예제 카드 — 마우스가 있는 자리를 밝힌다(home.js) */
-.scard{position:relative;isolation:isolate}
-.scard::before,.scard::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .3s;pointer-events:none}
-.scard::before{z-index:-1;background:radial-gradient(320px circle at var(--mx,50%) var(--my,0px),var(--tint-blue),transparent 65%)}
-.scard::after{padding:1.5px;background:radial-gradient(220px circle at var(--mx,50%) var(--my,0px),var(--cyan),transparent 70%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
-.scard:hover::before,.scard:hover::after{opacity:1}
 
 /* ── 2026-10-18 ③ 내려 읽을 때 · 누를 때 답하는 움직임 ── */
 /* 사용법 그림 — 카드가 보일 때 그 단계를 한 번 해 보인다(그림은 home.js ART) */
 .a-pin,.a-ok,.a-r,.a-bad,.a-cur{transform-box:fill-box;transform-origin:center}
 .step.in .a-file{animation:dropIn .9s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*90ms + .25s)}
-.step.in .a-up{animation:nudge .9s ease-in-out 2;animation-delay:calc(var(--i,0)*90ms + 1s)}
+.step.in .a-up{animation:nudge .9s ease-in-out;animation-delay:calc(var(--i,0)*90ms + 1s)}
 .step.in .a-row{animation:rowIn .45s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*90ms + var(--r,0)*150ms + .3s)}
-.step.in .a-bad{animation:rowIn .45s cubic-bezier(.16,1,.3,1) backwards,shake .45s ease;animation-delay:calc(var(--i,0)*90ms + .6s),calc(var(--i,0)*90ms + 1.05s)}
+.step.in .a-bad{animation:rowIn .45s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*90ms + .6s)}
 .step.in .a-ring,.step.in .a-lead{stroke-dasharray:1;animation:draw .7s cubic-bezier(.65,0,.35,1) backwards;animation-delay:calc(var(--i,0)*90ms + .35s)}
 .step.in .a-lead{animation-duration:.4s;animation-delay:calc(var(--i,0)*90ms + .9s)}
-.step.in .a-pin{animation:pop .5s cubic-bezier(.2,.8,.2,1.4) backwards;animation-delay:calc(var(--i,0)*90ms + 1.2s)}
+.step.in .a-pin{animation:pop .5s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*90ms + 1.2s)}
 .step.in .a-cur{animation:curIn .9s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*90ms + 1.3s)}
 .step.in .a-l{animation:fadeIn .5s ease backwards;animation-delay:calc(var(--i,0)*90ms + .3s)}
 .step.in .a-ar{animation:arrowIn .6s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--i,0)*90ms + .7s)}
-.step.in .a-r{animation:pop .6s cubic-bezier(.2,.8,.2,1.3) backwards;animation-delay:calc(var(--i,0)*90ms + 1s)}
-.step.in .a-ok{animation:pop .5s cubic-bezier(.2,.8,.2,1.6) backwards;animation-delay:calc(var(--i,0)*90ms + 1.45s)}
+.step.in .a-r{animation:pop .6s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*90ms + 1s)}
+.step.in .a-ok{animation:pop .5s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*90ms + 1.45s)}
 @keyframes dropIn{from{opacity:0;transform:translateY(-34px)}}
 @keyframes nudge{50%{transform:translateY(-7px)}}
 @keyframes rowIn{from{opacity:0;transform:translateX(-10px)}}
-@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 @keyframes pop{from{opacity:0;transform:scale(.4)}}
 @keyframes curIn{from{opacity:0;transform:translate(26px,30px)}}
 @keyframes arrowIn{from{opacity:0;transform:translateX(-12px)}}
@@ -853,9 +829,9 @@ button,a,label,summary,.drop{touch-action:manipulation}
 .rcard.in .rlist li{animation:fadeIn .5s ease backwards;animation-delay:calc(var(--j,0)*45ms + .45s)}
 @keyframes grow{from{transform:scaleX(0)}}
 
-/* 아래 띠 — 모눈과 빛 */
+/* 아래 띠 — 제도 모눈만 */
 .cta-band{position:relative;overflow:hidden;isolation:isolate}
-.cta-band::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(520px 260px at 92% 130%,rgba(58,169,255,.38),transparent 70%),radial-gradient(420px 220px at -4% -50%,rgba(167,139,250,.26),transparent 70%),linear-gradient(rgba(127,200,255,.07) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,rgba(127,200,255,.07) 1px,transparent 1px) 0 0/24px 24px;pointer-events:none}
+.cta-band::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(rgba(127,200,255,.07) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,rgba(127,200,255,.07) 1px,transparent 1px) 0 0/24px 24px;pointer-events:none}
 /* 자주 묻는 질문 — 열린 것이 보이게, 부드럽게 펼친다(되는 브라우저에서만) */
 .faq details{transition:box-shadow .25s}
 .faq details[open]{box-shadow:inset 0 0 0 1.5px var(--edge-blue),var(--shadow)}
@@ -866,13 +842,9 @@ button,a,label,summary,.drop{touch-action:manipulation}
 .faq details[open]::details-content{block-size:auto}
 }
 
-/* 위쪽 바 — 뒤가 비치는 유리, 아래 선은 읽은 만큼 찬다 */
+/* 위쪽 바 — 뒤가 비치는 유리 */
 @supports (background:color-mix(in srgb,red 50%,blue)) and ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
 .nav{background:color-mix(in srgb,var(--head-bg) 84%,transparent);-webkit-backdrop-filter:saturate(1.5) blur(14px);backdrop-filter:saturate(1.5) blur(14px)}
-}
-@supports (animation-timeline:scroll()){
-.nav::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--cyan),var(--violet));transform-origin:0 50%;transform:scaleX(0);animation:prog linear both;animation-timeline:scroll(root);pointer-events:none}
-@keyframes prog{to{transform:scaleX(1)}}
 }
 .nav-links.open{animation:fadeIn .2s ease}
 
@@ -889,10 +861,8 @@ button,a,label,summary,.drop{touch-action:manipulation}
 #res.enter #cmp>*{animation-delay:.2s}
 #res.enter .tabs{animation-delay:.26s}
 #res.enter .finding{animation:fadeUp .5s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--k,0)*50ms + .32s)}
-#res.enter #score>.card.dq{animation:fadeUp .6s cubic-bezier(.16,1,.3,1) .12s backwards,thud .35s ease 1s}
-#res.enter .dq-big{animation:stamp .5s cubic-bezier(.3,1.4,.5,1) .5s backwards}
-@keyframes stamp{from{opacity:0;transform:scale(2.6) rotate(-12deg)}}
-@keyframes thud{30%{transform:translate(-3px,2px)}65%{transform:translate(2px,-1px)}}
+#res.enter .dq-big{animation:stamp .45s cubic-bezier(.2,.8,.2,1) .45s backwards}
+@keyframes stamp{from{opacity:0;transform:scale(1.5)}}
 
 /* 폰에서 아래 띠 단추 글이 길면(영어 · 일본어 정확도 페이지) 한 줄로 버텨 페이지가 옆으로 밀렸다 — 줄을 바꾼다 */
 @media (max-width:640px){.cta-band .btn{max-width:100%;height:auto;min-height:54px;padding-block:12px;white-space:normal;text-align:center;line-height:1.4}}

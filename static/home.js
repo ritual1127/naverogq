@@ -125,12 +125,6 @@ function drawPeek(){const k=t('peekD').split(' · '),title=(code,ko)=>findingTex
   $('#pkMk').textContent=title('EX_DIM_MISSING','치수 누락 의심 1곳');
   $('#pkDed').textContent=2+t('deduct');
   $('#pkFix').textContent=fmt(t('fixDims'),{n:1})}
-// 마우스로 볼 때 — 예제 카드는 마우스 자리가 밝아진다(site.css). 손가락 · 움직임 줄이기 설정에서는 안 한다
-if(!REDUCE&&matchMedia('(hover: hover) and (pointer: fine)').matches){
-  const set=(el,k,v)=>el.style.setProperty(k,v);
-  $('#sgrid').addEventListener('pointermove',e=>{const c=e.target.closest('.scard');if(!c)return;const r=c.getBoundingClientRect();
-    set(c,'--mx',(e.clientX-r.left)+'px');set(c,'--my',(e.clientY-r.top)+'px')});
-}
 
 // 사용법 그림. 카드가 보이면 그 단계를 한 번 해 보인다(site.css .step.in .a-*). 안내 창에서는 멈춘 그림 그대로다
 const ART={
