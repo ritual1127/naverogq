@@ -47,7 +47,18 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
           <button class="btn btn-primary btn-lg" id="ctaUpload" type="button"><svg class="ico"><use href="#i-upload"/></svg><span data-i18n="ctaUpload">도면 올리기</span></button>
           <button class="btn btn-ghost btn-lg" id="ctaSample" type="button"><span data-i18n="ctaSample">예제로 먼저 보기</span><svg class="ico"><use href="#i-arrow"/></svg></button>
         </div>
-        <button class="peek" id="peek" type="button" data-n="sample_body.dxf" data-i18n-aria="peekAria"><img src="/static/peek.webp?v=20261010" width="960" height="320" alt=""><span class="peek-t"><b data-i18n="peekT">이렇게 나와요</b><span data-i18n="peekD">실격 사유 · 감점 자리 번호 · 수정 예시</span><svg class="ico"><use href="#i-arrow"/></svg></span></button>
+        <!-- 예제 sample_body.dxf 의 실제 결과를 옮겨 그렸다(선 · 번호 · 초록 수정 예시는 결과 화면의 좌표 그대로). 글은 home.js drawPeek -->
+        <button class="peek" id="peek" type="button" data-n="sample_body.dxf" data-i18n-aria="peekAria">
+          <span class="pk-head"><b data-i18n="peekT">이렇게 나와요</b><span class="pk-go"><span data-i18n="sampleRun">결과 보기</span><svg class="ico"><use href="#i-arrow"/></svg></span></span>
+          <span class="pk-body">
+            <span class="pk-view"><svg viewBox="0 0 1640 1240" aria-hidden="true"><g class="pk-dw"><rect x="110.8" y="51.6" width="1407.3" height="1076.2"/><circle cx="814.5" cy="589.6" r="169.7"/><circle cx="1269.8" cy="929.0" r="129.7"/><path class="pk-cl" d="M475.1 589.6 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l6 0 M814.5 929 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-6 M1010.4 929 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l52.6 0 m10.5 0 l10.5 0 m10.5 0 l14.1 0 M1269.8 1188.4 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-52.6 m0-10.5 l0-10.5 m0-10.5 l0-14.1"/></g><g class="pk-mk"><circle cx="814.5" cy="589.6" r="177"/><path d="M939.7 464.5 l68.8-68.8"/><circle class="pk-bd" cx="1085.0" cy="319.1" r="108.2"/><text x="1085.0" y="319.1">1</text></g><g class="pk-fx"><path d="M694.5 709.6 L636 768.2 L377.7 768.2"/><path class="pk-ar" d="M694.5 709.6 L653.2 738.6 L665.6 751 Z"/><text x="390.9" y="754.9" textLength="231.8" lengthAdjust="spacingAndGlyphs">Ø20.5</text></g></svg></span>
+            <span class="pk-list">
+              <span class="pk-row" data-k="dq"><span class="pk-k">실격 사유</span><span class="pk-v"><svg class="ico"><use href="#i-fail"/></svg><span id="pkDq">오작: 표면거칠기 기호 없음</span></span></span>
+              <span class="pk-row" data-k="mk"><span class="pk-k">감점 자리 번호</span><span class="pk-v"><b class="pk-n">1</b><span><span id="pkMk">치수 누락 의심 1곳</span> <span class="pk-ded" id="pkDed">2점 차감</span></span></span></span>
+              <span class="pk-row" data-k="fix"><span class="pk-k">수정 예시</span><span class="pk-v"><svg class="ico"><use href="#i-spark"/></svg><span id="pkFix">구멍 지름 치수 1곳</span></span></span>
+            </span>
+          </span>
+        </button>
         <ul class="trust">
           <li><svg class="ico"><use href="#i-user"/></svg><span data-i18n="trust1">회원가입 없음</span></li>
           <li><svg class="ico"><use href="#i-trash"/></svg><span data-i18n="trust2">도면은 1시간 안에 삭제</span></li>

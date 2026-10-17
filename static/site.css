@@ -100,13 +100,51 @@ h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;lett
 .trust{list-style:none;display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:30px;font-size:14.5px;font-weight:700;color:var(--muted)}
 .trust li{display:inline-flex;align-items:center;gap:7px}
 .trust .ico{width:18px;height:18px;color:var(--mint)}
-/* 처음 온 사람이 올리기 전에 보는 예제 결과 한 장(W6 FIX 01). 누르면 그 예제를 검사한다 */
-.peek{display:block;width:100%;max-width:440px;margin-top:16px;padding:8px;border-radius:22px;background:var(--panel);box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s}
-.peek:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
-.peek img{display:block;width:100%;height:auto;border-radius:15px}
-.peek-t{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;padding:10px 8px 4px;font-size:14px;line-height:1.5;color:var(--muted)}
-.peek-t b{flex:none;font-weight:800;color:var(--text)}
-.peek-t .ico{flex:none;width:18px;height:18px;margin-left:auto;color:var(--cyan-ink)}
+/* 처음 온 사람이 올리기 전에 보는 예제 결과(W6 FIX 01). 누르면 그 예제를 검사한다.
+   10-17 까지는 결과 화면을 찍은 그림(peek.webp)이라 글자가 6px 쯤으로 작았고, 다른 언어 · 어두운 화면에서도 한국어 밝은 화면
+   그대로였다. 이제 예제 sample_body.dxf 의 실제 결과를 옮겨 그린다 — 왼쪽은 결과 화면과 같은 어두운 도면 칸(선 · 빨간 번호 ·
+   초록 수정 예시는 결과 화면의 좌표 그대로), 오른쪽은 세 가지를 그 예제의 실제 지적으로 */
+.peek{display:block;width:100%;max-width:600px;margin-top:22px;padding:12px;border-radius:24px;background:var(--panel);box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s}
+.peek:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.pk-head{display:flex;align-items:center;gap:12px;padding:2px 6px 10px}
+.pk-head b{font-size:15px;font-weight:800}
+.pk-go{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:13.5px;font-weight:800;color:var(--cyan-ink)}
+.pk-go .ico{width:17px;height:17px;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.peek:hover .pk-go .ico{transform:translateX(4px)}
+.pk-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+.pk-view{position:relative;min-height:190px;border-radius:16px;background:var(--stage);overflow:hidden}
+.pk-view svg{position:absolute;inset:0;width:100%;height:100%}
+.pk-view :is(rect,circle,path){fill:none;vector-effect:non-scaling-stroke}
+.pk-dw{stroke:#dfe6ef;stroke-width:1.3}
+.pk-dw .pk-cl{stroke-opacity:.5;stroke-width:1}
+.pk-mk{stroke:#ff4b4b;stroke-width:2.2}
+.pk-mk .pk-bd{fill:#ff4b4b;stroke:none}
+.pk-mk text{fill:#fff;font:800 128px var(--font);text-anchor:middle;dominant-baseline:central}
+.pk-fx{stroke:#2ed9a0;stroke-width:1.7}
+.pk-fx .pk-ar{fill:#2ed9a0;stroke:none}
+.pk-fx text{fill:#2ed9a0;stroke:var(--stage);stroke-width:16px;paint-order:stroke;font:800 80.5px var(--font)}
+.pk-list{display:flex;flex-direction:column;justify-content:center}
+.pk-row{display:block;padding:10px 4px 11px;transition:opacity .25s}
+.pk-row+.pk-row{border-top:1px solid var(--line)}
+.pk-k{display:block;font-size:12.5px;font-weight:700;line-height:1.4;color:var(--soft)}
+.pk-k::first-letter{text-transform:uppercase}
+.pk-v{display:flex;align-items:flex-start;gap:8px;margin-top:4px;font-size:14px;line-height:1.5;font-weight:800}
+.pk-v>.ico{width:18px;height:18px;margin-top:1px}
+#pkFix{display:inline-block}
+#pkFix::first-letter{text-transform:uppercase}   /* 영어 번역이 소문자로 시작한다(hole diameter callouts) */
+[data-k="dq"] .pk-v{color:var(--ink-red)}
+[data-k="dq"] .ico{color:var(--red)}
+[data-k="fix"] .pk-v{color:var(--ink-good)}
+[data-k="fix"] .ico{color:var(--mint)}
+.pk-n{flex:none;width:20px;height:20px;margin-top:1px;display:grid;place-items:center;border-radius:50%;background:var(--red);font-size:11.5px;color:#fff}
+.pk-ded{display:inline-block;padding:0 7px;border-radius:999px;background:var(--tint-red);font-size:12px;line-height:20px;color:var(--ink-red);white-space:nowrap}
+/* 마우스를 올린 줄의 짝만 그림에 남기고 나머지는 흐리게 — 무엇이 도면 어디에 나오는지 */
+.pk-mk,.pk-fx{transition:opacity .25s}
+@media (hover:hover){
+.peek:has(.pk-row:hover) .pk-row:not(:hover){opacity:.45}
+.peek:has([data-k="dq"]:hover) :is(.pk-mk,.pk-fx),.peek:has([data-k="mk"]:hover) .pk-fx,.peek:has([data-k="fix"]:hover) .pk-mk{opacity:.15}
+}
+@media (max-width:640px){.pk-body{grid-template-columns:1fr;gap:6px}.pk-view{min-height:0;aspect-ratio:16/10}}
 
 /* upload card */
 .up{position:relative;padding:14px;border-radius:30px;background:var(--panel);box-shadow:var(--shadow-lg)}
@@ -776,14 +814,8 @@ button,a,label,summary,.drop{touch-action:manipulation}
 .hero-cta .btn-primary::after{animation:sheen 1.3s cubic-bezier(.4,0,.2,1) 1.6s 2}
 #home.played .hero-cta .btn-primary::after{animation:none}
 @keyframes sheen{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
-.btn .ico,.more .ico,.smeta .ico,.peek-t .ico{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
-#ctaSample:hover .ico,.more:hover .ico,.scard:hover .smeta .ico,.peek:hover .peek-t .ico{transform:translateX(4px)}
-
-/* 첫 화면 결과 그림 — 마우스를 따라 살짝 기울고 빛이 비친다(home.js) */
-.peek{position:relative;transform:perspective(1000px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
-.peek:hover{transform:perspective(1000px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(-3px);transition:transform .15s linear,box-shadow .25s}
-.peek::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(380px circle at var(--gx,50%) var(--gy,0%),rgba(255,255,255,.16),transparent 55%);opacity:0;transition:opacity .3s;pointer-events:none}
-.peek:hover::after{opacity:1}
+.btn .ico,.more .ico,.smeta .ico{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#ctaSample:hover .ico,.more:hover .ico,.scard:hover .smeta .ico{transform:translateX(4px)}
 
 /* 예제 카드 — 마우스가 있는 자리를 밝힌다(home.js) */
 .scard{position:relative;isolation:isolate}

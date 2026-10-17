@@ -19,7 +19,7 @@ onLang.push(()=>{
   const ht=$('.hero-t'),title=t('heroTitle'),m=title.match(/^(.+?[,，、.])\s*(.+)$/);
   if(ht.dataset.t!==title){ht.dataset.t=title;ht.innerHTML=(m?[m[1],m[2]]:[title]).map((s,i)=>`<span class="ln" style="--i:${i}"><span>${esc(s)}</span></span>`).join('')}
   $('#ctaBandT').textContent=t('guide')[0][0];
-  drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();drawRecent();
+  drawHealth();drawRubric();drawPicker();drawStats();drawFaq();drawSamples();drawRecent();drawPeek();
   if(!$('#guide').hidden)drawGuide();
   if(picking)$('#pickHint').textContent=t('pickHint');
   if(RAW)render(RAW,true);else setTitle();
@@ -117,12 +117,17 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)send(f)});
 // 목록이 아직이면 그림의 예제를 그대로 보낸다 — 없는 예제면 서버가 알려 준다.
 $('#ctaSample').onclick=$('#peek').onclick=()=>{const s=SAMPLES.find(x=>x.name===$('#peek').dataset.n)||SAMPLES.find(x=>x.ext==='.dxf')||SAMPLES[0];
   sendSample(s?s.name:$('#peek').dataset.n)};
-// 마우스로 볼 때 — 결과 그림은 마우스 쪽으로 살짝 기울고, 예제 카드는 마우스 자리가 밝아진다(site.css). 손가락 · 움직임 줄이기 설정에서는 안 한다
+// 첫 화면 결과 예시(#peek) — 예제 sample_body.dxf 의 실제 결과다: 실격 1건 · 1번 자리(Ø20.5 지름 치수 누락, 2점) · 초록 수정
+// 예시 1곳. 글은 결과 화면과 같은 번역(findingText)을 쓴다. 예제 결과가 바뀌면 test_home_peek_matches_the_sample_result 가 깨진다
+function drawPeek(){const k=t('peekD').split(' · '),title=(code,ko)=>findingText({code,title:ko,detail:'',fix:''}).title;
+  $$('#peek .pk-k').forEach((el,i)=>el.textContent=k[i]||'');
+  $('#pkDq').textContent=title('DQ_NO_SURFACE_SYMBOL','오작: 표면거칠기 기호 없음');
+  $('#pkMk').textContent=title('EX_DIM_MISSING','치수 누락 의심 1곳');
+  $('#pkDed').textContent=2+t('deduct');
+  $('#pkFix').textContent=fmt(t('fixDims'),{n:1})}
+// 마우스로 볼 때 — 예제 카드는 마우스 자리가 밝아진다(site.css). 손가락 · 움직임 줄이기 설정에서는 안 한다
 if(!REDUCE&&matchMedia('(hover: hover) and (pointer: fine)').matches){
-  const pk=$('#peek'),set=(el,k,v)=>el.style.setProperty(k,v);
-  pk.addEventListener('pointermove',e=>{const r=pk.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height;
-    set(pk,'--rx',((.5-y)*8).toFixed(2)+'deg');set(pk,'--ry',((x-.5)*10).toFixed(2)+'deg');set(pk,'--gx',(x*100).toFixed(1)+'%');set(pk,'--gy',(y*100).toFixed(1)+'%')});
-  pk.addEventListener('pointerleave',()=>{set(pk,'--rx','0deg');set(pk,'--ry','0deg')});
+  const set=(el,k,v)=>el.style.setProperty(k,v);
   $('#sgrid').addEventListener('pointermove',e=>{const c=e.target.closest('.scard');if(!c)return;const r=c.getBoundingClientRect();
     set(c,'--mx',(e.clientX-r.left)+'px');set(c,'--my',(e.clientY-r.top)+'px')});
 }
