@@ -168,6 +168,7 @@ const THEME_KEY='cadcheck.theme';
 function currentTheme(){return store.get(THEME_KEY)||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
 function applyTheme(th){  // not `t` — that name is the translation lookup
   document.documentElement.dataset.theme=th;
+  $$('meta[name="theme-color"]').forEach(m=>m.content=th==='dark'?'#070b12':'#ffffff');   // 폰 브라우저 위 띠도 위쪽 바와 같은 색
   const b=$('#theme'),label=t(th==='dark'?'themeLight':'themeDark');b.title=label;b.setAttribute('aria-label',label);
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',e=>{if(!store.get(THEME_KEY))applyTheme(e.matches?'dark':'light')});
