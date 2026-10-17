@@ -7,8 +7,8 @@
 @font-face{font-family:"NSR Latin";src:url(/static/fonts/NanumSquareRoundEB.woff2) format("woff2");font-weight:800;font-display:swap;unicode-range:U+0000-024F,U+2000-206F,U+2190-21FF}
 
 :root{--font:"NanumSquareRound",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
---bg:#e5ebf4;--bg-soft:#eef3fa;--panel:#ffffff;--panel2:#edf2f9;--line:#d9e1ec;--line2:#c9d3e1;--text:#131820;--muted:#525b69;--soft:#667080;
---cyan:#0095ff;--cyan-ink:#0a5fc2;--mint:#0e9f6e;--red:#d92d20;--amber:#b54708;--green:#0e9f6e;--violet:#6d47e8;
+--bg:#e5ebf4;--bg-soft:#eef3fa;--panel:#ffffff;--panel2:#edf2f9;--line:#d9e1ec;--line2:#c9d3e1;--text:#131820;--muted:#525b69;--soft:#5e6777;
+--cyan:#0095ff;--cyan-ink:#0a5fc2;--mint:#0e9f6e;--red:#c4271b;--amber:#b54708;--green:#0e9f6e;--violet:#6440df;
 --btn:#0a6fd6;--btn-hover:#0a5fc2;--on-btn:#ffffff;
 --tint-blue-0:rgba(0,149,255,.04);--tint-blue:rgba(0,149,255,.09);--edge-blue:rgba(0,149,255,.22);--edge-blue-2:rgba(0,149,255,.38);
 --tint-red:rgba(217,45,32,.07);--tint-red-2:rgba(217,45,32,.12);--edge-red:rgba(217,45,32,.28);--ink-red:#912018;

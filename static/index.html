@@ -170,8 +170,8 @@ try{const th=localStorage.getItem('cadcheck.theme')||(matchMedia('(prefers-color
     <section class="rleft" aria-labelledby="viewerT">
       <div class="viewer" id="viewer">
         <div class="vbar"><h2 id="viewerT" data-i18n="preview">도면 미리보기</h2>
-          <button class="fix-btn" id="fixBtn" type="button" aria-pressed="false" aria-controls="fixNote" hidden><svg class="ico"><use href="#i-spark"/></svg><span data-i18n="fixBtn">수정 예시</span></button>
-          <button class="fix-btn pick-btn" id="pickBtn" type="button" aria-pressed="false" aria-controls="pickHint"><svg class="ico"><use href="#i-fit"/></svg><span data-i18n="pickBtn">부분 지정 문의</span></button>
+          <button class="fix-btn" id="fixBtn" type="button" data-i18n-aria="fixBtn" aria-pressed="false" aria-controls="fixNote" hidden><svg class="ico"><use href="#i-spark"/></svg><span data-i18n="fixBtn">수정 예시</span></button>
+          <button class="fix-btn pick-btn" id="pickBtn" type="button" data-i18n-aria="pickBtn" aria-pressed="false" aria-controls="pickHint"><svg class="ico"><use href="#i-fit"/></svg><span data-i18n="pickBtn">부분 지정 문의</span></button>
           <div class="vtools"><button class="vbtn" id="zout" type="button" data-i18n-aria="zoomOut"><svg class="ico"><use href="#i-minus"/></svg></button><span class="zoom" id="zoomv">100%</span><button class="vbtn" id="zin" type="button" data-i18n-aria="zoomIn"><svg class="ico"><use href="#i-plus"/></svg></button><button class="vbtn" id="zfit" type="button" data-i18n-aria="fitFixed"><svg class="ico"><use href="#i-fit"/></svg></button></div>
         </div>
         <div class="stage" id="stage"><div class="pan" id="pan"></div><div class="selbox" id="selbox" hidden></div></div>
