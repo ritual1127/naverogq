@@ -132,7 +132,7 @@ function chrome(){
       <div><b data-i18n="lgPrivK"></b><p data-i18n="lgPrivV"></p></div><div><b data-i18n="lgAiK"></b><p data-i18n="lgAiV"></p></div>
       <div><b data-i18n="lgCopyK"></b><p data-i18n="lgCopyV"></p></div><div><b data-i18n="lgMinorK"></b><p data-i18n="lgMinorV"></p></div>
     </div></div>
-    <div class="foot-bottom"><span>© CADLens · MIT License</span><span id="stkCredit" data-i18n="stkCredit" hidden></span><a href="https://github.com/ritual1127/naverogq#개인정보-처리" target="_blank" rel="noopener" data-i18n="lgMore"></a></div></div>`;
+    <div class="foot-bottom"><span>© CADLens · MIT License</span><span id="stkCredit" data-i18n="stkCredit" hidden></span><a href="https://github.com/ritual1127/naverogq#공개-고지--개인정보--ai-생성물--미성년자-안전--저작권" target="_blank" rel="noopener" data-i18n="lgMore"></a></div></div>`;
   document.body.insertAdjacentHTML('beforeend',NOTE_HTML);
   $('#noteSend').onclick=sendNote;
   $$('#note [data-noteclose]').forEach(el=>el.onclick=closeNote);
