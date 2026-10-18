@@ -8,6 +8,18 @@ DWG나 DXF 도면을 올리면 37개 항목을 자동으로 확인하고, 문제
 
 **[2차 제출 발표 영상 (6분 24초)](https://youtu.be/oqJvQP71Elc)** — 10분판 대본과 실제 화면 시연. 목소리는 팀원 네 명의 목소리를 본뜬 AI 합성입니다([만든 법](docs/demo/10분영상/README.md))
 
+### 제출물 모음 — 영상 · 문서
+
+지금까지 만든 영상 4편과 문서 11개를 GitHub 릴리스 **[제출물 모음 (2026-10-18)](https://github.com/ritual1127/naverogq/releases/tag/submissions-2026-10-18)** 에 따로 묶어 올렸습니다.
+날짜별 목록과 저장소 원본은 [제출물 모음](docs/제출물.md)에 있습니다.
+
+| 영상 | 문서 |
+|---|---|
+| [2차 제출 발표 영상](https://youtu.be/oqJvQP71Elc) (10-18 · 6분 24초) | [2차 제출 최종 KPI 한 장 보고](plan/w8/CADLens_2차제출_1018.pdf) (10-18) · [KPI 리포트](plan/w8/W8_KPI리포트.md) |
+| [데모데이 ② 3분 데모](https://youtu.be/wpp0pvXtyvI) (10-06) | 주차별 제출본 [W1](plan/w1/팀목표.pdf) · [W5](plan/w5/CADLens_W5_제출본.pdf) · [W6](plan/w6/CADLens_W6_제출본.pdf) · [W7](plan/w7/CADLens_W7_제출본.pdf) · [W8](plan/w8/CADLens_W8_제출본.pdf) |
+| [데모데이 ① 데모 영상](https://youtu.be/u0RKbp6FDC8) (09-08) | [소개서](docs/CADLens_소개서.pdf) · [사업보고서](docs/CADLens_사업보고서.pdf) · [예상 질문 100](docs/demo/예상질문100.pdf) |
+| [실제 화면 시연 32초](https://github.com/ritual1127/naverogq/releases/download/submissions-2026-10-18/CADLens_live_demo_32s_2026-10-18.mp4) (10-18 화면) | [문서 한 번에 받기 (zip)](https://github.com/ritual1127/naverogq/releases/download/submissions-2026-10-18/CADLens_documents_2026-10-18.zip) |
+
 > **미션** — 우리는 전산응용기계제도기능사 실기를 혼자 준비하는 수험생이 도면을 제출하기 직전에 겪는,
 > 혼자 볼 때는 무엇을 빠뜨렸는지 짚어 줄 사람이 없고 남이 짚어 줘도 그때는 고칠 시간이 없는 문제를,
 > 도면 파일을 올리면 빠진 항목을 도면 위에 찍어 주는 웹 검사기로 없앤다. (2026-08-30 인터뷰 5건으로 고침)
