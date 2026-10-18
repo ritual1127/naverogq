@@ -52,11 +52,12 @@ a{color:inherit;text-decoration:none}
 .skip{position:absolute;left:12px;top:-64px;z-index:100;padding:10px 18px;border-radius:999px;background:var(--btn);color:var(--on-btn);font-weight:800}
 .skip:focus{top:12px}
 
-/* header */
-.nav{position:sticky;top:0;z-index:40;background:var(--head-bg);color:var(--head-fg);border-bottom:1px solid var(--head-line)}
-.nav-in{height:64px;display:flex;align-items:center;gap:24px}
+/* header — 바깥 .nav 는 투명하고, 안의 .nav-in 이 내용 위에 뜬 유리 캡슐이다(맨 아래 ④ 절). 높이는 전처럼 64px(8 + 48 + 8) */
+.nav{position:sticky;top:0;z-index:40;padding:8px 0;color:var(--head-fg)}
+.nav-in{position:relative;height:48px;display:flex;align-items:center;gap:20px;padding:0 6px 0 8px;border-radius:999px}
 .brand{display:inline-flex;align-items:center;gap:10px;font-size:18px;font-weight:800;color:var(--head-hi);letter-spacing:-.01em}
 .brand img{width:34px;height:34px;border-radius:10px}
+.nav .brand img{width:32px;height:32px}
 .brand small{font-size:12.5px;font-weight:700;color:var(--head-sub);letter-spacing:0}
 .nav-links{display:flex;gap:2px}
 .nav-links a{padding:8px 14px;border-radius:999px;font-size:14.5px;font-weight:700;color:var(--head-sub);transition:color .2s,background .2s}
@@ -71,10 +72,6 @@ a{color:inherit;text-decoration:none}
 .lang button{height:30px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:.02em;color:var(--head-sub);transition:color .2s,background .2s}
 .lang button:hover{color:var(--head-hi)}
 .lang button.on{background:var(--cyan);color:#04111e}
-/* 밝은 화면의 위쪽 바 — 진한 남색 띠가 밝은 페이지 위에서 따로 놀았다(10-18). 바탕과 같은 밝은 유리에 본문 색 글자.
-   아래 띠 · 바닥글은 그대로 진한 색이다 */
-:root:not([data-theme="dark"]) .nav{--head-bg:#fff;--head-fg:var(--text);--head-sub:var(--muted);--head-line:var(--line);--head-btn:rgba(16,40,80,.04);--head-btn-on:var(--tint-blue);--head-edge:var(--line2);--head-hi:var(--text)}
-:root:not([data-theme="dark"]) .nav-links a[aria-current="page"]{color:var(--cyan-ink)}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 22px;border-radius:999px;font-size:15px;font-weight:800;white-space:nowrap;transition:background .2s,color .2s,box-shadow .2s,transform .2s}
@@ -317,16 +314,16 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 @keyframes rot{to{transform:rotate(360deg)}}
 
 /* results */
-.rbar{position:sticky;top:64px;z-index:30;border-bottom:1px solid var(--line);background:var(--bar-bg);backdrop-filter:blur(14px)}
+.rbar{position:sticky;top:64px;z-index:30;padding:0 0 10px}
 .rwrap{width:min(1440px,100% - 48px);margin-inline:auto}
-.rbar-in{height:68px;display:flex;align-items:center;gap:14px}
+.rbar-in{height:56px;display:flex;align-items:center;gap:14px;padding:0 8px;border-radius:999px}
 .rfile{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
 .rfile .fi{width:42px;height:42px;flex:none;display:grid;place-items:center;border-radius:14px;background:var(--tint-blue);color:var(--cyan-ink)}
 .rfile>div{min-width:0}
 .rfile h1{font-size:17px;line-height:1.35;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rfile p{font-size:13px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rgrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(360px,1fr);gap:24px;align-items:start;padding:24px 0 72px}
-.rleft{position:sticky;top:156px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.rleft{position:sticky;top:142px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .viewer{border-radius:26px;background:var(--panel);box-shadow:var(--shadow);overflow:hidden}
 .vbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 10px 20px}
 .vbar h2{font-size:15px;font-weight:800}
@@ -519,8 +516,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 }
 
 /* shared header: page links, mobile menu */
-.nav{min-height:65px}
-.nav-links a[aria-current="page"]{color:var(--head-hi);background:var(--head-btn-on)}
+.nav-links a[aria-current="page"]{color:var(--cyan-ink);background:var(--head-btn-on)}
 .menu-btn,.nav-lang{display:none}
 .more{display:inline-flex;align-items:center;gap:4px;margin-top:12px;font-size:14px;font-weight:800;color:var(--cyan-ink)}
 .more:hover{text-decoration:underline}
@@ -611,8 +607,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 }
 @media (max-width:980px){
 .menu-btn{display:inline-flex;width:38px;padding:0}
-.nav-links{position:absolute;left:0;right:0;top:64px;flex-direction:column;gap:2px;padding:10px 16px 18px;background:var(--head-bg);border-bottom:1px solid var(--head-line);box-shadow:0 30px 40px -24px rgba(0,0,0,.6)}
-:root:not([data-theme="dark"]) .nav-links{box-shadow:0 24px 32px -24px rgba(16,40,80,.28)}
+.nav-links{position:absolute;left:0;right:0;top:calc(100% + 8px);flex-direction:column;gap:2px;padding:10px;border-radius:24px}
 .nav-links.open{display:flex}
 .nav-links a{padding:12px 14px;border-radius:14px;font-size:16px}
 .doc-grid{grid-template-columns:1fr}
@@ -796,10 +791,6 @@ button,a,label,summary,.drop{touch-action:manipulation}
 .faq details[open]::details-content{block-size:auto}
 }
 
-/* 위쪽 바 — 뒤가 비치는 유리 */
-@supports (background:color-mix(in srgb,red 50%,blue)) and ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-.nav{background:color-mix(in srgb,var(--head-bg) 84%,transparent);-webkit-backdrop-filter:saturate(1.5) blur(14px);backdrop-filter:saturate(1.5) blur(14px)}
-}
 .nav-links.open{animation:fadeIn .2s ease}
 
 /* 밝은 ↔ 어두운 화면 — 누른 단추에서 원이 퍼진다(common.js) */
@@ -820,3 +811,85 @@ button,a,label,summary,.drop{touch-action:manipulation}
 
 /* 폰에서 아래 띠 단추 글이 길면(영어 · 일본어 정확도 페이지) 한 줄로 버텨 페이지가 옆으로 밀렸다 — 줄을 바꾼다 */
 @media (max-width:640px){.cta-band .btn{max-width:100%;height:auto;min-height:54px;padding-block:12px;white-space:normal;text-align:center;line-height:1.4}}
+
+/* ── 2026-10-18 ④ Liquid Glass — 위쪽 바 · 폰 아래 탭 바 · 메뉴 시트 · 결과 도구 막대 ──
+   애플 문서(Adopting Liquid Glass · HIG Materials · HIG Tab bars)를 따랐다.
+   - 유리는 내용 위에 뜬 조작 · 이동 층에만 쓴다. 카드 같은 내용 층에는 쓰지 않는다("Don't use Liquid Glass in the content layer").
+   - 글이 있는 막대라 '보통(regular)' 유리 — 뒤를 흐리고 밝기를 맞춰 글이 읽히게. 모양은 캡슐, 안쪽 모서리는 바깥과 중심이 같게.
+   - 폰은 아래에 뜬 탭 바로 페이지를 옮기고(탭은 이동만), 하는 일(도면 올리기 · 다시 올리기)은 옆 단추 · 도구 막대로 둔다.
+   - 시트는 더 불투명하게. 투명도 줄이기 · 대비 높이기 설정이거나 뒤 흐림이 안 되는 브라우저면 불투명한 판으로 */
+.nav,.tabbar,.rbar{--glass:rgba(255,255,255,.72);--glass-strong:rgba(255,255,255,.9);--glass-sheen:rgba(255,255,255,.4);--glass-rim:rgba(255,255,255,.95);--glass-edge:rgba(16,40,80,.10);--glass-shadow:0 12px 30px -14px rgba(16,40,80,.38);
+  --head-fg:var(--text);--head-sub:var(--muted);--head-hi:var(--text);--head-btn:rgba(16,40,80,.05);--head-btn-on:rgba(0,149,255,.12);--head-edge:rgba(16,40,80,.11)}
+:root[data-theme="dark"] :is(.nav,.tabbar,.rbar){--glass:rgba(24,33,48,.64);--glass-strong:rgba(20,28,41,.94);--glass-sheen:rgba(255,255,255,.07);--glass-rim:rgba(255,255,255,.16);--glass-edge:rgba(255,255,255,.07);--glass-shadow:0 14px 34px -14px rgba(0,0,0,.8);
+  --head-fg:#e7eef7;--head-sub:#b4c2d4;--head-hi:#fff;--head-btn:rgba(255,255,255,.07);--head-btn-on:rgba(127,200,255,.16);--head-edge:rgba(255,255,255,.11)}
+.nav-in::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none}
+/* 바 밑 '스크롤 가장자리' — 바 아래로 지나가는 내용을 바탕색으로 살짝 덮어 바 위 글이 흐트러지지 않게(Apple: scroll edge effect) */
+.nav::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(100% + 12px);z-index:-2;background:linear-gradient(var(--bg),color-mix(in srgb,var(--bg) 60%,transparent) 55%,transparent);pointer-events:none}
+/* 결과 화면에서는 위쪽 바를 결과 도구 막대와 같은 폭으로 — 폭이 다른 두 캡슐이 겹쳐 보였다 */
+body.in-res .nav .wrap{width:min(1440px,100% - 48px)}
+.nav-in::before,.tb-tabs,.tb-act,.rbar-in,.nav-links{-webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8);box-shadow:inset 0 1px 0 var(--glass-rim),inset 0 0 0 1px var(--glass-edge),var(--glass-shadow)}
+.nav-in::before,.tb-tabs,.rbar-in{background:linear-gradient(180deg,var(--glass-sheen),transparent 48%),var(--glass)}
+.hbtn,.lang{border-color:var(--head-edge)}
+.tabbar,.menu-bg{display:none}
+/* 첫 화면 · 문서 페이지 머리는 위쪽 바 뒤까지 올려 제도 모눈이 바 뒤로 이어지게 — 떠 있는 바 아래에서 모눈이 끊겨 보였다 */
+:root{--nav-h:64px}
+.hero,.page-hero{margin-top:calc(-1*var(--nav-h))}
+.hero{padding-top:calc(64px + var(--nav-h))}
+.page-hero{padding-top:calc(64px + var(--nav-h))}
+@media (max-width:980px){.hero,.page-hero{padding-top:calc(44px + var(--nav-h))}}
+@media (max-width:640px){:root{--nav-h:68px}}
+/* 바 밖(넓은 화면)에서는 링크가 캡슐 안에 놓인다 — 유리는 접힌 메뉴(태블릿 · 폰)에서만 */
+@media (min-width:981px){.nav-links{-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}}
+@media (max-width:980px){.nav-links{background:var(--glass-strong);-webkit-backdrop-filter:blur(24px) saturate(1.8);backdrop-filter:blur(24px) saturate(1.8)}}
+
+/* 폰 — 엄지가 닿는 아래쪽에 이동과 할 일을 모은다 */
+@media (max-width:640px){
+.nav-in{height:52px;padding:0 4px 0 8px}
+.hbtn{height:44px;min-width:44px}
+#theme,#guideBtn,.menu-btn{width:44px}
+/* 메뉴는 아래에서 올라오는 시트 — 위 오른쪽 구석까지 손을 뻗지 않고 고른다 */
+.nav-links{position:fixed;left:8px;right:8px;top:auto;bottom:calc(8px + env(safe-area-inset-bottom));z-index:2;padding:10px;border-radius:28px;max-height:calc(100vh - 96px);overflow:auto;overscroll-behavior:contain}
+.nav-links.open{animation:sheetUp .28s cubic-bezier(.2,.8,.2,1)}
+.nav-links a,.nav-links button[data-note]{padding:14px 16px;border-radius:18px;font-size:16.5px;color:var(--head-fg)}
+.nav-lang{padding:8px 6px 4px}
+.nav-lang .lang button{height:40px;padding:0 14px;font-size:13px}
+.menu-bg{position:fixed;inset:0;z-index:1;background:rgba(6,10,18,.4)}
+.menu-bg.on{display:block;animation:fadeIn .2s ease}
+/* 아래에 뜬 탭 바(홈 · KS 기준 · 정확도)와, 첫 화면에서는 그 옆 둥근 '도면 올리기' */
+.tabbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:35;display:flex;align-items:center;gap:10px}
+.tb-tabs{flex:1;min-width:0;display:flex;gap:2px;height:62px;padding:5px;border-radius:999px}
+.tb-tabs a{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:999px;font-size:11.5px;font-weight:800;line-height:1.2;color:var(--head-sub);transition:background .2s,color .2s}
+.tb-tabs a span{max-width:100%;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-tabs .ico{width:23px;height:23px}
+.tb-tabs a[aria-current="page"]{background:var(--head-btn-on);color:var(--cyan-ink)}
+.tb-act{flex:none;width:62px;height:62px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.3),transparent 52%),var(--btn);color:var(--on-btn);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 14px 28px -12px var(--btn)}
+.tb-act .ico{width:25px;height:25px}
+body.in-res .tabbar{display:none}
+.foot{padding-bottom:calc(36px + 82px + env(safe-area-inset-bottom))}
+/* 결과 화면 — 돌아가기 · 파일 이름 · 다시 올리기를 아래에 뜬 도구 막대로 */
+.rbar{position:fixed;left:12px;right:12px;top:auto;bottom:calc(10px + env(safe-area-inset-bottom));padding:0}
+.rbar-in.rwrap{width:auto;height:62px;padding:0 9px;gap:10px}
+.rbar .btn{width:44px;height:44px}
+/* 문서 페이지 목차 — 여러 줄로 쌓이던 것을 한 줄로, 옆으로 밀어 본다 */
+.toc{flex-wrap:nowrap;gap:6px;overflow-x:auto;margin:0 -16px;padding:2px 16px 10px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 28px),transparent)}
+.toc::-webkit-scrollbar{display:none}
+.toc b{display:none}
+.toc a{flex:none;white-space:nowrap}
+}
+@keyframes sheetUp{from{opacity:0;transform:translateY(24px)}}
+
+/* 문서 페이지 목차 — 지금 읽는 절(common.js tocSpy) */
+.toc a[aria-current]{background:var(--panel);color:var(--cyan-ink);box-shadow:inset 3px 0 0 var(--cyan)}
+@media (max-width:980px){.toc a[aria-current]{box-shadow:inset 0 0 0 1.5px var(--cyan),var(--shadow)}}
+
+/* 유리를 끄는 경우 — 뒤 흐림이 안 되는 브라우저 · 투명도 줄이기 · 대비 높이기 */
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+:root :is(.nav,.tabbar,.rbar),:root[data-theme="dark"] :is(.nav,.tabbar,.rbar){--glass:var(--panel);--glass-strong:var(--panel);--glass-sheen:transparent}
+}
+@media (prefers-reduced-transparency:reduce){
+:root :is(.nav,.tabbar,.rbar),:root[data-theme="dark"] :is(.nav,.tabbar,.rbar){--glass:var(--panel);--glass-strong:var(--panel);--glass-sheen:transparent}
+.nav-in::before,.tb-tabs,.tb-act,.rbar-in,.nav-links{-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+@media (prefers-contrast:more){
+:root :is(.nav,.tabbar,.rbar),:root[data-theme="dark"] :is(.nav,.tabbar,.rbar){--glass:var(--panel);--glass-strong:var(--panel);--glass-sheen:transparent;--glass-edge:var(--line2)}
+}

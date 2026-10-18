@@ -100,7 +100,7 @@ function pick(){if(!ready())return;if(!picked1){picked1=true;hit('pick')}$('#fil
 // Clearing value lets the user pick the SAME file again after fixing it in CAD;
 // otherwise the browser sees no change and never fires this handler a second time.
 $('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)send(f)};
-['#ctaUpload','#ctaUpload2','#reup'].forEach(s=>$(s).onclick=pick);
+['#ctaUpload','#ctaUpload2','#reup','#tbUpload'].forEach(s=>$(s).onclick=pick);
 const drop=$('#drop');
 drop.onclick=pick;
 drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}};
@@ -148,11 +148,11 @@ document.addEventListener('keydown',e=>{if($('#guide').hidden)return;
   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}});
 
-function showView(v){const res=v==='res';$('#home').hidden=res;$('#res').hidden=!res}
+function showView(v){const res=v==='res';$('#home').hidden=res;$('#res').hidden=!res;document.body.classList.toggle('in-res',res)}   // in-res: 폰 탭 바 대신 결과 도구 막대
 function goHome(){$('#home').classList.add('played');showView('home');clearErr();setTitle();drawRecent();window.scrollTo(0,0)}   // played: 첫 화면 등장 움직임은 처음 한 번만
 $('#back').onclick=goHome;
 $$('[data-nav]').forEach(a=>a.onclick=e=>{if($('#res').hidden)return;e.preventDefault();goHome();const el=a.hash&&$(a.hash);if(el)el.scrollIntoView()});
-['#brand','#brand2'].forEach(s=>$(s).onclick=e=>{e.preventDefault();if($('#res').hidden)window.scrollTo(0,0);else goHome()});
+['#brand','#brand2','#tabHome'].forEach(s=>$(s).onclick=e=>{e.preventDefault();if($('#res').hidden)window.scrollTo(0,0);else goHome()});
 
 // One pass, no wrappers: keep the raw server payload, translate a copy of it,
 // draw the result, then draw the comparison against the previous run.

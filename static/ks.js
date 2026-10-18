@@ -361,7 +361,7 @@ function drawKs(){
   $('#dqGroup').innerHTML=`<div class="rgroup dq"><div class="rgroup-head"><h3>${esc(T.dqName)}</h3></div>${ids.filter(id=>GROUP_BY_CHECK[id]==='dq').map(row).join('')}</div>`;
   $('#groups').innerHTML=RUBRIC_CODES.map((code,i)=>{const ai=code==='PROJECTION_LAYOUT',note=T.groupNote[code];
     return `<div class="rgroup" id="g-${code}"><div class="rgroup-head"><h3>${esc(t('rub')[i])}</h3><span class="mode${ai?' ai':''}">${ai?'AI':esc(t('modeRule'))}</span><span class="pts">${RUBRIC_MAX[i]}${esc(T.pts)}</span></div>${note?`<p class="gnote">${esc(note)}</p>`:''}${ids.filter(id=>GROUP_BY_CHECK[id]===code).map(row).join('')}</div>`}).join('');
-  $('#toc').innerHTML=`<b>${esc(T.tocT)}</b><a href="#basics">${esc(t('ksBasicsT'))}</a><a href="#dq">${esc(t('ksDqT'))}</a>`+RUBRIC_CODES.map((c,i)=>`<a href="#g-${c}">${esc(t('rub')[i])}</a>`).join('');
+  $('#toc').innerHTML=`<b>${esc(T.tocT)}</b><a href="#basics">${esc(t('ksBasicsT'))}</a><a href="#dq">${esc(t('ksDqT'))}</a>`+RUBRIC_CODES.map((c,i)=>`<a href="#g-${c}">${esc(t('rub')[i])}</a>`).join('');tocSpy();
 }
 onLang.push(drawKs);
 applyLang();

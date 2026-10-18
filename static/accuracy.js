@@ -184,7 +184,7 @@ function drawAcc(){
   $('#aiText').innerHTML=T.ai.map(p=>`<p>${esc(p)}</p>`).join('');
   $('#weakList').innerHTML=T.weak.map(([h,d])=>`<div><b>${esc(h)}</b><p>${esc(d)}</p></div>`).join('');
   $('#logList').innerHTML=T.log.map(([d,h,p])=>`<li><time datetime="${d}">${d}</time><b>${esc(h)}</b><p>${esc(p)}</p></li>`).join('');
-  $('#toc').innerHTML=`<b>${esc(T.tocT)}</b>`+ACC_SECTIONS.map(([id,k])=>`<a href="#${id}">${esc(t(k))}</a>`).join('');
+  $('#toc').innerHTML=`<b>${esc(T.tocT)}</b>`+ACC_SECTIONS.map(([id,k])=>`<a href="#${id}">${esc(t(k))}</a>`).join('');tocSpy();
 }
 onLang.push(drawAcc);
 applyLang();
