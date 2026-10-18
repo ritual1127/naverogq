@@ -247,10 +247,12 @@ class Rec {
     await page.evaluate(async () => { for (const img of document.querySelectorAll('#res img')) { try { await img.decode(); } catch (e) {} } });
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     await page.evaluate(() => { for (const a of document.getAnimations()) if (a.effect && a.effect.target && a.effect.target.id === 'pan') a.finish(); });
-    // 영상에 쓰기 전에 결과를 확인한다 — 고친 뒤 78점 · 실격 해결 · 고쳐짐 4 · 그대로 2 · 새로 생김 0 (로컬 서버로 미리 잰 값)
+    // 영상에 쓰기 전에 결과를 확인한다 — 실격 해결 · 고쳐짐 4 · 그대로 2 · 새로 생김 0 (대사가 말하는 것).
+    // 점수는 AI 투상도 점수가 흔들려(P02) 10-06 에는 78점, 10-18 에는 83점이었다 — 나온 값을 그대로 쓰고 찍어 둔다
     const got = await page.evaluate(() => ({ score: RAW.scorecard.auto_score, dq: RAW.scorecard.disqualified,
       tags: [...document.querySelectorAll('#cmp .cmp-tag b')].map((b) => +b.textContent) }));
-    if (got.score !== 78 || got.dq || got.tags.join() !== '4,2,0') throw new Error('재검사 결과가 예상과 다르다 ' + JSON.stringify(got));
+    console.log('recheck', got);
+    if (got.dq || got.tags.join() !== '4,2,0') throw new Error('재검사 결과가 예상과 다르다 ' + JSON.stringify(got));
     R.xfade.push({ t0: +R.t.toFixed(4), d: 0.24 });
     const ff1 = R.t;
     const cmp = await rect('#cmp'), score = await rect('#score');

@@ -47,9 +47,10 @@ panel = Image.open(os.path.join(HERE, "cap", "res_base.png")).convert("RGB")
 save(panel.crop(box(905, 148, 1532, 845)), "panel.png", 1120)
 
 # 안 된 것 — 첫 화면의 제목과 단추 둘. '예제로 먼저 보기' 에 테두리
+# 10-18 첫 화면(머리말을 빼고 제목이 위로)에서 다시 잰 자리 — .hero-copy 200,204 ~ 874,558 · #ctaSample 374,450 ~ 571,504
 home = Image.open(os.path.join(HERE, "cap", "home_base.png")).convert("RGB")
-ring(home, box(375, 466, 570, 519), pad=8 * K, width=4 * K, radius=27 * K)
-save(home.crop(box(178, 158, 842, 592)), "home.png", 1280)
+ring(home, box(374, 450, 571, 504), pad=8 * K, width=4 * K, radius=27 * K)
+save(home.crop(box(178, 182, 836, 580)), "home.png", 1280)
 
 # 실제 도면 장 — 공개 정확도 페이지의 '실제 수험생 도면' 카드만. 한계 문장("한 학생의 연습 도면")까지 같이 보인다.
 # 카드는 화면이 파란 테두리로 강조해 둔 것이라 그 테두리 선(파란 점이 세로 · 가로로 길게 늘어선 줄)으로 자리를 찾는다.
