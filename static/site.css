@@ -47,9 +47,14 @@ a{color:inherit;text-decoration:none}
 .hide,[hidden]{display:none!important}
 :focus-visible{outline:3px solid var(--cyan);outline-offset:3px;border-radius:10px}
 .ico{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-/* PC 에서 가운데 1200px 로 묶여 좌우가 비어 보였다(10-18) — 화면 폭에 맞춰 채우고 가장자리만 띄운다. 긴 글 문단에만 읽기 폭을 둔다 */
+.wrap{width:min(1200px,100% - 48px);margin-inline:auto}
+/* 위쪽 바(와 결과 화면 막대)만 화면 폭에 맞춰 가장자리만 띄운다. 내용은 가운데 1200px(결과 화면 1440px) 그대로 —
+   내용까지 화면을 채웠더니 그냥 키운 것처럼 보였다(10-18) */
 :root{--gutter:clamp(24px,4vw,72px)}
-.wrap{width:calc(100% - 2*var(--gutter));margin-inline:auto}
+/* 바는 내용보다 좁아지지 않는다 — 내용 폭과 (화면 폭 - 가장자리) 중 넓은 쪽. 폰은 가장자리 16px 로 내용과 같다 */
+.nav .wrap{width:max(min(1200px,100% - 48px),100% - 2*var(--gutter))}
+body.in-res .nav .wrap,.rbar .rwrap{width:max(min(1440px,100% - 48px),100% - 2*var(--gutter))}
+@media (max-width:640px){:root{--gutter:16px}}
 .narrow{width:min(820px,100% - 48px);margin-inline:auto}
 .skip{position:absolute;left:12px;top:-64px;z-index:100;padding:10px 18px;border-radius:999px;background:var(--btn);color:var(--on-btn);font-weight:800}
 .skip:focus{top:12px}
@@ -92,7 +97,7 @@ a{color:inherit;text-decoration:none}
 
 /* hero */
 .hero{position:relative;padding:64px 0 52px}
-.hero-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,clamp(440px,36vw,620px));gap:clamp(40px,4vw,80px);align-items:center}
+.hero-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,470px);gap:56px;align-items:center}
 .kicker{display:inline-flex;align-items:center;gap:10px;margin-bottom:20px;font-size:14.5px;font-weight:800;color:var(--cyan-ink)}
 .kicker::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 5px var(--tint-blue)}
 h1.hero-t{font-size:clamp(32px,4.2vw,52px);line-height:1.22;font-weight:800;letter-spacing:-.025em;text-wrap:balance}
@@ -319,7 +324,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 
 /* results */
 .rbar{position:sticky;top:72px;z-index:30;padding:0 0 10px}
-.rwrap{width:calc(100% - 2*var(--gutter));margin-inline:auto}
+.rwrap{width:min(1440px,100% - 48px);margin-inline:auto}
 .rbar-in{height:56px;display:flex;align-items:center;gap:14px;padding:0 8px;border-radius:999px}
 .rfile{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
 .rfile .fi{width:42px;height:42px;flex:none;display:grid;place-items:center;border-radius:14px;background:var(--tint-blue);color:var(--cyan-ink)}
@@ -590,7 +595,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .def b{display:block;font-size:16px;font-weight:800}
 .def p{margin-top:6px;font-size:14.5px;line-height:1.75;color:var(--muted)}
 .card-text{padding:24px 26px;border-radius:24px;background:var(--panel);box-shadow:var(--shadow)}
-.card-text p{max-width:70em;font-size:15px;line-height:1.85;color:var(--muted)}
+.card-text p{font-size:15px;line-height:1.85;color:var(--muted)}
 .card-text p+p,.card-text p+.plain,.card-text .plain+p{margin-top:12px}
 .weak{display:flex;flex-direction:column;gap:10px}
 .weak div{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:6px 28px;padding:16px 22px;border-radius:20px;background:var(--panel);box-shadow:var(--shadow)}
@@ -602,8 +607,7 @@ html:lang(ja) body,html:lang(zh) body{word-break:normal;line-break:strict}
 .timeline li::before{content:"";position:absolute;left:-25px;top:22px;width:12px;height:12px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px var(--bg)}
 .timeline time{font-size:13px;font-weight:800;color:var(--cyan-ink)}
 .timeline b{display:block;margin-top:2px;font-size:15.5px;font-weight:800}
-.card-text .plain li{max-width:70em}
-.timeline p{max-width:70em;margin-top:4px;font-size:14.5px;line-height:1.75;color:var(--muted)}
+.timeline p{margin-top:4px;font-size:14.5px;line-height:1.75;color:var(--muted)}
 .page-cta{margin-top:72px}
 
 @media (max-width:1100px){
