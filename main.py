@@ -653,10 +653,14 @@ def analyze_path(body: dict, request: Request):
 def _enabled(src):
     if not src or "checks" not in src or src["checks"] is None:
         return None
+    import exam
     v = src["checks"]
     if isinstance(v, str):
         v = [x for x in v.split(",") if x.strip()]
-    return set(v)
+    v = set(v)
+    # 다 켠 목록은 None(전부 켬)과 같다. 화면은 늘 목록을 보내서, 그대로 두면 예제 결과 열쇠가 예열(None)과 달라
+    # 서버가 뜬 뒤 예제마다 첫 사람이 처음부터 다시 검사했다 — DWG 예제는 공개 서버에서 29초(2026-10-19)
+    return None if v >= exam.ALL_CHECK_IDS else v
 
 
 @app.post("/api/analyze")

@@ -104,6 +104,10 @@ def test_sample_results_are_reused(monkeypatch):
     first = client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"}).json()
     again = client.post("/api/analyze-sample", json={"name": "sample_plate.dxf"}).json()
     assert len(calls) == 1 and first["job"] != again["job"]
+    # 화면은 켠 검사를 늘 목록으로 보낸다. 다 켠 목록은 안 보낸 것(예열이 넣어 둔 결과)과 같다
+    import exam
+    client.post("/api/analyze-sample", json={"name": "sample_plate.dxf", "checks": sorted(exam.ALL_CHECK_IDS)})
+    assert len(calls) == 1
     client.post("/api/analyze-sample", json={"name": "sample_plate.dxf", "checks": ["EX_NO_DIMS"]})
     assert len(calls) == 2
 
