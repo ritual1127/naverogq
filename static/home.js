@@ -271,17 +271,19 @@ TABS.forEach(n=>$('#tab-'+n).onclick=()=>setTab(n));
 $('.tabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;e.preventDefault();
   const vis=TABS.filter(n=>!$('#tab-'+n).hidden),i=vis.indexOf(curTab);setTab(vis[(i+(e.key==='ArrowRight'?1:-1)+vis.length)%vis.length],true)});
 
-let zoom=1,ox=0,oy=0,fitZoom=1,drag=null,stageSize='';const pan=$('#pan'),stage=$('#stage');
-const ZOUT=.4,ZIN=45;
+// 미리보기 SVG 는 긴 변을 SVG_PX 로 놓고 transform 으로 확대한다(vk = 화면 px / viewBox 한 칸). ezdxf 의 viewBox 는 100만 칸인데
+// 예전에는 그 수만큼(가로 100만 px) 놓고 scale(0.0007)로 줄여, 확대 움직임마다 그 큰 판을 다시 그리느라 그래픽이 약한 컴퓨터에서 몇 초씩 멈췄다(P41)
+let zoom=1,ox=0,oy=0,fitZoom=1,drag=null,stageSize='',vk=1;const pan=$('#pan'),stage=$('#stage');
+const ZOUT=.4,ZIN=45,SVG_PX=1000;
 const clampZ=z=>fitZoom>0?Math.max(fitZoom*ZOUT,Math.min(fitZoom*ZIN,z)):z;
 function apply(){pan.style.transform=`translate(${ox}px,${oy}px) scale(${zoom})`}
 function showZoom(){$('#zoomv').textContent=Math.round(zoom/(fitZoom||1)*100)+'%'}
-function fit(){const svg=pan.querySelector('svg');if(!svg)return;const r=stage.getBoundingClientRect();stageSize=Math.round(r.width)+'x'+Math.round(r.height);const w=svg.viewBox.baseVal.width||svg.clientWidth||1,h=svg.viewBox.baseVal.height||svg.clientHeight||1;zoom=Math.min(r.width/w,r.height/h)*.98;ox=(r.width-w*zoom)/2;oy=(r.height-h*zoom)/2;apply();fitZoom=zoom;showZoom()}
+function fit(){const svg=pan.querySelector('svg');if(!svg)return;const r=stage.getBoundingClientRect();stageSize=Math.round(r.width)+'x'+Math.round(r.height);const w=svg.viewBox.baseVal.width*vk||svg.clientWidth||1,h=svg.viewBox.baseVal.height*vk||svg.clientHeight||1;zoom=Math.min(r.width/w,r.height/h)*.98;ox=(r.width-w*zoom)/2;oy=(r.height-h*zoom)/2;apply();fitZoom=zoom;showZoom()}
 function setZoom(z,cx,cy){const r=stage.getBoundingClientRect();cx=cx==null?r.width/2:cx;cy=cy==null?r.height/2:cy;const next=clampZ(z);ox=cx-(cx-ox)*(next/zoom);oy=cy-(cy-oy)*(next/zoom);zoom=next;apply();showZoom()}
 function drawSvg(d,keep){const has=!!d.svg;$('#viewer').classList.toggle('hide',!has);$('#pickBtn').hidden=!has;$('#novw').classList.toggle('hide',has||!d.svg_note);
   if(!has){if(d.svg_note)$('#novw').innerHTML=`${ico('warn')}<span>${esc(d.svg_note)}</span>`;return}
   if(keep){if(fixOn)drawFixNote(d);return}
-  pan.innerHTML=d.svg;setFix(false);setPick(false);$('#fixBtn').hidden=!fixCounts(d);const svg=pan.querySelector('svg');if(svg&&svg.viewBox.baseVal.width){svg.setAttribute('width',svg.viewBox.baseVal.width);svg.setAttribute('height',svg.viewBox.baseVal.height)}requestAnimationFrame(fit)}
+  pan.innerHTML=d.svg;setFix(false);setPick(false);$('#fixBtn').hidden=!fixCounts(d);const svg=pan.querySelector('svg'),b=svg&&svg.viewBox.baseVal;vk=1;if(b&&b.width){vk=SVG_PX/Math.max(b.width,b.height);svg.setAttribute('width',b.width*vk);svg.setAttribute('height',b.height*vk)}requestAnimationFrame(fit)}
 
 // 도면에서 문의할 부분을 끌어서 고른다. 고른 네모만 그림(PNG)으로 만들어 신고에 붙인다.
 // 벡터(SVG) 를 그대로 보내지 않는 이유: 그 안에 스크립트를 숨겨 보낼 수 있어서,
@@ -372,8 +374,8 @@ function setFix(on){const svg=pan.querySelector('svg'),f=fixCounts(RES);fixOn=!!
   $('#fixBtn').setAttribute('aria-pressed',String(fixOn));$('#fixNote').hidden=!fixOn;if(fixOn)drawFixNote(RES)}
 $('#fixBtn').onclick=()=>setFix(!fixOn);
 function zoomToMarker(m){const tf=RES&&RES.svg_tf;if(!tf||m.dxf_x==null)return false;
-  const sx=m.dxf_x*tf.scale+tf.off_x,sy=tf.off_y-m.dxf_y*tf.scale,r=stage.getBoundingClientRect();
-  const want=Math.max(fitZoom*4,Math.min(fitZoom*14,r.height*0.18/Math.max(m.dxf_r*tf.scale,1e-6)));
+  const sx=(m.dxf_x*tf.scale+tf.off_x)*vk,sy=(tf.off_y-m.dxf_y*tf.scale)*vk,r=stage.getBoundingClientRect();
+  const want=Math.max(fitZoom*4,Math.min(fitZoom*14,r.height*0.18/Math.max(m.dxf_r*tf.scale*vk,1e-6)));
   pan.classList.remove('dragging');zoom=clampZ(want);ox=r.width/2-sx*zoom;oy=r.height/2-sy*zoom;apply();showZoom();return true}
 $('#finds').addEventListener('click',e=>{const chip=e.target.closest('.mchip');if(!chip)return;
   const n=+chip.dataset.n,m=((RES&&RES.marker_index)||[]).find(x=>x.n===n);if(!m||!zoomToMarker(m))return;
