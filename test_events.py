@@ -112,6 +112,30 @@ def test_sample_results_are_reused(monkeypatch):
     assert len(calls) == 2
 
 
+def test_warmup_runs_again_for_samples_it_could_not_keep(monkeypatch):
+    """AI 채점이 저장소에 없는 예제(DWG)는 첫 예열에서 채점 · 답변이 늦게 와 결과를 못 넣어 둔다.
+    못 넣어 둔 것만 한 번 더 돌린다(P42)."""
+    import asyncio
+    import main
+
+    runs = []
+
+    def fake(job, path, name, enabled):
+        runs.append(name)
+        if name != "sample_075em07z.dwg" or name in runs[:-1]:
+            main.SAMPLE_RESULTS[main._sample_key(path, name, enabled)] = {}
+
+    async def no_wait(_):
+        pass
+
+    monkeypatch.setattr(main, "_run_sample", fake)
+    monkeypatch.setattr(main, "SAMPLE_RESULTS", {})
+    monkeypatch.setattr(main, "_openable", lambda: {".dxf", ".dwg"})
+    monkeypatch.setattr(main.asyncio, "sleep", no_wait)
+    asyncio.run(main._warm_samples())
+    assert sorted(runs) == sorted([*main.SAMPLE_NOTES, "sample_075em07z.dwg"])
+
+
 def test_feedback_is_saved_and_only_admin_can_read_it(monkeypatch):
     """신고는 누구나 보낼 수 있고, 받은 글은 비밀번호를 아는 사람만 본다."""
     monkeypatch.setenv("CADLENS_ADMIN_PW", "test-pw-1234")

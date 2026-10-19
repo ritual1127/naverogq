@@ -59,6 +59,7 @@ async def _lifespan(_app):
 
 
 WARMUP_AFTER_SEC = float(os.environ.get("CADLENS_WARMUP_AFTER", "20"))
+WARMUP_AGAIN_SEC = 60                   # 첫 예열에서 늦게 온 AI 채점 · 답변이 AI 캐시에 들어올 만큼
 
 
 async def _warm_samples():
@@ -66,19 +67,25 @@ async def _warm_samples():
 
     예제 결과는 (파일, 켠 검사)가 같으면 다시 쓰므로, 처음 한 번만 느리다. 그런데 그 한 번이
     무료 서버(CPU 0.1)에서 25초였다 — 배포 직후 '예제로 먼저 보기'를 누른 사람이 그걸 다 맞았다.
-    들어오는 요청과 CPU 를 다투지 않게 잠깐 기다렸다가, 한 장씩 천천히 돌린다."""
+    들어오는 요청과 CPU 를 다투지 않게 잠깐 기다렸다가, 한 장씩 천천히 돌린다.
+
+    AI 채점이 저장소 aicache/ 에 없는 예제(DWG)는 채점 · 답변이 늦게 와서 첫 번째 결과를 넣어 두지 못한다.
+    늦게 온 것은 AI 캐시에 남으므로, 잠시 뒤 못 넣어 둔 것만 한 번 더 돌린다(P42)."""
     await asyncio.sleep(WARMUP_AFTER_SEC)
-    for name in sorted(SAMPLE_NOTES):
-        path = os.path.join(SAMPLES, name)
-        if not os.path.isfile(path) or os.path.splitext(name)[1].lower() not in _openable():
-            continue
-        try:
-            started = time.monotonic()
-            await asyncio.to_thread(_run_sample, "warmup" + uuid.uuid4().hex[:6], path, name, None)
-            print(f"[warm] {name} {time.monotonic() - started:.1f}초", flush=True)
-        except Exception as e:                                # noqa: BLE001
-            print(f"[warm] {name} 실패: {type(e).__name__}: {e}", flush=True)
-        await asyncio.sleep(1)
+    for _ in range(2):
+        for name in sorted(SAMPLE_NOTES):
+            path = os.path.join(SAMPLES, name)
+            if not os.path.isfile(path) or os.path.splitext(name)[1].lower() not in _openable() \
+                    or _sample_key(path, name, None) in SAMPLE_RESULTS:
+                continue
+            try:
+                started = time.monotonic()
+                await asyncio.to_thread(_run_sample, "warmup" + uuid.uuid4().hex[:6], path, name, None)
+                print(f"[warm] {name} {time.monotonic() - started:.1f}초", flush=True)
+            except Exception as e:                            # noqa: BLE001
+                print(f"[warm] {name} 실패: {type(e).__name__}: {e}", flush=True)
+            await asyncio.sleep(1)
+        await asyncio.sleep(WARMUP_AGAIN_SEC)
 
 
 app = FastAPI(title="CADLens 도면 검사기", lifespan=_lifespan)
@@ -606,11 +613,15 @@ SAMPLE_RESULTS = {}         # (이름, 수정 시각, 켠 검사) -> 결과. 예
 SAMPLE_KEEP = 16
 
 
+def _sample_key(path, name, enabled):
+    return (name, os.path.getmtime(path), None if enabled is None else tuple(sorted(enabled)))
+
+
 def _run_sample(job, path, name, enabled):
     import ai_review
 
     started = time.monotonic()
-    key = (name, os.path.getmtime(path), None if enabled is None else tuple(sorted(enabled)))
+    key = _sample_key(path, name, enabled)
     hit = SAMPLE_RESULTS.get(key)
     if hit is not None:
         return JSONResponse({**hit, "job": job},
