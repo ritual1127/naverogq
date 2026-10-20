@@ -9,9 +9,7 @@ services:
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
-      - key: GOOGLE_API_KEY
-        sync: false
-      # Gemini 할당량이 끊겼을 때 투상도 30점 채점을 이어받는 경로
+      # 투상도 30점 채점 1순위(Workers AI · Llama 4 Scout)
       - key: CLOUDFLARE_API_TOKEN
         sync: false
       - key: CLOUDFLARE_ACCOUNT_ID
@@ -21,10 +19,8 @@ services:
       # CLOUDFLARE_API_TOKEN 에 D1 쓰기 권한이 있어야 한다.
       - key: CADLENS_D1_STATS
         value: ac0c4017-3c86-4d94-b84a-e76e98af564a
-      # 앞이 모두 막혔을 때 쓰는 예비 경로
-      - key: MISTRAL_API_KEY
-        sync: false
-      - key: GROQ_API_KEY
+      # Cloudflare 가 막히거나 하루 무료량이 마르면 채점을 이어받는 경로(Vercel AI Gateway, 같은 모델)
+      - key: AI_GATEWAY_API_KEY
         sync: false
       # 관리자 화면(/admin) 비밀번호. 값은 Render 대시보드에서만 넣는다 —
       # 저장소가 공개라 여기 적으면 그 순간 누구나 아는 값이 된다.

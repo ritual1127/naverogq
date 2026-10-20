@@ -1,20 +1,17 @@
 import base64
-import copy
 import hashlib
 import json
 import os
 import re
 import time
 
-# 실제 수험생 도면 10장으로 잰 값(2026-09-18, docs/ai_usage.md "모델 선택 근거 — 실측").
-# gemini-3.6-flash 는 20번 중 18번이 503(사용량 폭주)·40초 시간초과·429(무료 한도)로
-# 실패했고 성공한 호출도 7~8초였다. gemini-3.1-flash-lite 는 중앙값 3.2초·최대 5.9초에,
-# 판정도 가장 자세한 gemini-3.5-flash(중앙값 14.3초)와 평균 2.7점 차이였다. 더 빠른
-# gemini-3.5-flash-lite(2.1초)는 20번 모두 감점 0이라 채점기로 쓸 수 없었다.
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+# 2026-10-20 에 Gemini · Mistral · Groq 를 뺐다(P35). Gemini API 약관은 18세 미만을
+# 대상으로 하거나 18세 미만이 쓸 가능성이 큰 서비스에 API 를 못 쓰게 하고, Groq 는 계정
+# 주인이 18세 이상이어야 하며, Mistral 은 미성년자가 보호자 동의 없이 쓰게 하지 못하게
+# 한다. 남은 두 곳은 같은 모델(Llama 4 Scout)을 서로 다른 곳에서 돌린다 — 한 곳이 막혀
+# 다른 곳으로 넘어가도 채점 성향이 바뀌지 않는다.
 CLOUDFLARE_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct"
-GROQ_MODEL = "qwen/qwen3.6-27b"
-MISTRAL_MODEL = "mistral-small-latest"
+VERCEL_MODEL = "meta/llama-4-scout"
 
 MAX_POINTS = 30
 # 채점 지침이 정한 감점 폭의 최댓값. "형상 표현이 불가능할 정도의 투상도 누락,
@@ -25,23 +22,14 @@ RENDER_DPI = 150
 MAX_PIXELS = 2400
 
 
-def _gemini_key():
-    return (os.environ.get("GEMINI_API_KEY")
-            or os.environ.get("GOOGLE_API_KEY"))
-
-
 def _cloudflare_creds():
     token = os.environ.get("CLOUDFLARE_API_TOKEN")
     account = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
     return (token, account) if token and account else None
 
 
-def _groq_key():
-    return os.environ.get("GROQ_API_KEY")
-
-
-def _mistral_key():
-    return os.environ.get("MISTRAL_API_KEY")
+def _vercel_key():
+    return os.environ.get("AI_GATEWAY_API_KEY")
 
 
 def _importable(*names):
@@ -53,11 +41,10 @@ def _importable(*names):
     return True
 
 
-# 순서가 곧 우선순위다. Groq 를 뒤에 두는 것은 무료 한도가 분당 8,000 토큰이라
-# 도면 한 장에 그 대부분이 나가기 때문이다.
-PROVIDER_ORDER = ("gemini", "cloudflare", "mistral", "groq")
-MODEL_OF = {"gemini": GEMINI_MODEL, "cloudflare": CLOUDFLARE_MODEL,
-            "mistral": MISTRAL_MODEL, "groq": GROQ_MODEL}
+# 순서가 곧 우선순위다. Cloudflare 무료량(하루 1만 뉴런, 09:00 KST 초기화)이 마르거나
+# 막히면 Vercel AI Gateway(매달 무료 크레딧)로 넘어간다.
+PROVIDER_ORDER = ("cloudflare", "vercel")
+MODEL_OF = {"cloudflare": CLOUDFLARE_MODEL, "vercel": VERCEL_MODEL}
 
 
 def providers():
@@ -68,10 +55,8 @@ def providers():
     if not _importable("pymupdf"):
         return []
     ready = {
-        "gemini": bool(_gemini_key()) and _importable("google.genai"),
         "cloudflare": bool(_cloudflare_creds()) and _importable("requests"),
-        "groq": bool(_groq_key()) and _importable("requests"),
-        "mistral": bool(_mistral_key()) and _importable("requests"),
+        "vercel": bool(_vercel_key()) and _importable("requests"),
     }
     forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
     if forced:
@@ -356,15 +341,6 @@ FOLLOWUP_SCHEMA = {
 }
 
 
-def _without_additional_properties(node):
-    if isinstance(node, dict):
-        return {k: _without_additional_properties(v) for k, v in node.items()
-                if k != "additionalProperties"}
-    if isinstance(node, list):
-        return [_without_additional_properties(v) for v in node]
-    return node
-
-
 def _projection_line(first_angle):
     """투상법을 아는 척하지 않는다.
 
@@ -484,8 +460,8 @@ def _ask_openai_style(api_url, model, key, png, prompt, timeout,
                       system, schema, max_tokens, label):
     """Call an OpenAI-compatible chat endpoint and return the reply text.
 
-    Groq 와 Mistral 은 요청 모양이 같아 한 함수로 부른다. 둘 다 무료 한도가
-    분 단위라 429 가 흔한데, 리셋이 곧이면 한 번만 기다렸다 다시 보낸다."""
+    Vercel AI Gateway 가 이 모양으로 받는다. 무료 등급은 모델마다 분당 한도가
+    있어 429 가 날 수 있는데, 리셋이 곧이면 한 번만 기다렸다 다시 보낸다."""
     import requests
 
     content = [{"type": "text", "text": prompt}]
@@ -493,8 +469,8 @@ def _ask_openai_style(api_url, model, key, png, prompt, timeout,
         content.append({"type": "image_url", "image_url": {
             "url": "data:image/png;base64,"
                    + base64.standard_b64encode(png).decode()}})
-    # 두 곳 모두 비전 모델에 json_schema 를 강제하지 못하고 json_object 만
-    # 받는다. 스키마는 지시문에 실어 보내고 형식은 받는 쪽에서 확인한다.
+    # json_schema 대신 json_object 로 받는다. 스키마는 지시문에 실어 보내고
+    # 형식은 받는 쪽에서 확인한다.
     # json_object 모드는 메시지 어딘가에 'json' 이라는 낱말을 요구한다.
     system = (system
               + "\n\nReply with a single json object matching this schema. "
@@ -512,9 +488,12 @@ def _ask_openai_style(api_url, model, key, png, prompt, timeout,
                     {"role": "user", "content": content},
                 ],
                 "response_format": {"type": "json_object"},
-                # 무료 한도가 분당 토큰이라, max_tokens 가 그 한도를 넘으면
-                # 생성해 보기도 전에 요청 자체를 거절당한다(413).
+                # 무료 한도가 분당 토큰인 곳은 max_tokens 가 그 한도를 넘으면
+                # 생성해 보기도 전에 요청 자체를 거절한다(413, Groq 때 겪었다).
                 "max_tokens": min(max_tokens, FREE_TIER_MAX_TOKENS),
+                # 학습하지 않는다는 계약을 맺은 제공자에게만 보낸다. 쓰는
+                # 사람 대부분이 미성년 수험생이다.
+                "providerOptions": {"gateway": {"disallowPromptTraining": True}},
             },
             timeout=timeout,
         )
@@ -533,19 +512,12 @@ def _ask_openai_style(api_url, model, key, png, prompt, timeout,
     return (choices[0].get("message") or {}).get("content")
 
 
-def _ask_groq(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
-              max_tokens=4000):
+def _ask_vercel(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
+                max_tokens=4000):
     return _ask_openai_style(
-        "https://api.groq.com/openai/v1/chat/completions", GROQ_MODEL,
-        _groq_key(), png, prompt, timeout, system, schema, max_tokens, "groq")
-
-
-def _ask_mistral(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
-                 max_tokens=4000):
-    return _ask_openai_style(
-        "https://api.mistral.ai/v1/chat/completions", MISTRAL_MODEL,
-        _mistral_key(), png, prompt, timeout, system, schema, max_tokens,
-        "mistral")
+        "https://ai-gateway.vercel.sh/v1/chat/completions", VERCEL_MODEL,
+        _vercel_key(), png, prompt, timeout, system, schema, max_tokens,
+        "vercel")
 
 
 RETRY_MAX_WAIT = 30.0
@@ -568,31 +540,6 @@ def _retry_after(response):
     if value:                       # 단위 없는 "20" 은 초로 본다
         seconds += float(value)
     return seconds if 0 < seconds <= RETRY_MAX_WAIT else 0.0
-
-
-def _ask_gemini(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
-                max_tokens=None):
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(
-        api_key=_gemini_key(),
-        http_options=types.HttpOptions(timeout=int(timeout * 1000)),
-    )
-    parts = [prompt]
-    if png:
-        parts.insert(0, types.Part.from_bytes(data=png, mime_type="image/png"))
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=parts,
-        config=types.GenerateContentConfig(
-            system_instruction=system,
-            response_mime_type="application/json",
-            response_json_schema=_without_additional_properties(
-                copy.deepcopy(schema)),
-        ),
-    )
-    return response.text
 
 
 SHIPPED_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aicache")
@@ -660,7 +607,9 @@ def _cache_put(path, data):
 
 
 ASK_SEC = 20.0            # 채점 한 번을 기다리는 최대 시간
-EXTRA_SEC = 40.0          # 답변·번역은 결과가 나간 뒤 뒤에서 만드니 더 기다려도 된다
+# 답변·번역은 결과가 나간 뒤 뒤에서 만드니 더 기다려도 된다. Workers AI 의 Llama 4 Scout 는
+# 같은 요청에 19초가 걸리기도 40초를 넘기기도 했다(10-20). 화면은 180초까지 받아 간다(home.js).
+EXTRA_SEC = 120.0
 BUDGET_SEC = 45.0         # 채점기를 차례로 시도하다가 이만큼 넘으면 그만둔다
 
 
@@ -681,8 +630,7 @@ def judge(facts, timeout=ASK_SEC, defer=False):
     if not chain or not dxf or not os.path.exists(dxf):
         return None
 
-    asks = {"cloudflare": _ask_cloudflare, "gemini": _ask_gemini,
-            "groq": _ask_groq, "mistral": _ask_mistral}
+    asks = {"cloudflare": _ask_cloudflare, "vercel": _ask_vercel}
     prompt = PROMPT + _context(facts)
     # 그림은 캐시에 없을 때만 그린다. 캐시 열쇠는 도면 파일 내용이라 그림이 필요 없고,
     # 그리는 데 배포 서버에서 몇 초가 걸려 예제를 다시 열 때마다 그만큼 늦었다.

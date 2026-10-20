@@ -37,9 +37,7 @@ def _asker():
     if not name:
         return None, None
     fn = {"cloudflare": ai_review._ask_cloudflare,
-          "gemini": ai_review._ask_gemini,
-          "groq": ai_review._ask_groq,
-          "mistral": ai_review._ask_mistral}[name]
+          "vercel": ai_review._ask_vercel}[name]
     return fn, ai_review.active_model()
 
 
@@ -51,7 +49,8 @@ def measure(path, n=5, timeout=120.0):
     편차가 0으로 보인다. 여기서는 제공자에게 매번 새로 묻는다."""
     ask, model = _asker()
     if ask is None:
-        raise RuntimeError("AI 제공자가 없습니다. GEMINI_API_KEY 를 넣고 다시 돌리세요.")
+        raise RuntimeError("AI 제공자가 없습니다. CLOUDFLARE_API_TOKEN · CLOUDFLARE_ACCOUNT_ID "
+                           "또는 AI_GATEWAY_API_KEY 를 넣고 다시 돌리세요.")
 
     facts = dwg.analyze(path)
     target = facts.get("dxf")

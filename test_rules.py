@@ -1055,35 +1055,35 @@ def test_view_scale_mixed_ignores_detail_views():
 
 
 def test_ai_moves_to_the_next_grader_when_the_first_one_fails(monkeypatch):
-    """Gemini 가 503 을 주면 투상도 30점이 통째로 비었다. 키가 있는 다음
-    채점기로 넘어가야 한다 — 폴백을 넷이나 붙인 이유가 이것이다."""
+    """1순위가 503 을 주면 투상도 30점이 통째로 비었다(P20). 키가 있는 다음
+    채점기로 넘어가야 한다 — 예비 채점기를 붙인 이유가 이것이다."""
     import ai_review
 
     called = []
 
     def boom(*a, **k):
-        called.append("gemini")
+        called.append("cloudflare")
         raise RuntimeError("503 UNAVAILABLE")
 
     def ok(*a, **k):
-        called.append("mistral")
+        called.append("vercel")
         return json.dumps({"deductions": [{"title": "투상도 누락", "detail": "d",
                                            "fix": "f", "deduct": 8,
                                            "severity": "error"}]})
 
-    monkeypatch.setattr(ai_review, "providers", lambda: ["gemini", "mistral"])
+    monkeypatch.setattr(ai_review, "providers", lambda: ["cloudflare", "vercel"])
     monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
     monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
     monkeypatch.setattr(ai_review, "_cache_put", lambda path, data: None)
     monkeypatch.setattr(ai_review, "_enrich", lambda data, ask, timeout: None)
-    monkeypatch.setattr(ai_review, "_ask_gemini", boom)
-    monkeypatch.setattr(ai_review, "_ask_mistral", ok)
+    monkeypatch.setattr(ai_review, "_ask_cloudflare", boom)
+    monkeypatch.setattr(ai_review, "_ask_vercel", ok)
 
     out = ai_review.judge({"dxf": __file__}, timeout=1)
-    assert called == ["gemini", "mistral"], called
+    assert called == ["cloudflare", "vercel"], called
     assert out and out["findings"][0]["code"] == "AI_PROJECTION"
     assert out["findings"][0]["deduct"] == 8
-    assert ai_review.MISTRAL_MODEL in json.dumps(out, ensure_ascii=False)
+    assert ai_review.VERCEL_MODEL in json.dumps(out, ensure_ascii=False)
 
 
 def test_ai_answers_can_come_later_without_changing_the_grade(monkeypatch):
@@ -1106,11 +1106,11 @@ def test_ai_answers_can_come_later_without_changing_the_grade(monkeypatch):
             {"title": "t", "detail": "x", "fix": "y", "answers": ["a", "b", "c"]}] * 2}}
         return True
 
-    monkeypatch.setattr(ai_review, "providers", lambda: ["gemini"])
+    monkeypatch.setattr(ai_review, "providers", lambda: ["cloudflare"])
     monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
     monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
     monkeypatch.setattr(ai_review, "_cache_put", lambda path, data: None)
-    monkeypatch.setattr(ai_review, "_ask_gemini", lambda *a, **k: graded)
+    monkeypatch.setattr(ai_review, "_ask_cloudflare", lambda *a, **k: graded)
     monkeypatch.setattr(ai_review, "_enrich", enrich)
 
     now = ai_review.judge({"dxf": __file__}, timeout=1)
@@ -1142,15 +1142,14 @@ def test_ai_gives_up_only_after_every_grader_failed(monkeypatch):
             raise RuntimeError("429")
         return f
 
-    monkeypatch.setattr(ai_review, "providers",
-                        lambda: ["gemini", "cloudflare", "mistral", "groq"])
+    monkeypatch.setattr(ai_review, "providers", lambda: ["cloudflare", "vercel"])
     monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
     monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
-    for name in ("gemini", "cloudflare", "mistral", "groq"):
+    for name in ("cloudflare", "vercel"):
         monkeypatch.setattr(ai_review, f"_ask_{name}", boom(name))
 
     assert ai_review.judge({"dxf": __file__}, timeout=1) is None
-    assert tried == ["gemini", "cloudflare", "mistral", "groq"], tried
+    assert tried == ["cloudflare", "vercel"], tried
 
 
 def test_material_field_does_not_borrow_the_cell_below():
@@ -1578,7 +1577,7 @@ def test_ai_cache_hit_does_not_render_the_drawing(monkeypatch):
     """캐시에 채점이 있으면 AI 에게 보낼 그림을 그리지 않는다. 배포 서버에서 몇 초가 걸린다."""
     import ai_review
 
-    monkeypatch.setattr(ai_review, "providers", lambda: ["gemini"])
+    monkeypatch.setattr(ai_review, "providers", lambda: ["cloudflare"])
     monkeypatch.setattr(ai_review, "_cache_get", lambda path: {"verdict": "v", "deductions": []})
 
     def no_render(path):
