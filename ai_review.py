@@ -24,6 +24,15 @@ MAX_POINTS = 30
 # 제3각법 위반 배치"가 8~12점이고 그보다 큰 감점 사유는 지침에 없다. 그런데
 # 실제로는 한 지적에 30점을 통째로 깎는 판정이 다섯 번에 한 번 나왔다.
 MAX_SINGLE_DEDUCT = 12
+
+# 근거 없는 감점은 점수에서 뺀다. 10-20 밤 실제 도면 10장 모두에 "정면도 선택 부적절 4 ~ 5점"이 붙었는데,
+# 여러 장의 detail 이 "정면도" 한 낱말이고 fix 는 지시문 예시를 그대로 옮긴 문장이었다(P45).
+# 지시문의 원칙("확신 없는 감점은 하지 말고 info 로")을 받은 쪽에서도 지킨다 — 지적은 info 로 남긴다.
+MIN_DETAIL_CHARS = 8
+
+
+def _unfounded(deduction):
+    return len(str(deduction.get("detail") or "").strip()) < MIN_DETAIL_CHARS
 RENDER_DPI = 150
 MAX_PIXELS = 2400
 
@@ -221,8 +230,10 @@ verdict 에는 **투상도 항목 총평을 한국어 한 문장**으로 씁니�
   (LAYOUT)은 **그 수치로 판단하세요.** CAD 파일에서 직접 잰 값이라 그림보다
   정확합니다. 제3각법이면 평면도가 정면도보다 y 가 크고, 우측면도가 정면도보다
   x 가 큽니다.
-- fix에는 Inventor에서 취할 구체적 동작을 적으세요.
-  예: "배치 > 투상도 로 정면도 위쪽에 평면도를 추가하세요."
+- detail 에는 **어느 뷰에서 무엇을 봤는지** 도면에 근거해 적으세요. "정면도"처럼 뷰
+  이름만 적으면 근거가 아닙니다. 근거를 댈 수 없으면 감점하지 말고 info 로 두세요.
+- fix 에는 이 도면에서 Inventor 로 할 동작을 메뉴 이름과 함께 적으세요. 다른 도면에도
+  똑같이 쓸 수 있는 문장이면 이 도면의 fix 가 아닙니다.
 - 결함이 없으면 deductions를 빈 배열로 두고 30점을 주세요.
 - 모든 문장은 한국어로 씁니다."""
 
@@ -980,11 +991,12 @@ def _to_findings(data, model):
             raw = int(d.get("deduct", 0))
         except (TypeError, ValueError):
             raw = 0
-        deduct = max(0, min(MAX_SINGLE_DEDUCT, MAX_POINTS - total, raw))
+        unfounded = _unfounded(d)
+        deduct = 0 if unfounded else max(0, min(MAX_SINGLE_DEDUCT, MAX_POINTS - total, raw))
         total += deduct
         findings.append({
             "code": "AI_PROJECTION",
-            "severity": d.get("severity", "warn"),
+            "severity": "info" if unfounded else d.get("severity", "warn"),
             "title": _title(d, "ko") or "투상도 배열 지적",
             "detail": d.get("detail", ""),
             "fix": d.get("fix", ""),

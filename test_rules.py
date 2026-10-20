@@ -1067,7 +1067,7 @@ def test_ai_moves_to_the_next_grader_when_the_first_one_fails(monkeypatch):
 
     def ok(*a, **k):
         called.append("vercel")
-        return json.dumps({"deductions": [{"title": "투상도 누락", "detail": "d",
+        return json.dumps({"deductions": [{"title": "투상도 누락", "detail": "우측면도가 없어 구멍 깊이를 알 수 없다",
                                            "fix": "f", "deduct": 8,
                                            "severity": "error"}]})
 
@@ -1094,8 +1094,8 @@ def test_ai_answers_can_come_later_without_changing_the_grade(monkeypatch):
     import ai_review
 
     graded = json.dumps({"verdict": "v", "deductions": [
-        {"title": "정면도 방향", "detail": "d", "fix": "f", "deduct": 6, "severity": "warn"},
-        {"title": "투상도 누락", "detail": "d2", "fix": "f2", "deduct": 8, "severity": "error"}]})
+        {"title": "정면도 방향", "detail": "정면도가 가장 긴 면을 보여 주지 않는다", "fix": "f", "deduct": 6, "severity": "warn"},
+        {"title": "투상도 누락", "detail": "우측면도가 없어 홈 깊이를 알 수 없다", "fix": "f2", "deduct": 8, "severity": "error"}]})
     enriched = []
 
     def enrich(data, ask, timeout):
@@ -1273,6 +1273,43 @@ def test_ai_usage_is_kept_per_utc_day(monkeypatch, tmp_path):
     assert got["grade"]["calls"] == 2 and got["grade"]["completion_tokens"] == 200
     assert abs(got["grade"]["neurons"] - 190.5) < 1e-6
     assert got["extra"]["calls"] == 1
+
+
+def test_ai_deduction_without_reason_does_not_cost_points():
+    """detail 이 "정면도" 한 낱말인 감점은 점수에서 빼고 info 로 남긴다(P45) — 근거 없는 감점."""
+    import ai_review
+
+    out = ai_review._to_findings({"verdict": "v", "deductions": [
+        {"kind": "FRONT_VIEW", "detail": "정면도", "fix": "f", "deduct": 4, "severity": "warn"},
+        {"kind": "SECTION_DETAIL", "detail": "A-A 단면에 해칭이 빠져 절단면을 알 수 없다", "fix": "f",
+         "deduct": 2, "severity": "warn"}]}, "m")
+    assert [f["deduct"] for f in out["findings"]] == [0, 2]
+    assert out["findings"][0]["severity"] == "info" and out["score"] == 28
+
+
+def test_teacher_compare_metrics():
+    """교사 대조 지표 — 맞음 ÷ (맞음 + 틀림), AI − 선생님 점수, 감점 여부 일치, 종류별."""
+    import ai_teacher_compare as tc
+
+    ai = {"id": "k1", "drawings": {
+        "A01": {"score": 26, "findings": [{"title": "정면도 선택 부적절", "deduct": 4}]},
+        "A05": {"score": 22, "findings": [{"title": "정면도 선택 부적절", "deduct": 4},
+                                          {"title": "투상도 누락", "deduct": 4}]}}}
+    review = {"kit": "k1", "drawings": {
+        "A01": {"score": 30, "missed": "", "findings": [{"i": 0, "mark": "wrong"}]},
+        "A05": {"score": 24, "missed": "단면 누락", "findings": [{"i": 0, "mark": "wrong"},
+                                                               {"i": 1, "mark": "right"}]}}}
+    m = tc.metrics(ai, [review])
+    assert m["precision"] == 1 / 3
+    assert m["bias"] == -3 and m["mae"] == 3            # AI 가 평균 3점 더 깎았다
+    assert m["deduct_agree"] == 0.5 and m["missed"] == 1
+    assert m["by_title"]["정면도 선택 부적절"] == {"wrong": 2}
+    assert "33%" in tc.report(m)
+    try:
+        tc.metrics(ai, [{**review, "kit": "other"}])
+        raise AssertionError("다른 판의 결과를 섞으면 안 된다")
+    except ValueError:
+        pass
 
 
 def test_ai_gives_up_only_after_every_grader_failed(monkeypatch):
