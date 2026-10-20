@@ -215,6 +215,71 @@ NOTE_LIST = ("SELECT id, at, kind, text, spot, contact, job, file, shot FROM cad
              "ORDER BY at DESC LIMIT {n}")
 NOTE_COLS = ("id", "at", "kind", "text", "spot", "contact", "job", "file", "shot")
 
+# AI 사용량 — Workers AI 가 응답마다 주는 usage(입력 · 출력 토큰, 뉴런)를 날짜별로 쌓아 관리자 화면에 보인다.
+# 무료 한도(하루 1만 뉴런)가 UTC 00:00(= 09:00 KST)에 다시 차므로 날짜도 UTC 로 자른다.
+# 이 서버가 부른 것만 센다 — 팀 PC 에서 잰 호출도 같은 계정 한도를 쓰지만 여기는 안 들어온다.
+AI_USAGE_DDL = """CREATE TABLE IF NOT EXISTS cadlens_ai_usage(
+    day TEXT NOT NULL, kind TEXT NOT NULL, calls INTEGER NOT NULL DEFAULT 0,
+    prompt_tokens INTEGER NOT NULL DEFAULT 0, completion_tokens INTEGER NOT NULL DEFAULT 0,
+    neurons REAL NOT NULL DEFAULT 0, PRIMARY KEY(day, kind))"""
+AI_USAGE_UPSERT = ("INSERT INTO cadlens_ai_usage(day, kind, calls, prompt_tokens, completion_tokens, neurons) "
+                   "VALUES(?,?,1,?,?,?) ON CONFLICT(day, kind) DO UPDATE SET calls = calls + 1, "
+                   "prompt_tokens = prompt_tokens + excluded.prompt_tokens, "
+                   "completion_tokens = completion_tokens + excluded.completion_tokens, "
+                   "neurons = neurons + excluded.neurons")
+AI_USAGE_LIST = ("SELECT day, kind, calls, prompt_tokens, completion_tokens, neurons "
+                 "FROM cadlens_ai_usage WHERE day >= ? ORDER BY day DESC, kind")
+_ai_ready = [False]
+
+
+def _utc_day(delta=0):
+    return (datetime.datetime.now(datetime.timezone.utc).date() + datetime.timedelta(days=delta)).isoformat()
+
+
+def ai_usage(kind, usage):
+    """AI 호출 한 번의 사용량을 남긴다. 뒤에서 돌아 검사를 늦추지 않는다."""
+    u = usage or {}
+    row = (_utc_day(), kind, int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0),
+           round(float(u.get("neurons") or 0), 3))
+    threading.Thread(target=_ai_usage_put, args=(row,), daemon=True).start()
+
+
+def _ai_usage_put(row):
+    try:
+        if d1_conf():
+            if not _ai_ready[0]:
+                _d1(AI_USAGE_DDL)
+                _ai_ready[0] = True
+            _d1(AI_USAGE_UPSERT, row)
+            return
+        con = _connect()
+        try:
+            with con:
+                con.execute(AI_USAGE_DDL)
+                con.execute(AI_USAGE_UPSERT, row)
+        finally:
+            con.close()
+    except Exception as e:                                    # noqa: BLE001
+        print(f"[stats] AI 사용량을 못 남김 {type(e).__name__}", flush=True)
+
+
+def ai_usage_days(days=14):
+    """[{day, kind, calls, prompt_tokens, completion_tokens, neurons}] — 최근 날부터."""
+    first = _utc_day(-(days - 1))
+    if d1_conf():
+        if not _ai_ready[0]:
+            _d1(AI_USAGE_DDL)
+            _ai_ready[0] = True
+        return _d1(AI_USAGE_LIST, (first,))[0]
+    con = _connect()
+    try:
+        con.execute(AI_USAGE_DDL)
+        con.row_factory = sqlite3.Row
+        return [dict(r) for r in con.execute(AI_USAGE_LIST, (first,))]
+    finally:
+        con.close()
+
+
 _notes_ready = [False]
 
 

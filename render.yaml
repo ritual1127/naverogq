@@ -19,6 +19,13 @@ services:
       # CLOUDFLARE_API_TOKEN 에 D1 쓰기 권한이 있어야 한다.
       - key: CADLENS_D1_STATS
         value: ac0c4017-3c86-4d94-b84a-e76e98af564a
+      # 예비 Cloudflare 계정(같은 모델, 무료량 하루 1만 뉴런 따로). 1순위가 막히거나 무료량이 마르면
+      # 이어받는다. 성인(보호자 · 선생님) 명의 계정을 권한다 — Workers AI 읽기 권한 토큰이면 된다.
+      # 값이 없으면 건너뛴다.
+      - key: CLOUDFLARE_API_TOKEN_2
+        sync: false
+      - key: CLOUDFLARE_ACCOUNT_ID_2
+        sync: false
       # Cloudflare 가 막히거나 하루 무료량이 마르면 채점을 이어받는 경로(Vercel AI Gateway, 같은 모델).
       # Vercel 은 결제 수단을 등록해야 무료 크레딧이 열린다 — 등록 전에는 값을 비워 둔다
       - key: AI_GATEWAY_API_KEY

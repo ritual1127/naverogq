@@ -1,4 +1,6 @@
 import base64
+import calendar
+import functools
 import hashlib
 import json
 import os
@@ -26,9 +28,10 @@ RENDER_DPI = 150
 MAX_PIXELS = 2400
 
 
-def _cloudflare_creds():
-    token = os.environ.get("CLOUDFLARE_API_TOKEN")
-    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+def _cloudflare_creds(suffix=""):
+    """suffix "_2" 는 예비 Cloudflare 계정(CLOUDFLARE_API_TOKEN_2 · CLOUDFLARE_ACCOUNT_ID_2)."""
+    token = os.environ.get("CLOUDFLARE_API_TOKEN" + suffix)
+    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID" + suffix)
     return (token, account) if token and account else None
 
 
@@ -46,10 +49,29 @@ def _importable(*names):
 
 
 # 순서가 곧 우선순위다. Cloudflare 무료량(하루 1만 뉴런, 09:00 KST 초기화)이 마르거나
-# 막히면 Vercel AI Gateway 로 넘어간다 — 다만 AI_GATEWAY_API_KEY 가 있을 때만이다. Vercel 은
-# 결제 수단을 등록해야 매달 무료 크레딧이 열려서(10-20 확인) 공개 서버에는 아직 넣지 않았다.
-PROVIDER_ORDER = ("cloudflare", "vercel")
-MODEL_OF = {"cloudflare": CLOUDFLARE_MODEL, "vercel": VERCEL_MODEL}
+# 막히면 예비 Cloudflare 계정(cloudflare2, 같은 모델 · 무료량 따로)으로, 그다음 Vercel AI Gateway
+# 로 넘어간다 — 둘 다 키가 있을 때만이다. Vercel 은 결제 수단을 등록해야 매달 무료 크레딧이
+# 열려서(10-20 확인) 공개 서버에는 아직 넣지 않았다.
+PROVIDER_ORDER = ("cloudflare", "cloudflare2", "vercel")
+MODEL_OF = {"cloudflare": CLOUDFLARE_MODEL, "cloudflare2": CLOUDFLARE_MODEL, "vercel": VERCEL_MODEL}
+
+# 하루 무료량이 떨어진 채점기(3036)와 다시 써도 되는 시각(unix). 그때까지는 부르지 않고 건너뛴다 —
+# 불러도 같은 답이 오고, 그동안 화면만 기다린다.
+_PAUSED = {}
+on_usage = None    # 호출마다 usage 를 받을 곳 — 서버(main.py)가 stats.ai_usage 를 꽂는다. 측정 도구는 비워 둔다.
+
+
+class QuotaExhausted(RuntimeError):
+    pass
+
+
+def _next_utc_midnight(now=None):
+    t = time.gmtime(now if now is not None else time.time())
+    return calendar.timegm((t.tm_year, t.tm_mon, t.tm_mday, 0, 0, 0)) + 86400
+
+
+def _paused(name, now=None):
+    return _PAUSED.get(name, 0) > (now if now is not None else time.time())
 
 
 def providers():
@@ -61,12 +83,13 @@ def providers():
         return []
     ready = {
         "cloudflare": bool(_cloudflare_creds()) and _importable("requests"),
+        "cloudflare2": bool(_cloudflare_creds("_2")) and _importable("requests"),
         "vercel": bool(_vercel_key()) and _importable("requests"),
     }
     forced = (os.environ.get("AI_PROVIDER") or "").strip().lower()
     if forced:
-        return [forced] if ready.get(forced) else []
-    return [n for n in PROVIDER_ORDER if ready[n]]
+        return [forced] if ready.get(forced) and not _paused(forced) else []
+    return [n for n in PROVIDER_ORDER if ready[n] and not _paused(n)]
 
 
 def provider():
@@ -422,36 +445,66 @@ def _context(facts):
     return "\n".join(bits)
 
 
+def _cf_error_codes(response):
+    try:
+        return {e.get("code") for e in (response.json().get("errors") or []) if isinstance(e, dict)}
+    except Exception:                                         # noqa: BLE001
+        return set()
+
+
 def _ask_cloudflare(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
-                    max_tokens=4000):
+                    max_tokens=4000, suffix="", label="cloudflare"):
+    """Workers AI 를 한 번 부른다. 429 는 두 가지다(Workers AI errors 문서):
+    3036 하루 무료량 소진 — 09:00 KST 까지 이 계정을 쉬게 하고 바로 실패한다(기다려도 같은 답).
+    3040 잠깐 용량 부족 — 2초 뒤 한 번만 다시 부른다."""
     import requests
 
-    token, account = _cloudflare_creds()
+    if _paused(label):
+        raise QuotaExhausted(f"{label} 하루 무료량 소진")
+    token, account = _cloudflare_creds(suffix)
     content = [{"type": "text", "text": prompt}]
     if png:
         content.append({"type": "image_url", "image_url": {
             "url": "data:image/png;base64,"
                    + base64.standard_b64encode(png).decode()}})
-    response = requests.post(
-        f"https://api.cloudflare.com/client/v4/accounts/{account}"
-        f"/ai/run/{CLOUDFLARE_MODEL}",
-        headers={"Authorization": "Bearer " + token},
-        json={
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": content},
-            ],
-            "response_format": {"type": "json_schema", "json_schema": schema},
-            "max_tokens": max_tokens,
-        },
-        timeout=timeout,
-    )
+    until = time.monotonic() + timeout
+    for attempt in range(2):
+        response = requests.post(
+            f"https://api.cloudflare.com/client/v4/accounts/{account}"
+            f"/ai/run/{CLOUDFLARE_MODEL}",
+            headers={"Authorization": "Bearer " + token},
+            json={
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": content},
+                ],
+                "response_format": {"type": "json_schema", "json_schema": schema},
+                "max_tokens": max_tokens,
+            },
+            timeout=max(1.0, until - time.monotonic()),
+        )
+        if response.status_code != 429:
+            break
+        codes = _cf_error_codes(response)
+        if 3036 in codes:
+            _PAUSED[label] = _next_utc_midnight()
+            print(f"[ai] {label} 하루 무료량 소진(3036) — 09:00 KST 까지 건너뜀", flush=True)
+            raise QuotaExhausted(f"{label} 하루 무료량 소진")
+        if attempt or until - time.monotonic() < 10:
+            break
+        print(f"[ai] {label} 429 {sorted(c for c in codes if c)} — 2초 뒤 한 번 더", flush=True)
+        time.sleep(2)
     response.raise_for_status()
     body = response.json()
     if not body.get("success"):
-        print(f"[ai] cloudflare: {str(body.get('errors'))[:300]}", flush=True)
+        print(f"[ai] {label}: {str(body.get('errors'))[:300]}", flush=True)
         return None
     result = body.get("result") or {}
+    if on_usage:
+        try:
+            on_usage("grade" if png else "extra", result.get("usage") or body.get("usage") or {})
+        except Exception:                                     # noqa: BLE001
+            pass
     # Workers AI 는 스키마로 파싱한 결과를 response 에, 원문을 choices 에 준다
     if isinstance(result.get("response"), dict):
         return json.dumps(result["response"])
@@ -649,7 +702,9 @@ def recent():
                 "median_sec": round(statistics.median(secs), 1) if secs else None,
                 "max_sec": round(max(secs), 1) if secs else None,
                 "extras": f"{_RECENT['extra_ok']}/{_RECENT['extra_parts']}",
-                "last_error": _RECENT["last_error"]}
+                "last_error": _RECENT["last_error"],
+                "paused_until": {n: time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(t))
+                                 for n, t in _PAUSED.items() if t > time.time()}}
 
 
 def judge(facts, timeout=ASK_SEC, defer=False):
@@ -669,7 +724,9 @@ def judge(facts, timeout=ASK_SEC, defer=False):
     if not chain or not dxf or not os.path.exists(dxf):
         return None
 
-    asks = {"cloudflare": _ask_cloudflare, "vercel": _ask_vercel}
+    asks = {"cloudflare": _ask_cloudflare,
+            "cloudflare2": functools.partial(_ask_cloudflare, suffix="_2", label="cloudflare2"),
+            "vercel": _ask_vercel}
     prompt = PROMPT + _context(facts)
     # 그림은 캐시에 없을 때만 그린다. 캐시 열쇠는 도면 파일 내용이라 그림이 필요 없고,
     # 그리는 데 배포 서버에서 몇 초가 걸려 예제를 다시 열 때마다 그만큼 늦었다.

@@ -13,9 +13,13 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+import ai_review
 import check
 import ogq
 import stats
+
+# AI 호출마다 쓴 토큰 · 뉴런을 쌓아 관리자 화면에 보인다. 측정 도구(ai_bench.py)는 이 줄을 안 거쳐 안 센다.
+ai_review.on_usage = stats.ai_usage
 
 DATA = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")),
                     "cad-checker")
@@ -560,6 +564,19 @@ def admin_logout(body: dict):
 def admin_notes(body: dict, request: Request):
     _admin_check(request, (body or {}).get("token"))
     return JSONResponse({"notes": stats.notes(200), "stats": stats.summary()},
+                        headers=NO_STORE)
+
+
+@app.post("/api/admin/ai-usage")
+def admin_ai_usage(body: dict, request: Request):
+    """AI 사용량(최근 14일, UTC 날짜 = 무료량이 다시 차는 09:00 KST 기준)과 지금 채점 상태."""
+    _admin_check(request, (body or {}).get("token"))
+    try:
+        days, error = stats.ai_usage_days(14), None
+    except Exception as e:                                    # noqa: BLE001
+        days, error = [], type(e).__name__
+    return JSONResponse({"days": days, "error": error, "limit": 10000,
+                         "recent": ai_review.recent(), "providers": ai_review.providers()},
                         headers=NO_STORE)
 
 

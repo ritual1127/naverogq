@@ -1198,6 +1198,83 @@ def test_ai_recent_counts_only_real_calls(monkeypatch):
     assert "SECRET" not in json.dumps(got)
 
 
+class _Resp:
+    def __init__(self, status, body):
+        self.status_code, self._body = status, body
+
+    def json(self):
+        return self._body
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+def test_cloudflare_quota_pauses_until_reset_and_capacity_retries_once(monkeypatch):
+    """3036(하루 무료량 소진)이면 09:00 KST 까지 그 계정을 건너뛰고, 3040(잠깐 용량 부족)이면
+    한 번만 다시 부른다 — Workers AI errors 문서의 두 가지 429. 예비 계정이 있으면 거기로 넘어간다."""
+    import requests
+
+    import ai_review
+
+    monkeypatch.setattr(ai_review, "_PAUSED", {})
+    for k in ("AI_PROVIDER", "AI_GATEWAY_API_KEY", "CLOUDFLARE_API_TOKEN_2", "CLOUDFLARE_ACCOUNT_ID_2"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "t1")
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "a1")
+    monkeypatch.setattr(ai_review.time, "sleep", lambda s: None)
+    ok = _Resp(200, {"success": True, "result": {"response": {"verdict": "v", "deductions": []},
+                                                   "usage": {"prompt_tokens": 10, "completion_tokens": 5,
+                                                             "neurons": 1.5}}})
+    seen, used = [], []
+    monkeypatch.setattr(ai_review, "on_usage", lambda kind, u: used.append((kind, u["neurons"])))
+
+    replies = [_Resp(429, {"success": False, "errors": [{"code": 3040}]}), ok]
+    monkeypatch.setattr(requests, "post", lambda url, **k: (seen.append(url), replies.pop(0))[1])
+    assert json.loads(ai_review._ask_cloudflare(b"png", "p", 30))["verdict"] == "v"
+    assert len(seen) == 2 and used == [("grade", 1.5)]
+
+    seen.clear()
+    monkeypatch.setattr(requests, "post", lambda url, **k: (seen.append(url),
+                        _Resp(429, {"success": False, "errors": [{"code": 3036}]}))[1])
+    try:
+        ai_review._ask_cloudflare(b"png", "p", 30)
+        raise AssertionError("무료량 소진인데 예외가 안 났다")
+    except ai_review.QuotaExhausted:
+        pass
+    assert len(seen) == 1, "무료량 소진은 다시 불러도 같은 답이다"
+    assert "cloudflare" not in ai_review.providers()
+    assert ai_review._PAUSED["cloudflare"] % 86400 == 0, "UTC 자정(09:00 KST)까지 쉰다"
+
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN_2", "t2")
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID_2", "a2")
+    assert ai_review.providers()[0] == "cloudflare2"
+    seen.clear()
+    monkeypatch.setattr(requests, "post", lambda url, **k: (seen.append(url), ok)[1])
+    monkeypatch.setattr(ai_review, "_ask_vercel", lambda *a, **k: None)
+    monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
+    monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
+    monkeypatch.setattr(ai_review, "_cache_put", lambda path, data: None)
+    assert ai_review.judge({"dxf": __file__}, timeout=5)
+    assert seen and all("/accounts/a2/" in u for u in seen), "쉬는 1순위는 부르지 않고 예비 계정으로"
+
+
+def test_ai_usage_is_kept_per_utc_day(monkeypatch, tmp_path):
+    """관리자 화면의 AI 사용량 — 호출마다 토큰 · 뉴런을 날짜(UTC = 무료량이 다시 차는 09:00 KST) · 종류별로 더한다."""
+    import stats
+
+    monkeypatch.setenv("CADLENS_STAT_DB", str(tmp_path / "s.db"))
+    monkeypatch.setattr(stats, "d1_conf", lambda: None)
+    day = stats._utc_day()
+    stats._ai_usage_put((day, "grade", 3434, 120, 100.5))
+    stats._ai_usage_put((day, "grade", 3400, 80, 90.0))
+    stats._ai_usage_put((day, "extra", 400, 150, 20.25))
+    got = {r["kind"]: r for r in stats.ai_usage_days(14)}
+    assert got["grade"]["calls"] == 2 and got["grade"]["completion_tokens"] == 200
+    assert abs(got["grade"]["neurons"] - 190.5) < 1e-6
+    assert got["extra"]["calls"] == 1
+
+
 def test_ai_gives_up_only_after_every_grader_failed(monkeypatch):
     import ai_review
 

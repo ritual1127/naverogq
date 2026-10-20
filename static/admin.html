@@ -43,6 +43,18 @@ body{padding:28px 18px 60px}
 .nshotbig img{width:auto;height:auto;max-width:100%;max-height:420px;border-radius:12px;background:var(--stage);box-shadow:inset 0 0 0 1.5px var(--line2)}
 .nshotbig figcaption{margin-top:5px;font-size:12px;font-weight:700;color:var(--muted)}
 .ndel{margin-left:auto;color:var(--muted)}
+.ause{margin:0 0 22px;padding:16px 18px;border-radius:18px;background:var(--panel2);box-shadow:inset 0 0 0 1.5px var(--line2)}
+.ause h2{margin:0 0 4px;font-size:16px;font-weight:800}
+.ause .asub{margin:0 0 12px}
+.abar{height:12px;border-radius:999px;background:var(--panel);box-shadow:inset 0 0 0 1.5px var(--line2);overflow:hidden}
+.abar i{display:block;height:100%;border-radius:999px;background:var(--cyan)}
+.abar i.hot{background:#d98a1c}
+.anum{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 12px;font-size:13px;font-weight:700;color:var(--muted)}
+.anum b{color:var(--text)}
+.atab{width:100%;border-collapse:collapse;font-size:13px}
+.atab th,.atab td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line2);font-variant-numeric:tabular-nums}
+.atab th:first-child,.atab td:first-child{text-align:left}
+.atab th{color:var(--muted);font-weight:800}
 </style>
 </head>
 <body data-page="admin">
@@ -58,6 +70,7 @@ body{padding:28px 18px 60px}
 
   <div id="panel" hidden>
     <p class="acount" id="counts"></p>
+    <section class="ause" id="ause" aria-live="polite"></section>
     <div id="list"></div>
   </div>
 </div>
@@ -109,7 +122,44 @@ function load(){
     }
     $('#msg').textContent='';$('#login').hidden=true;$('#panel').hidden=false;
     draw(r.data.notes||[],r.data.stats||{});
+    ask('/api/admin/ai-usage',{token}).then(u=>{if(u.ok)usage(u.data)});
   });
+}
+
+// AI 사용량. 무료 한도는 하루 1만 뉴런이고 UTC 00:00 = 09:00 KST 에 다시 찬다 — 날짜 칸도 그 기준이다.
+function usage(d){
+  const rows=d.days||[],today=new Date().toISOString().slice(0,10);
+  const sum=(day,k)=>rows.filter(r=>r.day===day).reduce((s,r)=>s+(+r[k]||0),0);
+  const calls=(day,kind)=>rows.filter(r=>r.day===day&&r.kind===kind).reduce((s,r)=>s+(+r.calls||0),0);
+  const used=sum(today,'neurons'),limit=d.limit||10000,pct=Math.min(100,used/limit*100);
+  const rec=d.recent||{},paused=Object.entries(rec.paused_until||{});
+  const days=[...new Set(rows.map(r=>r.day))];
+  const kst=day=>{const t=new Date(day+'T00:00:00Z');return `${t.getMonth()+1}-${t.getDate()} 09시부터`};
+  $('#ause').innerHTML=`<h2>AI 사용량 — 오늘 ${esc(kst(today))}</h2>
+    <p class="asub">이 서버가 부른 호출만 셉니다. 팀 PC 에서 잰 호출도 같은 무료량을 쓰니 계정 전체는
+      <a href="https://dash.cloudflare.com/?to=/:account/ai/workers-ai" target="_blank" rel="noopener">Cloudflare 대시보드</a> 에서 보세요.</p>
+    <div class="abar" role="img" aria-label="오늘 무료량 ${pct.toFixed(1)}% 사용"><i class="${pct>=80?'hot':''}" style="width:${pct.toFixed(1)}%"></i></div>
+    <p class="anum">
+      <span>뉴런 <b>${Math.round(used).toLocaleString()} / ${limit.toLocaleString()}</b></span>
+      <span>채점 <b>${calls(today,'grade')}회</b></span>
+      <span>답변·번역 <b>${calls(today,'extra')}회</b></span>
+      <span>입력 토큰 <b>${sum(today,'prompt_tokens').toLocaleString()}</b></span>
+      <span>출력 토큰 <b>${sum(today,'completion_tokens').toLocaleString()}</b></span>
+    </p>
+    <p class="anum">
+      <span>지금 채점기 <b>${esc((d.providers||[]).join(' → ')||'없음')}</b></span>
+      <span>서버가 뜬 뒤 채점 <b>${rec.graded??0}회 · 실패 ${rec.failed??0}회</b></span>
+      <span>응답 중앙값 <b>${rec.median_sec??'–'}초</b></span>
+      <span>답변·번역 <b>${esc(rec.extras??'–')}</b></span>
+      ${rec.last_error?`<span>마지막 실패 <b>${esc(rec.last_error)}</b></span>`:''}
+      ${paused.map(([n,t])=>`<span>${esc(n)} <b>무료량 소진 — ${esc(t.replace('T',' '))} 까지 쉼</b></span>`).join('')}
+    </p>
+    ${d.error?`<p class="asub">사용량 기록을 못 읽었습니다(${esc(d.error)}).</p>`:''}
+    ${days.length?`<table class="atab"><thead><tr><th>날짜(09시 기준)</th><th>채점</th><th>답변·번역</th><th>입력 토큰</th><th>출력 토큰</th><th>뉴런</th></tr></thead><tbody>
+      ${days.map(day=>`<tr><td>${esc(kst(day))}</td><td>${calls(day,'grade')}</td><td>${calls(day,'extra')}</td>
+        <td>${sum(day,'prompt_tokens').toLocaleString()}</td><td>${sum(day,'completion_tokens').toLocaleString()}</td>
+        <td>${Math.round(sum(day,'neurons')).toLocaleString()}</td></tr>`).join('')}
+    </tbody></table>`:'<p class="asub">아직 기록이 없습니다 — 이 기능을 넣은 뒤부터 셉니다.</p>'}`;
 }
 
 function draw(notes,stats){
