@@ -42,7 +42,8 @@ def _importable(*names):
 
 
 # 순서가 곧 우선순위다. Cloudflare 무료량(하루 1만 뉴런, 09:00 KST 초기화)이 마르거나
-# 막히면 Vercel AI Gateway(매달 무료 크레딧)로 넘어간다.
+# 막히면 Vercel AI Gateway 로 넘어간다 — 다만 AI_GATEWAY_API_KEY 가 있을 때만이다. Vercel 은
+# 결제 수단을 등록해야 매달 무료 크레딧이 열려서(10-20 확인) 공개 서버에는 아직 넣지 않았다.
 PROVIDER_ORDER = ("cloudflare", "vercel")
 MODEL_OF = {"cloudflare": CLOUDFLARE_MODEL, "vercel": VERCEL_MODEL}
 
