@@ -1131,6 +1131,73 @@ def test_ai_answers_can_come_later_without_changing_the_grade(monkeypatch):
     assert [f["ai_index"] for f in done["findings"]] == [0, 1]
 
 
+def test_ai_extras_keep_the_languages_that_came_back():
+    """답변 · 번역은 언어마다 따로 받고, 항목 수가 어긋난 언어만 버린다(P43).
+
+    네 언어를 호출 하나로 받던 때는 한 언어만 어긋나도 넷 다 버려서, 10-20 공개 서버
+    확인에서 답변이 통째로 비었다. 버린 언어는 다음에 그 언어만 다시 부른다."""
+    import ai_review
+
+    data = {"verdict": "v", "deductions": [{"kind": "LAYOUT", "detail": "d", "fix": "f"}]}
+    one = {"verdict": "v", "deductions": [{"detail": "x", "fix": "y", "answers": ["a", "b", "c"]}]}
+
+    def ask(png, prompt, timeout, system, schema, max_tokens):
+        if system == ai_review.FOLLOWUP_SYSTEM["ja"]:
+            return json.dumps({"verdict": "v", "deductions": []})       # 항목 수 어긋남
+        if system == ai_review.FOLLOWUP_SYSTEM["ko"]:
+            return json.dumps({"deductions": [{"answers": ["왜", "어디", "확인"]}]})
+        return json.dumps(one)
+
+    assert ai_review._enrich(data, ask, 1)
+    assert data["deductions"][0]["answers"] == ["왜", "어디", "확인"]
+    assert sorted(data["i18n"]) == ["en", "zh"]
+    assert ai_review._needs_extras(data)
+
+    asked = []
+
+    def again(png, prompt, timeout, system, schema, max_tokens):
+        asked.append(system)
+        return json.dumps(one)
+
+    assert ai_review._enrich(data, again, 1)
+    assert asked == [ai_review.FOLLOWUP_SYSTEM["ja"]], "빠진 일본어만 다시 불러야 한다"
+    assert not ai_review._needs_extras(data)
+    assert set(ai_review._to_findings(data, "m")["findings"][0]["followups"]) == {"ko", "en", "ja", "zh"}
+
+
+def test_ai_waits_long_enough_for_the_slow_calls():
+    """채점 한 번을 기다리는 상한이 실측 최대(26.2초)보다 길어야 한다 — 20초일 때 2/20 이 비었다(P43)."""
+    import ai_review
+    assert ai_review.ASK_SEC >= 40
+    assert ai_review.BUDGET_SEC >= ai_review.ASK_SEC
+
+
+def test_ai_recent_counts_only_real_calls(monkeypatch):
+    """공개 상태의 최근 채점 요약 — 성공 · 실패를 세고, 실패 이유에는 주소를 싣지 않는다."""
+    import ai_review
+
+    monkeypatch.setattr(ai_review, "_RECENT", {"since": 0, "graded": 0, "failed": 0,
+                                               "secs": ai_review.deque(maxlen=50), "extra_parts": 0,
+                                               "extra_ok": 0, "last_error": None})
+    monkeypatch.setattr(ai_review, "providers", lambda: ["cloudflare"])
+    monkeypatch.setattr(ai_review, "render_png", lambda path: b"png")
+    monkeypatch.setattr(ai_review, "_cache_get", lambda path: None)
+    monkeypatch.setattr(ai_review, "_cache_put", lambda path, data: None)
+    monkeypatch.setattr(ai_review, "_ask_cloudflare",
+                        lambda *a, **k: json.dumps({"verdict": "v", "deductions": []}))
+    assert ai_review.judge({"dxf": __file__}, timeout=1)
+
+    def boom(*a, **k):
+        raise RuntimeError("https://api.cloudflare.com/client/v4/accounts/SECRET/ai/run")
+    monkeypatch.setattr(ai_review, "_ask_cloudflare", boom)
+    assert ai_review.judge({"dxf": __file__}, timeout=1) is None
+
+    got = ai_review.recent()
+    assert (got["graded"], got["failed"]) == (1, 1)
+    assert got["last_error"].startswith("cloudflare RuntimeError")
+    assert "SECRET" not in json.dumps(got)
+
+
 def test_ai_gives_up_only_after_every_grader_failed(monkeypatch):
     import ai_review
 

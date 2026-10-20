@@ -173,6 +173,7 @@ def health(request: Request):
             "ai": ai_review.is_available(),
             "ai_provider": ai_review.provider(),
             "ai_model": ai_review.active_model(),
+            "ai_recent": ai_review.recent(),
             "local": _is_local(request),
             "dwg_converter": dwg.has_dwg_support(),
             "stickers": ogq.available(),

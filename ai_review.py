@@ -3,7 +3,11 @@ import hashlib
 import json
 import os
 import re
+import statistics
+import threading
 import time
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 
 # 2026-10-20 에 Gemini · Mistral · Groq 를 뺐다(P35). Gemini API 약관은 18세 미만을
 # 대상으로 하거나 18세 미만이 쓸 가능성이 큰 서비스에 API 를 못 쓰게 하고, Groq 는 계정
@@ -262,21 +266,21 @@ LANGS = ("en", "ja", "zh")
 # 목록만 쓰기 때문에 답을 채점할 때 미리 만들어 둘 수 있다.
 FOLLOWUP_QUESTIONS = ("why", "where", "verify")
 
-FOLLOWUP_SYSTEM = """\
+# 답변 · 번역은 언어마다 따로 부른다(_enrich). 지시문의 앞뒤는 네 언어가 같다.
+_FOLLOWUP_HEAD = """\
 당신은 전산응용기계제도기능사 실기 도면 채점위원입니다.
 
-받은 JSON은 방금 당신이 매긴 '투상도 선택과 배열' 지적입니다. 두 가지를
-한꺼번에 만드세요.
-
-**첫째, 지적마다 수험생이 물을 세 가지에 답합니다.** answers 배열에 순서대로
-넣습니다.
+받은 JSON은 방금 당신이 매긴 '투상도 선택과 배열' 지적입니다. 지적마다
+수험생이 물을 세 가지에 답합니다. answers 배열에 순서대로 넣습니다.
 
 1. 왜 감점인가 — 어느 채점 항목과 어느 KS 제도 규칙에 걸리는지, 감점인지
    오작(실격)인지 밝힙니다.
 2. 어디를 눌러야 하나 — Inventor에서 밟을 메뉴 순서를 단계로 적습니다.
 3. 고친 뒤 어떻게 확인하나 — 도면에서 무엇을 보면 제대로 고쳐졌는지 적습니다.
 
-**둘째, 지적과 그 답을 영어(en) · 일본어(ja) · 중국어 간체(zh)로 옮깁니다.**
+"""
+
+_FOLLOWUP_RULES = """
 
 지켜야 할 것
 
@@ -287,10 +291,22 @@ FOLLOWUP_SYSTEM = """\
   번호를 적으면 수험생이 그것을 근거로 믿게 됩니다.
 - 답 앞에 번호나 질문을 다시 적지 마세요. 답 내용만 씁니다.
 - 각 답은 두세 문장으로 짧게 씁니다.
-- 번역은 뜻을 바꾸지 말고, 점수·개수·치수·기호(Ø, Ra, H7, A/B 데이텀)를
-  그대로 두세요. fix는 각 언어판 Inventor 메뉴 이름으로 옮기세요.
-  예: "배치 > 투상도" → "Place Views > Projected"
-- **deductions 배열의 순서와 개수를 네 언어 모두 원문과 똑같이 유지하세요.**"""
+- **deductions 배열의 순서와 개수를 원문과 똑같이 유지하세요.**"""
+
+_LANG_NAME = {"en": "영어", "ja": "일본어", "zh": "중국어 간체"}
+
+FOLLOWUP_SYSTEM = {
+    "ko": _FOLLOWUP_HEAD + "답은 한국어로 씁니다." + _FOLLOWUP_RULES,
+    **{lang: _FOLLOWUP_HEAD
+       + f"**모든 글을 {name}로 씁니다** — verdict, 지적마다 detail · fix 를 {name}로 "
+         f"옮기고, 세 가지 답도 {name}로 씁니다. 번역은 뜻을 바꾸지 말고, 점수·개수·"
+         "치수·기호(Ø, Ra, H7, A/B 데이텀)를 그대로 두세요. fix는 그 언어판 Inventor "
+         "메뉴 이름으로 옮기세요. 예: \"배치 > 투상도\" → \"Place Views > Projected\""
+       + _FOLLOWUP_RULES
+       for lang, name in _LANG_NAME.items()},
+}
+
+_ANSWERS = {"type": "array", "items": {"type": "string"}}
 
 # title 은 PROJECTION_KINDS 에 언어별로 이미 있어서 번역을 받지 않는다.
 _TRANSLATED_DEDUCTION = {
@@ -298,47 +314,35 @@ _TRANSLATED_DEDUCTION = {
     "properties": {
         "detail": {"type": "string"},
         "fix": {"type": "string"},
-        "answers": {"type": "array", "items": {"type": "string"}},
+        "answers": _ANSWERS,
     },
     "required": ["detail", "fix", "answers"],
     "additionalProperties": False,
 }
 
 FOLLOWUP_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "ko": {
-            "type": "object",
-            "properties": {
-                "deductions": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "answers": {"type": "array",
-                                        "items": {"type": "string"}},
-                        },
-                        "required": ["answers"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
-            "required": ["deductions"],
-            "additionalProperties": False,
+    "ko": {
+        "type": "object",
+        "properties": {
+            "deductions": {"type": "array", "items": {
+                "type": "object",
+                "properties": {"answers": _ANSWERS},
+                "required": ["answers"],
+                "additionalProperties": False,
+            }},
         },
-        **{lang: {
-            "type": "object",
-            "properties": {
-                "verdict": {"type": "string"},
-                "deductions": {"type": "array",
-                               "items": _TRANSLATED_DEDUCTION},
-            },
-            "required": ["verdict", "deductions"],
-            "additionalProperties": False,
-        } for lang in LANGS},
+        "required": ["deductions"],
+        "additionalProperties": False,
     },
-    "required": ["ko", *LANGS],
-    "additionalProperties": False,
+    **{lang: {
+        "type": "object",
+        "properties": {
+            "verdict": {"type": "string"},
+            "deductions": {"type": "array", "items": _TRANSLATED_DEDUCTION},
+        },
+        "required": ["verdict", "deductions"],
+        "additionalProperties": False,
+    } for lang in LANGS},
 }
 
 
@@ -607,11 +611,45 @@ def _cache_put(path, data):
         pass
 
 
-ASK_SEC = 20.0            # 채점 한 번을 기다리는 최대 시간
+# 채점 한 번을 기다리는 최대 시간. 20초였는데 Llama 4 Scout(Workers AI)는 실제 도면 20번 중
+# 2번이 20초를 넘었다(20.1 · 26.2초, 10-20 실측은 40초까지 기다려 잼). 공개 서버는 그만큼
+# 30점을 비우고 있었다(P43). 화면은 8초 뒤 결과를 먼저 보이고 180초까지 받아 가므로(home.js)
+# 길게 기다려도 검사가 멈추지 않는다.
+ASK_SEC = 45.0
 # 답변·번역은 결과가 나간 뒤 뒤에서 만드니 더 기다려도 된다. Workers AI 의 Llama 4 Scout 는
 # 같은 요청에 19초가 걸리기도 40초를 넘기기도 했다(10-20). 화면은 180초까지 받아 간다(home.js).
 EXTRA_SEC = 120.0
-BUDGET_SEC = 45.0         # 채점기를 차례로 시도하다가 이만큼 넘으면 그만둔다
+PART_SEC = 55.0           # 답변 · 번역 한 언어를 한 번 기다리는 시간 — 넘으면 한 번 더 부른다
+BUDGET_SEC = 60.0         # 채점기를 차례로 시도하다가 이만큼 넘으면 그만둔다
+
+# 공개 상태(/api/health)에 싣는 최근 채점 요약. 서버 로그를 못 보는 사람도 지금 AI 채점이
+# 실제로 되고 있는지 확인할 수 있게 — 이 프로세스가 뜬 뒤부터, 캐시로 끝난 검사는 뺀다.
+# ponytail: 프로세스 메모리라 재시작하면 0 부터 센다. 오래 쌓아야 하면 stats(D1)로 옮긴다.
+_RECENT = {"since": time.time(), "graded": 0, "failed": 0, "secs": deque(maxlen=50),
+           "extra_parts": 0, "extra_ok": 0, "last_error": None}
+_RECENT_LOCK = threading.Lock()
+
+
+def _note(**kw):
+    with _RECENT_LOCK:
+        for k, v in kw.items():
+            if k == "sec":
+                _RECENT["secs"].append(v)
+            elif k == "last_error":
+                _RECENT[k] = v
+            else:
+                _RECENT[k] += v
+
+
+def recent():
+    with _RECENT_LOCK:
+        secs = list(_RECENT["secs"])
+        return {"since": time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(_RECENT["since"])),
+                "graded": _RECENT["graded"], "failed": _RECENT["failed"],
+                "median_sec": round(statistics.median(secs), 1) if secs else None,
+                "max_sec": round(max(secs), 1) if secs else None,
+                "extras": f"{_RECENT['extra_ok']}/{_RECENT['extra_parts']}",
+                "last_error": _RECENT["last_error"]}
 
 
 def judge(facts, timeout=ASK_SEC, defer=False):
@@ -662,6 +700,7 @@ def judge(facts, timeout=ASK_SEC, defer=False):
         except Exception:
             return None
     until = time.monotonic() + BUDGET_SEC
+    error = "없음"
     for name in chain:
         model = MODEL_OF[name]
         ask = asks[name]
@@ -669,21 +708,28 @@ def judge(facts, timeout=ASK_SEC, defer=False):
         if left <= 1.0:
             print(f"[ai] {BUDGET_SEC:.0f}초를 넘겨 {name} 은 건너뛴다", flush=True)
             break
+        started = time.monotonic()
         try:
             text = ask(png, prompt, min(timeout, left))
         except Exception as e:
             print(f"[ai] {name} {type(e).__name__}: {str(e)[:300]}", flush=True)
+            # 예외 글에는 계정 번호가 든 주소가 섞일 수 있어 공개 상태에는 종류와 상태 코드만 남긴다
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            error = f"{name} {type(e).__name__}" + (f" {status}" if status else "")
             continue
         if not text:
             print(f"[ai] {name} 빈 응답", flush=True)
+            error = f"{name} 빈 응답"
             continue
         try:
             data = json.loads(text)
         except ValueError:
-            print(f"[ai] {name} 응답이 JSON 이 아님", flush=True)
-            continue
+            data = None
         if not isinstance(data, dict):
+            print(f"[ai] {name} 응답이 JSON 이 아님", flush=True)
+            error = f"{name} JSON 아님"
             continue
+        _note(graded=1, sec=time.monotonic() - started)
 
         # 빈 자리채움 항목은 여기서 한 번만 걸러낸다. 번역과 화면 표시가 같은
         # 목록을 봐야 항목 순서가 어긋나지 않는다.
@@ -697,19 +743,24 @@ def judge(facts, timeout=ASK_SEC, defer=False):
         if name != chain[0]:
             print(f"[ai] {chain[0]} 실패 → {name}({model})로 채점", flush=True)
         return _with_extras(data, ask, timeout, cached, model, defer)
+    _note(failed=1, last_error=f"{error} · {time.strftime('%m-%d %H:%MZ', time.gmtime())}")
     return None
+
+
+def _missing_answers(data):
+    return any("answers" not in d for d in data["deductions"] if isinstance(d, dict))
 
 
 def _needs_extras(data):
     """Answers or translations are missing — they failed on an earlier run or were never made.
 
     세 단계가 순서대로 이어져 있어 뒤가 실패하면 앞 결과만 남는데, 캐시를 그대로
-    쓰면 그 반쪽짜리 판이 영영 굳는다. 다음 검사 때 빠진 것만 다시 부른다."""
+    쓰면 그 반쪽짜리 판이 영영 굳는다. 다음 검사 때 빠진 것만 다시 부른다 —
+    언어 하나만 빠졌어도 그 언어만."""
     if not isinstance(data.get("deductions"), list) or not data["deductions"]:
         return False
-    missing_answers = any("answers" not in d for d in data["deductions"]
-                          if isinstance(d, dict))
-    return missing_answers or not data.get("i18n")
+    have = data.get("i18n") or {}
+    return _missing_answers(data) or any(lang not in have for lang in LANGS)
 
 
 def _with_extras(data, ask, timeout, cached, model, defer):
@@ -731,47 +782,74 @@ def _with_extras(data, ask, timeout, cached, model, defer):
 
 
 def _enrich(data, ask, timeout):
-    """Add Korean answers and the three translations in one call.
+    """Add Korean answers and the three translations — one call per language, all at once.
 
-    호출 하나에 묶는 이유는 무료 할당량이다. 도면 한 장에 채점·답변·번역으로
-    세 번을 부르면 한도가 세 배로 빨리 마르고, 실제로 배포 서버에서 마지막
-    번역만 429 로 계속 막혔다. 답변과 번역은 둘 다 채점 결과만 있으면 되므로
-    한 번에 받는다. 실패하면 아무것도 채우지 않고 화면이 원래대로 돌아간다."""
+    10-20 까지는 네 언어를 호출 하나로 받았다(무료 한도 때문 — Gemini 시절 번역만 429 로 막혔다).
+    Workers AI 의 Llama 4 Scout 는 그 호출 하나에 48 ~ 64초가 걸렸고(출력 510 토큰), 한 언어라도
+    항목 수가 어긋나면 네 언어를 다 버렸다 — 예제 3장을 만들 때 4번 중 1번, 그날 밤 공개 서버
+    확인 때 1번 중 1번 답변이 비었다(P43). 언어마다 따로 동시에 부르면 가장 느린 하나만큼만 걸리고,
+    어긋난 언어만 버린다. 버린 언어는 같은 도면을 다시 열 때 그것만 다시 부른다(_needs_extras).
+    지시문이 언어마다 붙어 뉴런은 더 든다(지적 1개 도면 52 → 78 ~ 123, 10-20 측정).
+
+    한 언어 호출이 120초 동안 답이 없던 적도 있다(같은 날 중국어). 출력 상한이 3000 토큰이면
+    초당 20 토큰 남짓인 이 모델이 같은 말을 되풀이할 때 150초를 넘긴다. 그래서 상한을 지적 수에
+    맞추고(지적 하나에 실측 100 ~ 300 토큰), 한 번 기다리는 시간을 PART_SEC 로 끊어 한 번 더 부른다."""
     want = len(data["deductions"])
     if not want:
         return False
-    source = {"verdict": data.get("verdict", ""),
-              "deductions": [{"title": _title(d, "ko"),
-                              "detail": d.get("detail", ""),
-                              "fix": d.get("fix", "")}
-                             for d in data["deductions"]]}
-    try:
-        text = ask(None, json.dumps(source, ensure_ascii=False), timeout,
-                   FOLLOWUP_SYSTEM, FOLLOWUP_SCHEMA, 8000)
-        out = json.loads(text) if text else None
-    except Exception as e:
-        print(f"[ai] 보조 생성 실패 {type(e).__name__}: {str(e)[:200]}", flush=True)
+    i18n = dict(data.get("i18n") or {})
+    parts = (["ko"] if _missing_answers(data) else []) + [lang for lang in LANGS if lang not in i18n]
+    if not parts:
         return False
-    if not isinstance(out, dict):
-        return False
-    for lang in ("ko", *LANGS):
-        got = (out.get(lang) or {}).get("deductions")
-        if not isinstance(got, list) or len(got) != want:
+    source = json.dumps({"verdict": data.get("verdict", ""),
+                         "deductions": [{"title": _title(d, "ko"),
+                                         "detail": d.get("detail", ""),
+                                         "fix": d.get("fix", "")}
+                                        for d in data["deductions"]]}, ensure_ascii=False)
+    tokens = min(3000, 300 + 450 * want)
+
+    def one(lang):
+        until = time.monotonic() + timeout
+        for attempt in range(2):
+            left = until - time.monotonic()
+            if attempt and left < 10:
+                break
+            try:
+                text = ask(None, source, max(1.0, min(left, PART_SEC)), FOLLOWUP_SYSTEM[lang],
+                           FOLLOWUP_SCHEMA[lang], tokens)
+                out = json.loads(text) if text else None
+            except Exception as e:
+                print(f"[ai] 보조 생성 {lang} 실패 {type(e).__name__}: {str(e)[:200]}", flush=True)
+                continue
+            got = out.get("deductions") if isinstance(out, dict) else None
+            if isinstance(got, list) and len(got) == want:
+                return out
             print(f"[ai] 보조 생성 {lang} 항목 수가 원문과 달라 버림", flush=True)
-            return False
+        return None
+
+    with ThreadPoolExecutor(max_workers=len(parts)) as pool:
+        got = dict(zip(parts, pool.map(one, parts)))
+    _note(extra_parts=len(parts), extra_ok=sum(1 for v in got.values() if v))
 
     n = len(FOLLOWUP_QUESTIONS)
-    for pos, d in enumerate(data["deductions"]):
-        answers = (out["ko"]["deductions"][pos] or {}).get("answers")
+    changed = False
+    for d, item in zip(data["deductions"], (got.get("ko") or {}).get("deductions") or []):
+        answers = (item or {}).get("answers")
         if isinstance(answers, list) and len(answers) == n:
             d["answers"] = [_drop_clause_numbers(a) for a in answers]
+            changed = True
     for lang in LANGS:
-        for item in out[lang]["deductions"]:
+        out = got.get(lang)
+        if not out:
+            continue
+        for item in out["deductions"]:
             if isinstance(item, dict) and isinstance(item.get("answers"), list):
-                item["answers"] = [_drop_clause_numbers(a)
-                                   for a in item["answers"]]
-    data["i18n"] = {lang: out[lang] for lang in LANGS}
-    return True
+                item["answers"] = [_drop_clause_numbers(a) for a in item["answers"]]
+        i18n[lang] = out
+        changed = True
+    if i18n:
+        data["i18n"] = i18n
+    return changed
 
 
 # 규격 이름은 확인할 수 있지만 조·항·장 번호는 그렇지 않다. 지시문으로 막아도
