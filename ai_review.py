@@ -226,6 +226,13 @@ verdict 에는 **투상도 항목 총평을 한국어 한 문장**으로 씁니�
 - 결함이 없으면 deductions를 빈 배열로 두고 30점을 주세요.
 - 모든 문장은 한국어로 씁니다."""
 
+# 채점 응답의 출력 상한. 시간 ≈ 0.9초 + 출력 토큰 × 0.05초(10-20 17시 실측 20번)라 길수록 늦다.
+# 지금까지 가장 긴 응답이 396 토큰이었고, 같은 말을 되풀이하면 4000 토큰까지 200초를 매달릴 수
+# 있어 1000 에서 끊는다. "짧게 쓰라"는 지시도 재 봤지만(10-20 밤, 10장) 출력 중앙값이 166 → 157
+# 토큰으로 거의 그대로였다 — 같은 시각 Cloudflare 쪽 속도가 토큰당 0.049 → 0.088초로 더 크게
+# 흔들려 지시문은 그대로 두었다(P44).
+GRADE_MAX_TOKENS = 1000
+
 # 지적 제목은 AI 가 쓰지 않고 여기서 붙인다. 같은 판정에 "투상도 전체 누락",
 # "투상도 완전 누락", "기계 부품 투상도 미작성 및 투상 뷰 부재" 처럼 매번 다른
 # 제목이 달리면 재검사에서 지난번과 비교가 안 된다(P03). AI 는 kind 만 고른다.
@@ -469,6 +476,7 @@ def _ask_cloudflare(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
                    + base64.standard_b64encode(png).decode()}})
     until = time.monotonic() + timeout
     for attempt in range(2):
+        started = time.monotonic()
         response = requests.post(
             f"https://api.cloudflare.com/client/v4/accounts/{account}"
             f"/ai/run/{CLOUDFLARE_MODEL}",
@@ -500,9 +508,12 @@ def _ask_cloudflare(png, prompt, timeout, system=SYSTEM, schema=SCHEMA,
         print(f"[ai] {label}: {str(body.get('errors'))[:300]}", flush=True)
         return None
     result = body.get("result") or {}
+    usage = result.get("usage") or body.get("usage") or {}
+    if usage.get("completion_tokens"):
+        _note(speed=usage["completion_tokens"] / max(0.1, time.monotonic() - started))
     if on_usage:
         try:
-            on_usage("grade" if png else "extra", result.get("usage") or body.get("usage") or {})
+            on_usage("grade" if png else "extra", usage)
         except Exception:                                     # noqa: BLE001
             pass
     # Workers AI 는 스키마로 파싱한 결과를 response 에, 원문을 choices 에 준다
@@ -679,15 +690,15 @@ BUDGET_SEC = 60.0         # 채점기를 차례로 시도하다가 이만큼 넘
 # 실제로 되고 있는지 확인할 수 있게 — 이 프로세스가 뜬 뒤부터, 캐시로 끝난 검사는 뺀다.
 # ponytail: 프로세스 메모리라 재시작하면 0 부터 센다. 오래 쌓아야 하면 stats(D1)로 옮긴다.
 _RECENT = {"since": time.time(), "graded": 0, "failed": 0, "secs": deque(maxlen=50),
-           "extra_parts": 0, "extra_ok": 0, "last_error": None}
+           "speeds": deque(maxlen=50), "extra_parts": 0, "extra_ok": 0, "last_error": None}
 _RECENT_LOCK = threading.Lock()
 
 
 def _note(**kw):
     with _RECENT_LOCK:
         for k, v in kw.items():
-            if k == "sec":
-                _RECENT["secs"].append(v)
+            if k in ("sec", "speed"):
+                _RECENT.setdefault(k + "s", deque(maxlen=50)).append(v)
             elif k == "last_error":
                 _RECENT[k] = v
             else:
@@ -701,6 +712,8 @@ def recent():
                 "graded": _RECENT["graded"], "failed": _RECENT["failed"],
                 "median_sec": round(statistics.median(secs), 1) if secs else None,
                 "max_sec": round(max(secs), 1) if secs else None,
+                # Cloudflare 쪽 출력 속도(토큰/초). 같은 호출도 시각에 따라 20 → 11 로 흔들린다(P44)
+                "tok_per_sec": round(statistics.median(_RECENT.get("speeds") or [0]), 1) or None,
                 "extras": f"{_RECENT['extra_ok']}/{_RECENT['extra_parts']}",
                 "last_error": _RECENT["last_error"],
                 "paused_until": {n: time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(t))
@@ -767,7 +780,7 @@ def judge(facts, timeout=ASK_SEC, defer=False):
             break
         started = time.monotonic()
         try:
-            text = ask(png, prompt, min(timeout, left))
+            text = ask(png, prompt, min(timeout, left), SYSTEM, SCHEMA, GRADE_MAX_TOKENS)
         except Exception as e:
             print(f"[ai] {name} {type(e).__name__}: {str(e)[:300]}", flush=True)
             # 예외 글에는 계정 번호가 든 주소가 섞일 수 있어 공개 상태에는 종류와 상태 코드만 남긴다

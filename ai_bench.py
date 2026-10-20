@@ -74,6 +74,7 @@ def main(which, runs, names, out_path):
                 row = {"provider": which, "run": rnd, "name": os.path.basename(path), "ok": out is not None,
                        "sec": round(clock.get("sec") or 0, 2), "score": out and out.get("score"),
                        "deducted": out and len([f for f in out["findings"] if f.get("deduct")]),
+                       "findings": out and [[f.get("title"), f.get("deduct")] for f in out["findings"]],
                        "usage": usage[-1] if usage else None}
                 rows.append(row)
                 log.write(json.dumps(row, ensure_ascii=False) + "\n")

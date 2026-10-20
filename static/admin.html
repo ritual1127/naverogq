@@ -150,6 +150,7 @@ function usage(d){
       <span>지금 채점기 <b>${esc((d.providers||[]).join(' → ')||'없음')}</b></span>
       <span>서버가 뜬 뒤 채점 <b>${rec.graded??0}회 · 실패 ${rec.failed??0}회</b></span>
       <span>응답 중앙값 <b>${rec.median_sec??'–'}초</b></span>
+      <span>Cloudflare 출력 속도 <b>${rec.tok_per_sec??'–'} 토큰/초</b></span>
       <span>답변·번역 <b>${esc(rec.extras??'–')}</b></span>
       ${rec.last_error?`<span>마지막 실패 <b>${esc(rec.last_error)}</b></span>`:''}
       ${paused.map(([n,t])=>`<span>${esc(n)} <b>무료량 소진 — ${esc(t.replace('T',' '))} 까지 쉼</b></span>`).join('')}
